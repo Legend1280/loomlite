@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loom Lite - Ontology Navigator</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a202c;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+    
+    /* TOP BAR - EXPANDED */
+    #topbar {
+      background: #2d3748;
+      border-bottom: 1px solid #4a5568;
+      padding: 12px 20px;
+    }
+    
+    /* Search Row */
+    #searchRow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    #searchInput {
+      flex: 1;
+      padding: 10px 16px;
+      background: #1a202c;
+      border: 2px solid #4a5568;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 15px;
+      transition: border-color 0.2s;
+    }
+    
+    #searchInput:focus {
+      outline: none;
+      border-color: #3182ce;
+    }
+    
+    #searchInput::placeholder {
+      color: #718096;
+    }
+    
+    .view-btn {
+      padding: 10px 20px;
+      background: #4a5568;
+      border: none;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .view-btn:hover {
+      background: #5a6678;
+    }
+    
+    .view-btn.active {
+      background: #3182ce;
+      color: white;
+    }
+    
+    /* Filter Chips Row */
+    #filterRow {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .filter-section {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding-right: 12px;
+      border-right: 1px solid #4a5568;
+    }
+    
+    .filter-section:last-child {
+      border-right: none;
+    }
+    
+    .filter-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #718096;
+      letter-spacing: 0.5px;
+    }
+    
+    .filter-chip {
+      padding: 6px 12px;
+      background: #1a202c;
+      border: 1.5px solid #4a5568;
+      border-radius: 16px;
+      color: #cbd5e0;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    
+    .filter-chip:hover {
+      border-color: #5a6678;
+      background: #2d3748;
+    }
+    
+    .filter-chip.active {
+      background: #3182ce;
+      border-color: #3182ce;
+      color: white;
+    }
+    
+    .filter-chip.type-metric { border-color: #3b82f6; }
+    .filter-chip.type-date { border-color: #10b981; }
+    .filter-chip.type-person { border-color: #8b5cf6; }
+    .filter-chip.type-project { border-color: #f59e0b; }
+    .filter-chip.type-topic { border-color: #ec4899; }
+    .filter-chip.type-technology { border-color: #06b6d4; }
+    
+    /* MAIN LAYOUT */
+    #mainContainer {
+      display: flex;
+      height: calc(100vh - 120px);
+    }
+    
+    /* ONTOLOGY PANEL (70%) */
+    #ontologyPanel {
+      flex: 0 0 70%;
+      background: #1a202c;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #ontologySvg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* FILE VIEWER PANEL (30%) */
+    #filePanel {
+      flex: 0 0 30%;
+      background: #0f1419;
+      border-left: 1px solid #2d3748;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #filePanelHeader {
+      padding: 16px 20px;
+      background: #1a202c;
+      border-bottom: 1px solid #2d3748;
+      font-size: 13px;
+      font-weight: 600;
+      color: #a0aec0;
+    }
+    
+    #fileContent {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    #pdfViewer {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .evidence-panel {
+      padding: 20px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    
+    .evidence-item {
+      background: #1a202c;
+      padding: 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border-left: 3px solid #3182ce;
+    }
+    
+    .evidence-highlight {
+      background: #3182ce;
+      color: white;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .empty-state {
+      color: #4a5568;
+      text-align: center;
+      padding: 60px 20px;
+      font-size: 14px;
+    }
+    
+    /* TREE STYLES */
+    .node-rect {
+      fill: #2d3748;
+      stroke: #4a5568;
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    
+    .node-rect:hover {
+      fill: #374151;
+      stroke-width: 3px;
+    }
+    
+    .node-rect.selected {
+      fill: #1e3a5f;
+      stroke: #3182ce;
+      stroke-width: 3px;
+    }
+    
+    .node-rect.type-Metric { stroke: #3b82f6; }
+    .node-rect.type-Date { stroke: #10b981; }
+    .node-rect.type-Person { stroke: #8b5cf6; }
+    .node-rect.type-Project { stroke: #f59e0b; }
+    .node-rect.type-Topic { stroke: #ec4899; }
+    .node-rect.type-Technology { stroke: #06b6d4; }
+    .node-rect.type-Document { stroke: #64748b; }
+    
+    .node-text {
+      fill: #f1f5f9;
+      font-size: 13px;
+      font-weight: 600;
+      pointer-events: none;
+    }
+    
+    .node-type {
+      fill: #94a3b8;
+      font-size: 10px;
+      pointer-events: none;
+    }
+    
+    .link-path {
+      fill: none;
+      stroke: #374151;
+      stroke-width: 2px;
+      opacity: 0.6;
+    }
+    
+    .expand-indicator {
+      fill: #64748b;
+      font-size: 14px;
+      font-weight: bold;
+      pointer-events: none;
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #1a202c;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #4a5568;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #5a6678;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <!-- Search Row -->
+    <div id="searchRow">
+      <input type="text" id="searchInput" placeholder="Search concepts, documents, topics...">
+      <button class="view-btn active" data-view="categories">Categories</button>
+      <button class="view-btn" data-view="concepts">Concepts</button>
+      <button class="view-btn" data-view="galaxy">Galaxy View</button>
+    </div>
+    
+    <!-- Filter Chips Row -->
+    <div id="filterRow">
+      <div class="filter-section">
+        <span class="filter-label">Types</span>
+        <div class="filter-chip type-metric" data-type="Metric">Metric</div>
+        <div class="filter-chip type-date" data-type="Date">Date</div>
+        <div class="filter-chip type-person" data-type="Person">Person</div>
+        <div class="filter-chip type-project" data-type="Project">Project</div>
+        <div class="filter-chip type-topic" data-type="Topic">Topic</div>
+        <div class="filter-chip type-technology" data-type="Technology">Technology</div>
+      </div>
+      
+      <div class="filter-section" id="dynamicFilters">
+        <span class="filter-label">Filters</span>
+        <!-- Dynamic filters will be added here -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- MAIN CONTAINER -->
+  <div id="mainContainer">
+    <!-- ONTOLOGY PANEL -->
+    <div id="ontologyPanel">
+      <svg id="ontologySvg"></svg>
+    </div>
+    
+    <!-- FILE VIEWER PANEL -->
+    <div id="filePanel">
+      <div id="filePanelHeader">Document Viewer</div>
+      <div id="fileContent">
+        <div class="empty-state">Select a concept to view evidence</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE = 'https://8000-iwpqvkrmovqiw62a4u1vm-6aa4782a.manusvm.computer';
+    let currentOntology = null;
+    let allDocuments = [];
+    let activeFilters = new Set();
+    
+    // DOM elements
+    const searchInput = document.getElementById('searchInput');
+    const svg = d3.select('#ontologySvg');
+    const fileContent = document.getElementById('fileContent');
+    const filePanelHeader = document.getElementById('filePanelHeader');
+    const dynamicFilters = document.getElementById('dynamicFilters');
+    
+    // Initialize
+    init();
+    
+    async function init() {
+      await loadAllData();
+      setupEventListeners();
+      drawInitialView();
+    }
+    
+    async function loadAllData() {
+      try {
+        // Load document tree
+        const tree = await fetchJSON(`${API_BASE}/tree`);
+        allDocuments = tree.filter(item => item.type === 'file');
+        
+        // Load tags for dynamic filters
+        const tags = await fetchJSON(`${API_BASE}/tags`);
+        populateDynamicFilters(tags);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      }
+    }
+    
+    function populateDynamicFilters(tags) {
+      tags.forEach(tag => {
+        const chip = document.createElement('div');
+        chip.className = 'filter-chip';
+        chip.dataset.tag = tag;
+        chip.textContent = tag;
+        chip.addEventListener('click', () => toggleFilter(chip));
+        dynamicFilters.appendChild(chip);
+      });
+    }
+    
+    function setupEventListeners() {
+      // Search input
+      searchInput.addEventListener('input', handleSearch);
+      
+      // View buttons
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          handleViewChange(btn.dataset.view);
+        });
+      });
+      
+      // Type filters
+      document.querySelectorAll('.filter-chip[data-type]').forEach(chip => {
+        chip.addEventListener('click', () => toggleFilter(chip));
+      });
+    }
+    
+    function toggleFilter(chip) {
+      chip.classList.toggle('active');
+      const filterValue = chip.dataset.type || chip.dataset.tag;
+      
+      if (chip.classList.contains('active')) {
+        activeFilters.add(filterValue);
+      } else {
+        activeFilters.delete(filterValue);
+      }
+      
+      redrawWithFilters();
+    }
+    
+    async function handleSearch() {
+      const query = searchInput.value.trim();
+      if (query.length < 2) {
+        drawInitialView();
+        return;
+      }
+      
+      try {
+        const results = await fetchJSON(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+        drawSearchResults(results);
+      } catch (error) {
+        console.error('Search failed:', error);
+      }
+    }
+    
+    function handleViewChange(view) {
+      console.log('View changed to:', view);
+      // TODO: Implement different view modes
+    }
+    
+    async function drawInitialView() {
+      // Load first document's ontology as initial view
+      if (allDocuments.length > 0) {
+        const firstDoc = allDocuments[0];
+        await loadDocumentOntology(firstDoc.id);
+      }
+    }
+    
+    async function loadDocumentOntology(docId) {
+      try {
+        const ontology = await fetchJSON(`${API_BASE}/doc/${docId}/ontology`);
+        currentOntology = ontology;
+        filePanelHeader.textContent = ontology.document.title;
+        drawTree(ontology);
+      } catch (error) {
+        console.error('Failed to load document:', error);
+      }
+    }
+    
+    function drawTree(ontology) {
+      const width = document.getElementById('ontologyPanel').clientWidth;
+      const height = document.getElementById('ontologyPanel').clientHeight;
+      
+      svg.selectAll('*').remove();
+      
+      const concepts = ontology.concepts || [];
+      const relations = ontology.relations || [];
+      
+      if (concepts.length === 0) {
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#4a5568')
+          .attr('font-size', '14px')
+          .text('No concepts found');
+        return;
+      }
+      
+      // Build tree structure
+      const root = buildTreeStructure(concepts, relations);
+      
+      // Create tree layout (horizontal)
+      const treeLayout = d3.tree()
+        .nodeSize([70, 220])
+        .separation((a, b) => (a.parent === b.parent ? 1 : 1.3));
+      
+      const treeData = d3.hierarchy(root);
+      const nodes = treeLayout(treeData);
+      
+      const g = svg.append('g')
+        .attr('transform', `translate(120, ${height / 2})`);
+      
+      // Draw links (horizontal with rounded corners)
+      g.selectAll('.link-path')
+        .data(nodes.links())
+        .join('path')
+        .attr('class', 'link-path')
+        .attr('d', d => {
+          const source = { x: d.source.y, y: d.source.x };
+          const target = { x: d.target.y, y: d.target.x };
+          const midX = (source.x + target.x) / 2;
+          return `M${source.x},${source.y}
+                  C${midX},${source.y} ${midX},${target.y} ${target.x},${target.y}`;
+        });
+      
+      // Draw nodes
+      const nodeGroups = g.selectAll('.node')
+        .data(nodes.descendants())
+        .join('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.y},${d.x})`)
+        .on('click', (event, d) => handleNodeClick(event, d));
+      
+      // Node rectangles
+      nodeGroups.append('rect')
+        .attr('class', d => `node-rect type-${d.data.type || 'default'}`)
+        .attr('x', -90)
+        .attr('y', -24)
+        .attr('width', 180)
+        .attr('height', 48)
+        .attr('rx', 8);
+      
+      // Node text
+      nodeGroups.append('text')
+        .attr('class', 'node-text')
+        .attr('dy', -4)
+        .attr('text-anchor', 'middle')
+        .text(d => {
+          const label = d.data.label || d.data.name;
+          return label.length > 20 ? label.substring(0, 18) + '...' : label;
+        });
+      
+      // Node type
+      nodeGroups.append('text')
+        .attr('class', 'node-type')
+        .attr('dy', 12)
+        .attr('text-anchor', 'middle')
+        .text(d => d.data.type ? `(${d.data.type})` : '');
+      
+      // Expand indicator
+      nodeGroups.filter(d => d.children && d.children.length > 0)
+        .append('text')
+        .attr('class', 'expand-indicator')
+        .attr('x', 95)
+        .attr('dy', 5)
+        .attr('text-anchor', 'middle')
+        .text('›');
+    }
+    
+    function buildTreeStructure(concepts, relations) {
+      // Build children map
+      const childrenMap = new Map();
+      const visited = new Set();
+      
+      relations.forEach(rel => {
+        if (!childrenMap.has(rel.src_concept_id)) {
+          childrenMap.set(rel.src_concept_id, []);
+        }
+        childrenMap.get(rel.src_concept_id).push({
+          conceptId: rel.dst_concept_id,
+          relation: rel.rel
+        });
+      });
+      
+      // Find root concepts (no incoming edges)
+      const targetIds = new Set(relations.map(r => r.dst_concept_id));
+      const rootConcepts = concepts.filter(c => !targetIds.has(c.id));
+      
+      // Recursive build
+      function buildNode(concept, depth = 0) {
+        const nodeKey = `${concept.id}_${depth}`;
+        if (depth > 4 || visited.has(nodeKey)) return null;
+        visited.add(nodeKey);
+        
+        const node = {
+          ...concept,
+          name: concept.label,
+          children: []
+        };
+        
+        const children = childrenMap.get(concept.id) || [];
+        children.forEach(child => {
+          const childConcept = concepts.find(c => c.id === child.conceptId);
+          if (childConcept) {
+            const childNode = buildNode(childConcept, depth + 1);
+            if (childNode) {
+              node.children.push(childNode);
+            }
+          }
+        });
+        
+        if (node.children.length === 0) {
+          delete node.children;
+        }
+        
+        return node;
+      }
+      
+      // Create virtual root if multiple roots
+      if (rootConcepts.length === 0) {
+        return buildNode(concepts[0]);
+      } else if (rootConcepts.length === 1) {
+        return buildNode(rootConcepts[0]);
+      } else {
+        return {
+          id: 'root',
+          label: 'All Concepts',
+          name: 'All Concepts',
+          type: 'Document',
+          children: rootConcepts.map(c => buildNode(c)).filter(n => n !== null)
+        };
+      }
+    }
+    
+    async function handleNodeClick(event, d) {
+      // Remove previous selection
+      svg.selectAll('.node-rect').classed('selected', false);
+      
+      // Mark as selected
+      d3.select(event.currentTarget).select('.node-rect').classed('selected', true);
+      
+      const conceptId = d.data.id;
+      
+      // Skip if virtual root
+      if (conceptId === 'root') return;
+      
+      // Load evidence
+      try {
+        const docId = currentOntology.document.id;
+        const evidence = await fetchJSON(`${API_BASE}/doc/${docId}/concept/${conceptId}/evidence`);
+        
+        displayEvidence(evidence, d.data);
+      } catch (error) {
+        console.error('Failed to load evidence:', error);
+        fileContent.innerHTML = '<div class="empty-state">Error loading evidence</div>';
+      }
+    }
+    
+    function displayEvidence(evidence, concept) {
+      if (!evidence || evidence.length === 0) {
+        fileContent.innerHTML = '<div class="empty-state">No evidence found for this concept</div>';
+        return;
+      }
+      
+      let html = '<div class="evidence-panel">';
+      evidence.forEach((ev, idx) => {
+        const before = ev.context.substring(0, ev.span.start - ev.context_start);
+        const match = ev.context.substring(ev.span.start - ev.context_start, ev.span.end - ev.context_start);
+        const after = ev.context.substring(ev.span.end - ev.context_start);
+        
+        html += `
+          <div class="evidence-item">
+            ${escapeHtml(before)}<span class="evidence-highlight">${escapeHtml(match)}</span>${escapeHtml(after)}
+          </div>
+        `;
+      });
+      html += '</div>';
+      
+      fileContent.innerHTML = html;
+    }
+    
+    function redrawWithFilters() {
+      if (!currentOntology) return;
+      
+      // Filter concepts based on active filters
+      let filteredConcepts = currentOntology.concepts;
+      
+      if (activeFilters.size > 0) {
+        filteredConcepts = filteredConcepts.filter(c => 
+          activeFilters.has(c.type) || 
+          (c.tags && c.tags.some(t => activeFilters.has(t)))
+        );
+      }
+      
+      const filteredOntology = {
+        ...currentOntology,
+        concepts: filteredConcepts
+      };
+      
+      drawTree(filteredOntology);
+    }
+    
+    function drawSearchResults(results) {
+      // TODO: Implement search results visualization
+      console.log('Search results:', results);
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    async function fetchJSON(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+  </script>
+</body>
+</html>
+
