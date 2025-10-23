@@ -16,7 +16,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 # Import modules
-from models import MicroOntology, Document, OntologyVersion, Span, Concept, Relation, Mention
+from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, Mention
 from reader import read_document
 from extractor import extract_ontology
 
@@ -80,7 +80,7 @@ def get_ontology_from_db(doc_id: str) -> Optional[MicroOntology]:
     if not doc_row:
         return None
     
-    doc = Document(**dict(doc_row))
+    doc = DocumentMetadata(**dict(doc_row))
     
     # Get version
     version_row = cur.execute(
