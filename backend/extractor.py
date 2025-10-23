@@ -54,7 +54,7 @@ Text to analyze:
 """
 
 
-def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-4.1-mini") -> Dict:
+def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-5") -> Dict:
     """
     Extract concepts and relations from text using OpenAI API
     
@@ -170,8 +170,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
     cur.execute("""
         INSERT INTO ontology_versions (id, doc_id, model_name, model_version, pipeline, extracted_at, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (version_id, doc_id, "gpt-4.1-mini", "2025-10-22", "ingest+extract@v0.3.0",
-          datetime.utcnow().isoformat() + "Z", "OpenAI extraction"))
+    """, (version_id              "gpt-5", "2025-10-22", "ingest+extract@v0.3.0",       datetime.utcnow().isoformat() + "Z", "OpenAI extraction"))
     
     # Insert spans
     span_map = {}  # concept_label -> [span_ids]
@@ -180,7 +179,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
         cur.execute("""
             INSERT INTO spans (id, doc_id, start, "end", text, extractor, quality)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (span_id, doc_id, span["start"], span["end"], span["text"], "openai@gpt-4.1-mini", 0.9))
+        """, (span_id, doc_id, span["start"], span["end"], span["text"], "openai@gpt-5", 0.9))
         
         concept_label = span["concept_label"]
         if concept_label not in span_map:
@@ -199,7 +198,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
         """, (concept_id, doc_id, concept["label"], concept["type"], concept["confidence"],
               json.dumps(concept.get("aliases", [])),
               json.dumps(concept.get("tags", [])),
-              "gpt-4.1-mini", "v1.0"))
+              "gpt-5", "v1.0"))
     
     # Insert relations
     for i, relation in enumerate(ontology["relations"]):
@@ -212,7 +211,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
                 INSERT INTO relations (id, doc_id, src, rel, dst, confidence, model_name)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (relation_id, doc_id, src_id, relation["rel"], dst_id,
-                  relation["confidence"], "gpt-4.1-mini"))
+                  relation["confidence"], "gpt-5"))
     
     # Insert mentions
     mention_id = 0
