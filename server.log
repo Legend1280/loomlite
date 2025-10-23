@@ -1,0 +1,67 @@
+nohup: ignoring input
+INFO:     Started server process [7594]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:46542 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:53972 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     127.0.0.1:53972 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:49124 - "GET /?v=fixed HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:49140 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:49144 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.114.190.1:49154 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.114.190.1:49170 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:54538 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:54544 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:54560 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.114.190.1:54568 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.114.190.1:54578 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:54588 - "GET /doc/doc_business_plan/concept/c_brady/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:54594 - "GET /doc/doc_business_plan/concept/c_loom_lite/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:54596 - "GET /doc/doc_business_plan/concept/c_q4_2024/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:54606 - "GET /doc/doc_business_plan/concept/c_loom_lite/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:38042 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.114.190.1:38058 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:38072 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38086 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:38094 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38108 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38110 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38114 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38124 - "GET /doc/doc_business_plan/concept/c_loom_lite/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:38390 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38402 - "GET /search?q=ll HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38412 - "GET /search?q=llo HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38416 - "GET /search?q=llom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38424 - "GET /search?q=llom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38426 - "GET /search?q=llom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38430 - "GET /search?q=llo HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38444 - "GET /search?q=ll HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38450 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38464 - "GET /search?q=lo HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38480 - "GET /search?q=lom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38490 - "GET /search?q=lom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38494 - "GET /search?q=lom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38500 - "GET /search?q=lo HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38510 - "GET /search?q=loo HTTP/1.1" 200 OK
+INFO:     10.114.190.1:38516 - "GET /search?q=loom HTTP/1.1" 200 OK
+INFO:     10.114.190.1:37602 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.114.190.1:37618 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:37624 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:37640 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:37652 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.114.190.1:37668 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.114.190.1:37680 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.114.190.1:37694 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:36452 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.114.190.1:36468 - "GET /frontend/index.html HTTP/1.1" 304 Not Modified
+INFO:     10.114.190.1:36474 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.114.190.1:36486 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.114.190.1:36494 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.114.190.1:57978 - "GET /doc/doc_business_plan/concept/c_loom_lite/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:57982 - "GET /doc/doc_business_plan/concept/c_brady/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:57986 - "GET /doc/doc_business_plan/concept/c_brady/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:57994 - "GET /doc/doc_business_plan/concept/c_q4_2024/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:58006 - "GET /doc/doc_business_plan/concept/c_q4_2024/evidence HTTP/1.1" 404 Not Found
+INFO:     10.114.190.1:44666 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.114.190.1:44680 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK

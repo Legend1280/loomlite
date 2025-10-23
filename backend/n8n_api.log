@@ -1,0 +1,52 @@
+INFO:     Started server process [9530]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+🚀 Starting Loom Lite N8N API on port 8001...
+   Endpoints:
+   - POST /api/ingest
+   - POST /api/ingest/file
+   - GET /api/jobs/{job_id}
+   - GET /api/jobs
+INFO:     127.0.0.1:37632 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54628 - "POST /api/ingest HTTP/1.1" 200 OK
+📄 Reading document: /tmp/tmp5le6ckdd.md
+🧠 Extracting ontology...
+Processing 2 chunks...
+  Chunk 1/2: [0:1457]
+INFO:     127.0.0.1:54642 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54644 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36542 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36544 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36548 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33678 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33684 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+  Chunk 2/2: [1257:1672]
+INFO:     127.0.0.1:33698 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33712 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58412 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58418 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58434 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+💾 Storing in database...
+✅ Stored ontology: 34 concepts, 29 relations
+✅ Extraction complete!
+   Doc ID: doc_7467540b67f3
+   Concepts: 34
+   Relations: 29
+   Spans: 35
+✅ Job job_caa728d65e8b completed: 34 concepts, 29 relations
+INFO:     127.0.0.1:45390 - "GET /api/jobs/job_caa728d65e8b HTTP/1.1" 200 OK
+INFO:     10.23.22.1:37606 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:37612 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:37622 - "GET / HTTP/1.1" 200 OK
+INFO:     10.23.22.1:37632 - "HEAD /api/jobs/JOB_ID HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:37638 - "GET / HTTP/1.1" 200 OK
+INFO:     10.23.22.1:37652 - "HEAD /api/ingest HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:37664 - "GET /api/jobs/JOB_ID HTTP/1.1" 404 Not Found
+INFO:     10.23.22.1:37672 - "GET /api/ingest HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:34710 - "GET /api/ingest HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:34714 - "GET /api/jobs/JOB_ID HTTP/1.1" 404 Not Found
+INFO:     10.23.22.1:34718 - "GET / HTTP/1.1" 200 OK
+INFO:     10.23.22.1:34730 - "GET / HTTP/1.1" 200 OK
+INFO:     10.23.22.1:39458 - "GET /api/ingest HTTP/1.1" 405 Method Not Allowed
+INFO:     10.23.22.1:39460 - "GET /favicon.ico HTTP/1.1" 404 Not Found

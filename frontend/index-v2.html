@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loom Lite - Ontology Navigator</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a202c;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+    
+    /* TOP BAR */
+    #topbar {
+      height: 56px;
+      background: #2d3748;
+      border-bottom: 1px solid #4a5568;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+    }
+    
+    .nav-btn {
+      padding: 8px 16px;
+      background: #4a5568;
+      border: none;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .nav-btn:hover {
+      background: #5a6678;
+    }
+    
+    .nav-btn.active {
+      background: #3182ce;
+      color: white;
+    }
+    
+    #searchInput {
+      flex: 1;
+      max-width: 400px;
+      padding: 8px 12px;
+      background: #4a5568;
+      border: 1px solid #5a6678;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+    
+    #searchInput::placeholder {
+      color: #a0aec0;
+    }
+    
+    #docSelect {
+      padding: 8px 12px;
+      background: #4a5568;
+      border: 1px solid #5a6678;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    
+    /* MAIN LAYOUT */
+    #mainContainer {
+      display: flex;
+      height: calc(100vh - 56px);
+    }
+    
+    /* ONTOLOGY PANEL (70%) */
+    #ontologyPanel {
+      flex: 0 0 70%;
+      background: #2d3748;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #ontologySvg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* FILE VIEWER PANEL (30%) */
+    #filePanel {
+      flex: 0 0 30%;
+      background: #1a202c;
+      border-left: 1px solid #4a5568;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #filePanelHeader {
+      padding: 16px;
+      background: #2d3748;
+      border-bottom: 1px solid #4a5568;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    #fileContent {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .evidence-text {
+      background: #4a5568;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      border-left: 3px solid #3182ce;
+    }
+    
+    .evidence-highlight {
+      background: #3182ce;
+      color: white;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    
+    .empty-state {
+      color: #a0aec0;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    
+    /* TREE STYLES */
+    .node-rect {
+      fill: #4a5568;
+      stroke: #5a6678;
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .node-rect:hover {
+      fill: #5a6678;
+      stroke: #3182ce;
+    }
+    
+    .node-rect.selected {
+      fill: #3182ce;
+      stroke: #63b3ed;
+    }
+    
+    .node-rect.type-Metric { stroke: #3b82f6; }
+    .node-rect.type-Date { stroke: #10b981; }
+    .node-rect.type-Person { stroke: #8b5cf6; }
+    .node-rect.type-Project { stroke: #f59e0b; }
+    .node-rect.type-Topic { stroke: #ec4899; }
+    .node-rect.type-Technology { stroke: #06b6d4; }
+    
+    .node-text {
+      fill: #e2e8f0;
+      font-size: 13px;
+      font-weight: 500;
+      pointer-events: none;
+    }
+    
+    .node-type {
+      fill: #a0aec0;
+      font-size: 10px;
+      pointer-events: none;
+    }
+    
+    .link-path {
+      fill: none;
+      stroke: #5a6678;
+      stroke-width: 2px;
+    }
+    
+    .expand-indicator {
+      fill: #a0aec0;
+      font-size: 16px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <input type="text" id="searchInput" placeholder="Search...">
+    <button class="nav-btn active">Categories</button>
+    <button class="nav-btn">Concepts</button>
+    <button class="nav-btn">Galaxy View</button>
+    <select id="docSelect">
+      <option value="">Select Document...</option>
+    </select>
+  </div>
+  
+  <!-- MAIN CONTAINER -->
+  <div id="mainContainer">
+    <!-- ONTOLOGY PANEL -->
+    <div id="ontologyPanel">
+      <svg id="ontologySvg"></svg>
+    </div>
+    
+    <!-- FILE VIEWER PANEL -->
+    <div id="filePanel">
+      <div id="filePanelHeader">Document Viewer</div>
+      <div id="fileContent">
+        <div class="empty-state">Select a node to view evidence</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE = window.location.origin;
+    let currentOntology = null;
+    let selectedNode = null;
+    
+    // DOM elements
+    const docSelect = document.getElementById('docSelect');
+    const svg = d3.select('#ontologySvg');
+    const fileContent = document.getElementById('fileContent');
+    const filePanelHeader = document.getElementById('filePanelHeader');
+    
+    // Initialize
+    init();
+    
+    async function init() {
+      await loadDocuments();
+      docSelect.addEventListener('change', handleDocumentSelect);
+    }
+    
+    async function loadDocuments() {
+      try {
+        const tree = await fetchJSON(`${API_BASE}/tree`);
+        const docs = tree.filter(item => item.type === 'file');
+        
+        docs.forEach(doc => {
+          const option = document.createElement('option');
+          option.value = doc.id;
+          option.textContent = doc.name;
+          docSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Failed to load documents:', error);
+      }
+    }
+    
+    async function handleDocumentSelect() {
+      const docId = docSelect.value;
+      if (!docId) return;
+      
+      try {
+        const ontology = await fetchJSON(`${API_BASE}/doc/${docId}/ontology`);
+        currentOntology = ontology;
+        filePanelHeader.textContent = ontology.document.title;
+        drawTree(ontology);
+      } catch (error) {
+        console.error('Failed to load document:', error);
+      }
+    }
+    
+    function drawTree(ontology) {
+      const width = document.getElementById('ontologyPanel').clientWidth;
+      const height = document.getElementById('ontologyPanel').clientHeight;
+      
+      svg.selectAll('*').remove();
+      
+      // Build hierarchy from concepts and relations
+      const concepts = ontology.concepts || [];
+      const relations = ontology.relations || [];
+      
+      if (concepts.length === 0) {
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#a0aec0')
+          .text('No concepts found');
+        return;
+      }
+      
+      // Build tree structure
+      const root = buildTreeStructure(concepts, relations);
+      
+      // Create tree layout (horizontal)
+      const treeLayout = d3.tree()
+        .size([height - 100, width - 400])
+        .nodeSize([60, 200])
+        .separation((a, b) => (a.parent === b.parent ? 1 : 1.5));
+      
+      const treeData = d3.hierarchy(root);
+      const nodes = treeLayout(treeData);
+      
+      const g = svg.append('g')
+        .attr('transform', `translate(100, ${height / 2})`);
+      
+      // Draw links (horizontal)
+      g.selectAll('.link-path')
+        .data(nodes.links())
+        .join('path')
+        .attr('class', 'link-path')
+        .attr('d', d => {
+          const source = { x: d.source.y, y: d.source.x };
+          const target = { x: d.target.y, y: d.target.x };
+          return `M${source.x},${source.y}
+                  L${(source.x + target.x) / 2},${source.y}
+                  L${(source.x + target.x) / 2},${target.y}
+                  L${target.x},${target.y}`;
+        });
+      
+      // Draw nodes
+      const nodeGroups = g.selectAll('.node')
+        .data(nodes.descendants())
+        .join('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.y},${d.x})`)
+        .on('click', (event, d) => handleNodeClick(d));
+      
+      // Node rectangles
+      nodeGroups.append('rect')
+        .attr('class', d => `node-rect type-${d.data.type || 'default'}`)
+        .attr('x', -80)
+        .attr('y', -20)
+        .attr('width', 160)
+        .attr('height', 40)
+        .attr('rx', 6);
+      
+      // Node text
+      nodeGroups.append('text')
+        .attr('class', 'node-text')
+        .attr('dy', -2)
+        .attr('text-anchor', 'middle')
+        .text(d => d.data.label || d.data.name);
+      
+      // Node type
+      nodeGroups.append('text')
+        .attr('class', 'node-type')
+        .attr('dy', 12)
+        .attr('text-anchor', 'middle')
+        .text(d => d.data.type ? `(${d.data.type})` : '');
+      
+      // Expand indicator
+      nodeGroups.filter(d => d.data.hasMore)
+        .append('text')
+        .attr('class', 'expand-indicator')
+        .attr('x', 85)
+        .attr('dy', 5)
+        .attr('text-anchor', 'middle')
+        .text('>');
+    }
+    
+    function buildTreeStructure(concepts, relations) {
+      // Build children map
+      const childrenMap = new Map();
+      const visited = new Set();
+      
+      relations.forEach(rel => {
+        if (!childrenMap.has(rel.src_concept_id)) {
+          childrenMap.set(rel.src_concept_id, []);
+        }
+        childrenMap.get(rel.src_concept_id).push({
+          conceptId: rel.dst_concept_id,
+          relation: rel.rel
+        });
+        visited.add(rel.dst_concept_id);
+      });
+      
+      // Find root concepts (no incoming edges)
+      const targetIds = new Set(relations.map(r => r.dst_concept_id));
+      const rootConcepts = concepts.filter(c => !targetIds.has(c.id));
+      
+      // Recursive build
+      function buildNode(concept, depth = 0) {
+        if (depth > 5 || visited.has(concept.id + '_built')) return null;
+        visited.add(concept.id + '_built');
+        
+        const node = {
+          ...concept,
+          name: concept.label,
+          children: []
+        };
+        
+        const children = childrenMap.get(concept.id) || [];
+        children.forEach(child => {
+          const childConcept = concepts.find(c => c.id === child.conceptId);
+          if (childConcept) {
+            const childNode = buildNode(childConcept, depth + 1);
+            if (childNode) {
+              node.children.push(childNode);
+            }
+          }
+        });
+        
+        if (node.children.length === 0) {
+          delete node.children;
+        }
+        
+        return node;
+      }
+      
+      // Create virtual root if multiple roots
+      if (rootConcepts.length === 0) {
+        // No clear hierarchy - use first concept
+        return buildNode(concepts[0]);
+      } else if (rootConcepts.length === 1) {
+        return buildNode(rootConcepts[0]);
+      } else {
+        // Multiple roots - create virtual root
+        return {
+          id: 'root',
+          label: 'Document',
+          name: 'Document',
+          type: 'Document',
+          children: rootConcepts.map(c => buildNode(c))
+        };
+      }
+    }
+    
+    async function handleNodeClick(d) {
+      // Remove previous selection
+      svg.selectAll('.node-rect').classed('selected', false);
+      
+      // Mark as selected
+      d3.select(event.currentTarget).select('.node-rect').classed('selected', true);
+      
+      selectedNode = d.data;
+      
+      // Load evidence
+      try {
+        const conceptId = d.data.id;
+        const docId = currentOntology.document.id;
+        const evidence = await fetchJSON(`${API_BASE}/doc/${docId}/concept/${conceptId}/evidence`);
+        
+        displayEvidence(evidence);
+      } catch (error) {
+        console.error('Failed to load evidence:', error);
+        fileContent.innerHTML = '<div class="empty-state">Error loading evidence</div>';
+      }
+    }
+    
+    function displayEvidence(evidence) {
+      if (!evidence || evidence.length === 0) {
+        fileContent.innerHTML = '<div class="empty-state">No evidence found</div>';
+        return;
+      }
+      
+      let html = '';
+      evidence.forEach(ev => {
+        const before = ev.context.substring(0, ev.span.start - ev.context_start);
+        const match = ev.context.substring(ev.span.start - ev.context_start, ev.span.end - ev.context_start);
+        const after = ev.context.substring(ev.span.end - ev.context_start);
+        
+        html += `
+          <div class="evidence-text">
+            ${escapeHtml(before)}<span class="evidence-highlight">${escapeHtml(match)}</span>${escapeHtml(after)}
+          </div>
+        `;
+      });
+      
+      fileContent.innerHTML = html;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    async function fetchJSON(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+  </script>
+</body>
+</html>
+

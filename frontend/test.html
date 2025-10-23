@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Ontology Loading</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <h1>Test Ontology Loading</h1>
+  <div id="status">Loading...</div>
+  <div id="result"></div>
+  
+  <script>
+    const API_BASE = window.location.origin;
+    const statusDiv = document.getElementById('status');
+    const resultDiv = document.getElementById('result');
+    
+    console.log('API_BASE:', API_BASE);
+    console.log('D3 version:', d3.version);
+    
+    // Test API call
+    fetch(`${API_BASE}/doc/doc_business_plan/ontology`)
+      .then(response => {
+        console.log('Response status:', response.status);
+        statusDiv.textContent = `Response status: ${response.status}`;
+        return response.json();
+      })
+      .then(data => {
+        console.log('Data received:', data);
+        statusDiv.textContent = 'Success!';
+        resultDiv.innerHTML = `
+          <h2>Ontology Data:</h2>
+          <p>Document: ${data.document.title}</p>
+          <p>Concepts: ${data.concepts.length}</p>
+          <p>Relations: ${data.relations.length}</p>
+          <h3>Concepts:</h3>
+          <ul>
+            ${data.concepts.map(c => `<li>${c.label} (${c.type})</li>`).join('')}
+          </ul>
+          <h3>Relations:</h3>
+          <ul>
+            ${data.relations.map(r => `<li>${r.src_concept_id} --${r.rel}--> ${r.dst_concept_id}</li>`).join('')}
+          </ul>
+        `;
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        statusDiv.textContent = 'Error: ' + error.message;
+        resultDiv.textContent = error.stack;
+      });
+  </script>
+</body>
+</html>
+
