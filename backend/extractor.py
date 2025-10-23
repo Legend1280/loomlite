@@ -16,7 +16,7 @@ from reader import read_document, chunk_text
 # Initialize OpenAI client (API key from environment)
 client = OpenAI()
 
-DB_PATH = "/home/ubuntu/loom-lite-mvp/backend/loom_lite_v2.db"
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "loom_lite_v2.db"))
 
 EXTRACTION_PROMPT = """You are an expert at extracting structured ontologies from documents.
 

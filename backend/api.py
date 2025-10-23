@@ -18,7 +18,7 @@ from pydantic import BaseModel
 # Import modules
 from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
 from reader import read_document
-from extractor import extract_ontology
+from extractor import extract_ontology_from_text, store_ontology
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -122,92 +122,58 @@ def get_ontology_from_db(doc_id: str) -> Optional[MicroOntology]:
 
 def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Optional[str]):
     """Background task to process document ingestion"""
+    import tempfile
     try:
         jobs[job_id]["status"] = "processing"
         jobs[job_id]["progress"] = "Reading document..."
         
+        # Save file to temp location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
+            tmp.write(file_bytes)
+            tmp_path = tmp.name
+        
         # Read document
-        text = read_document(file_bytes, filename)
+        doc_data = read_document(tmp_path)
+        
+        # Generate doc_id from checksum
+        doc_id = f"doc_{hashlib.sha256(doc_data['checksum'].encode()).hexdigest()[:12]}"
+        
+        if not title:
+            title = filename
         
         jobs[job_id]["progress"] = "Extracting ontology..."
         
         # Extract ontology
-        ontology = extract_ontology(text, filename, title)
+        ontology = extract_ontology_from_text(doc_data["text"], doc_id)
         
         jobs[job_id]["progress"] = "Storing results..."
         
         # Store in database
-        conn = get_db()
-        cur = conn.cursor()
+        version_id = store_ontology(
+            doc_id=doc_id,
+            title=title,
+            source_uri=filename,
+            mime=doc_data["mime"],
+            checksum=doc_data["checksum"],
+            file_bytes=doc_data["bytes"],
+            ontology=ontology
+        )
         
-        # Insert document
-        cur.execute("""
-            INSERT INTO documents (id, title, filename, bytes, checksum, created_at, modified_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            ontology.doc.id,
-            ontology.doc.title,
-            ontology.doc.filename,
-            ontology.doc.bytes,
-            ontology.doc.checksum,
-            ontology.doc.created_at,
-            ontology.doc.modified_at
-        ))
-        
-        # Insert version
-        if ontology.version:
-            cur.execute("""
-                INSERT INTO ontology_versions (id, doc_id, model, pipeline, extracted_at)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                ontology.version.id,
-                ontology.version.doc_id,
-                ontology.version.model,
-                ontology.version.pipeline,
-                ontology.version.extracted_at
-            ))
-        
-        # Insert spans, concepts, relations, mentions
-        for span in ontology.spans:
-            cur.execute("""
-                INSERT INTO spans (id, doc_id, start, end, text, page, quality)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (span.id, span.doc_id, span.start, span.end, span.text, span.page, span.quality))
-        
-        for concept in ontology.concepts:
-            cur.execute("""
-                INSERT INTO concepts (id, doc_id, name, type, confidence, aliases, tags)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (concept.id, concept.doc_id, concept.name, concept.type, concept.confidence,
-                  json.dumps(concept.aliases) if concept.aliases else None,
-                  json.dumps(concept.tags) if concept.tags else None))
-        
-        for relation in ontology.relations:
-            cur.execute("""
-                INSERT INTO relations (id, doc_id, src_concept_id, rel, dst_concept_id, confidence)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (relation.id, relation.doc_id, relation.src_concept_id, relation.rel,
-                  relation.dst_concept_id, relation.confidence))
-        
-        for mention in ontology.mentions:
-            cur.execute("""
-                INSERT INTO mentions (id, doc_id, concept_id, span_id, confidence)
-                VALUES (?, ?, ?, ?, ?)
-            """, (mention.id, mention.doc_id, mention.concept_id, mention.span_id, mention.confidence))
-        
-        conn.commit()
-        conn.close()
+        # Clean up temp file
+        os.unlink(tmp_path)
         
         # Update job status
         jobs[job_id]["status"] = "completed"
-        jobs[job_id]["doc_id"] = ontology.doc.id
-        jobs[job_id]["concepts_count"] = len(ontology.concepts)
-        jobs[job_id]["relations_count"] = len(ontology.relations)
+        jobs[job_id]["doc_id"] = doc_id
+        jobs[job_id]["concepts_count"] = len(ontology["concepts"])
+        jobs[job_id]["relations_count"] = len(ontology["relations"])
         jobs[job_id]["progress"] = "Done"
         
     except Exception as e:
         jobs[job_id]["status"] = "failed"
         jobs[job_id]["error"] = str(e)
+        import traceback
+        jobs[job_id]["traceback"] = traceback.format_exc()
 
 # ============================================================================
 # ENDPOINTS

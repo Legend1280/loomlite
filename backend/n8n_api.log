@@ -50,3 +50,19 @@ INFO:     10.23.22.1:34718 - "GET / HTTP/1.1" 200 OK
 INFO:     10.23.22.1:34730 - "GET / HTTP/1.1" 200 OK
 INFO:     10.23.22.1:39458 - "GET /api/ingest HTTP/1.1" 405 Method Not Allowed
 INFO:     10.23.22.1:39460 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     10.72.234.1:49510 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:49522 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:49536 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:43396 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:43406 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     10.72.234.1:34342 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:57872 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:45724 - "HEAD /api/ingest HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:45722 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:45730 - "HEAD /api/jobs/%7B%7B HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:45738 - "GET /api/ingest HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:45740 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:45756 - "GET /api/jobs/%7B%7B HTTP/1.1" 404 Not Found
+INFO:     10.72.234.1:45758 - "GET / HTTP/1.1" 200 OK
+INFO:     10.72.234.1:45766 - "GET /api/jobs/%7B%7B HTTP/1.1" 404 Not Found
+INFO:     10.72.234.1:45776 - "GET /api/ingest HTTP/1.1" 405 Method Not Allowed

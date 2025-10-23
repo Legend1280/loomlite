@@ -65,3 +65,70 @@ INFO:     10.114.190.1:57994 - "GET /doc/doc_business_plan/concept/c_q4_2024/evi
 INFO:     10.114.190.1:58006 - "GET /doc/doc_business_plan/concept/c_q4_2024/evidence HTTP/1.1" 404 Not Found
 INFO:     10.114.190.1:44666 - "GET /tags HTTP/1.1" 200 OK
 INFO:     10.114.190.1:44680 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50798 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:50810 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:50822 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50830 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:50832 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50848 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50854 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50860 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:53480 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:53494 - "GET /frontend/index.html HTTP/1.1" 304 Not Modified
+INFO:     10.72.234.1:53506 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:53508 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.72.234.1:53524 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:36780 - "GET /frontend/index.html HTTP/1.1" 304 Not Modified
+INFO:     10.72.234.1:36782 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:36794 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.72.234.1:36804 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:56520 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:56522 - "GET /search?q=gd HTTP/1.1" 200 OK
+INFO:     10.72.234.1:56538 - "GET /search?q=gdg HTTP/1.1" 200 OK
+INFO:     10.72.234.1:56554 - "GET /search?q=gdgs HTTP/1.1" 200 OK
+INFO:     10.72.234.1:56566 - "GET /search?q=gdgsg HTTP/1.1" 200 OK
+INFO:     10.72.234.1:56570 - "GET /search?q=gdgsgd HTTP/1.1" 200 OK
+INFO:     10.72.234.1:58994 - "GET /search?q=gdgsg HTTP/1.1" 200 OK
+INFO:     10.72.234.1:59002 - "GET /search?q=gdgs HTTP/1.1" 200 OK
+INFO:     10.72.234.1:59018 - "GET /search?q=gdg HTTP/1.1" 200 OK
+INFO:     10.72.234.1:59020 - "GET /search?q=gd HTTP/1.1" 200 OK
+INFO:     10.72.234.1:59034 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:59036 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50526 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50528 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:50530 - "GET /frontend/index.html HTTP/1.1" 206 Partial Content
+INFO:     10.72.234.1:50540 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:50550 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:50554 - "GET /frontend/index.html HTTP/1.1" 206 Partial Content
+INFO:     10.72.234.1:40664 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     10.72.234.1:40674 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:40688 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.72.234.1:40696 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     10.72.234.1:40708 - "GET /frontend/index.html HTTP/1.1" 200 OK
+INFO:     10.72.234.1:40710 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:40714 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.72.234.1:40722 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:39542 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:39554 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:48192 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:48194 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41432 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41438 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41444 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41454 - "OPTIONS /tags HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41458 - "GET /tags HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41468 - "OPTIONS /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:41470 - "GET /doc/doc_business_plan/ontology HTTP/1.1" 200 OK
+INFO:     10.72.234.1:35950 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.72.234.1:35960 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:43590 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:43606 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:47002 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:47016 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:43742 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:43754 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:56786 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:56790 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:56794 - "GET /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:48174 - "OPTIONS /tree HTTP/1.1" 200 OK
+INFO:     10.131.217.1:48190 - "OPTIONS /tree HTTP/1.1" 200 OK
