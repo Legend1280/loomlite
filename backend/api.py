@@ -16,7 +16,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 # Import modules
-from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, Mention
+from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
 from reader import read_document
 from extractor import extract_ontology
 
@@ -105,7 +105,7 @@ def get_ontology_from_db(doc_id: str) -> Optional[MicroOntology]:
     ).fetchall()]
     
     # Get mentions
-    mentions = [Mention(**dict(row)) for row in cur.execute(
+    mentions = [MentionLink(**dict(row)) for row in cur.execute(
         "SELECT * FROM mentions WHERE doc_id = ?", (doc_id,)
     ).fetchall()]
     
