@@ -170,7 +170,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
     cur.execute("""
         INSERT INTO ontology_versions (id, doc_id, model_name, model_version, pipeline, extracted_at, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (version_id              "gpt-5", "2025-10-22", "ingest+extract@v0.3.0",       datetime.utcnow().isoformat() + "Z", "OpenAI extraction"))
+    """, (version_id, "gpt-5", "2025-10-22", "ingest+extract@v0.3.0", datetime.utcnow().isoformat() + "Z", "OpenAI extraction"))
     
     # Insert spans
     span_map = {}  # concept_label -> [span_ids]
