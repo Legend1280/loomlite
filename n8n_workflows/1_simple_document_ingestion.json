@@ -1,0 +1,185 @@
+{
+  "name": "Loom Lite - Simple Document Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingest-document",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "loom-lite-ingest"
+    },
+    {
+      "parameters": {
+        "url": "https://loomlite-production.up.railway.app/api/ingest",
+        "authentication": "none",
+        "requestMethod": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"text\": $json.text,\n  \"filename\": $json.filename || \"document.txt\",\n  \"title\": $json.title || \"Untitled Document\"\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-ingest",
+      "name": "Submit to Loom Lite API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify({\n  \"success\": true,\n  \"job_id\": $json.job_id,\n  \"status\": $json.status,\n  \"message\": \"Document submitted for processing\",\n  \"check_status_url\": \"https://loomlite-production.up.railway.app/api/jobs/\" + $json.job_id\n}) }}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond with Job ID",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "wait-processing",
+      "name": "Wait for Processing",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "url": "={{ \"https://loomlite-production.up.railway.app/api/jobs/\" + $node[\"Submit to Loom Lite API\"].json.job_id }}",
+        "authentication": "none",
+        "requestMethod": "GET",
+        "options": {}
+      },
+      "id": "check-status",
+      "name": "Check Job Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "completed"
+            }
+          ]
+        }
+      },
+      "id": "check-completed",
+      "name": "Is Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "wait-retry",
+      "name": "Wait Before Retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1050, 550]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Submit to Loom Lite API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit to Loom Lite API": {
+      "main": [
+        [
+          {
+            "node": "Respond with Job ID",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait for Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Processing": {
+      "main": [
+        [
+          {
+            "node": "Check Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Job Status": {
+      "main": [
+        [
+          {
+            "node": "Is Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Completed?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait Before Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Retry": {
+      "main": [
+        [
+          {
+            "node": "Check Job Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-10-22T00:00:00.000Z",
+  "versionId": "1"
+}
+
