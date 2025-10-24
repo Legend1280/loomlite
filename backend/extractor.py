@@ -125,7 +125,7 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-5") -> 
                     {"role": "system", "content": "You are an expert ontology extractor."},
                     {"role": "user", "content": EXTRACTION_PROMPT + "\n\n" + chunk}
                 ],
-                temperature=0.3,
+                # Note: GPT-5 only supports temperature=1 (default)
                 response_format={"type": "json_object"}
             )
             
