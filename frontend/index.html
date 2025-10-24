@@ -72,6 +72,226 @@
       color: white;
     }
     
+    .upload-btn {
+      padding: 10px 20px;
+      background: #10b981;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .upload-btn:hover {
+      background: #059669;
+    }
+    
+    /* Upload Modal */
+    #uploadModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #uploadModal.active {
+      display: flex;
+    }
+    
+    .upload-container {
+      background: #2d3748;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .upload-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .upload-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    
+    .close-btn:hover {
+      background: #374151;
+      color: #e2e8f0;
+    }
+    
+    .upload-dropzone {
+      border: 3px dashed #4a5568;
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+    
+    .upload-dropzone:hover,
+    .upload-dropzone.dragover {
+      border-color: #3182ce;
+      background: rgba(49, 130, 206, 0.1);
+    }
+    
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #64748b;
+    }
+    
+    .upload-text {
+      font-size: 16px;
+      color: #cbd5e0;
+      margin-bottom: 8px;
+    }
+    
+    .upload-hint {
+      font-size: 13px;
+      color: #718096;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .upload-list {
+      margin-top: 24px;
+    }
+    
+    .upload-item {
+      background: #1a202c;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .upload-item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .upload-item-name {
+      font-size: 14px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+    
+    .upload-item-size {
+      font-size: 12px;
+      color: #718096;
+    }
+    
+    .upload-item-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .upload-item-status.pending {
+      background: #4a5568;
+      color: #cbd5e0;
+    }
+    
+    .upload-item-status.uploading {
+      background: #3182ce;
+      color: white;
+    }
+    
+    .upload-item-status.success {
+      background: #10b981;
+      color: white;
+    }
+    
+    .upload-item-status.error {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .upload-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .upload-submit-btn {
+      flex: 1;
+      padding: 12px 24px;
+      background: #3182ce;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-submit-btn:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    .upload-submit-btn:disabled {
+      background: #4a5568;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .upload-cancel-btn {
+      padding: 12px 24px;
+      background: #4a5568;
+      border: none;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-cancel-btn:hover {
+      background: #5a6678;
+    }
+    
     /* Filter Chips Row */
     #filterRow {
       display: flex;
@@ -292,6 +512,10 @@
       <button class="view-btn active" data-view="categories">Categories</button>
       <button class="view-btn" data-view="concepts">Concepts</button>
       <button class="view-btn" data-view="galaxy">Galaxy View</button>
+      <button class="upload-btn" id="uploadBtn">
+        <span>📤</span>
+        <span>Upload</span>
+      </button>
     </div>
     
     <!-- Filter Chips Row -->
@@ -314,6 +538,31 @@
   </div>
   
   <!-- MAIN CONTAINER -->
+  <!-- UPLOAD MODAL -->
+  <div id="uploadModal">
+    <div class="upload-container">
+      <div class="upload-header">
+        <h2 class="upload-title">Upload Documents</h2>
+        <button class="close-btn" id="closeUploadBtn">&times;</button>
+      </div>
+      
+      <div class="upload-dropzone" id="dropzone">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Drag & drop files here or click to browse</div>
+        <div class="upload-hint">Supports PDF, TXT, DOCX, MD, and ZIP files</div>
+      </div>
+      
+      <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.txt,.docx,.md,.zip">
+      
+      <div id="uploadList" class="upload-list"></div>
+      
+      <div class="upload-actions">
+        <button class="upload-cancel-btn" id="cancelUploadBtn">Cancel</button>
+        <button class="upload-submit-btn" id="submitUploadBtn" disabled>Upload Files</button>
+      </div>
+    </div>
+  </div>
+  
   <div id="mainContainer">
     <!-- ONTOLOGY PANEL -->
     <div id="ontologyPanel">
@@ -686,6 +935,197 @@
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
+    }
+    
+    // ===== UPLOAD FUNCTIONALITY =====
+    
+    const uploadModal = document.getElementById('uploadModal');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const closeUploadBtn = document.getElementById('closeUploadBtn');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadList = document.getElementById('uploadList');
+    const submitUploadBtn = document.getElementById('submitUploadBtn');
+    
+    let selectedFiles = [];
+    
+    // Open modal
+    uploadBtn.addEventListener('click', () => {
+      uploadModal.classList.add('active');
+    });
+    
+    // Close modal
+    closeUploadBtn.addEventListener('click', closeUploadModal);
+    cancelUploadBtn.addEventListener('click', closeUploadModal);
+    uploadModal.addEventListener('click', (e) => {
+      if (e.target === uploadModal) closeUploadModal();
+    });
+    
+    function closeUploadModal() {
+      uploadModal.classList.remove('active');
+      selectedFiles = [];
+      uploadList.innerHTML = '';
+      submitUploadBtn.disabled = true;
+    }
+    
+    // Dropzone click
+    dropzone.addEventListener('click', () => {
+      fileInput.click();
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+    
+    // Drag and drop
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    
+    function handleFiles(files) {
+      for (let file of files) {
+        // Check if already added
+        if (selectedFiles.find(f => f.name === file.name)) continue;
+        
+        // Validate file type
+        const validTypes = ['.pdf', '.txt', '.docx', '.md', '.zip'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!validTypes.includes(ext)) {
+          alert(`File type not supported: ${file.name}`);
+          continue;
+        }
+        
+        selectedFiles.push({
+          file: file,
+          name: file.name,
+          size: file.size,
+          status: 'pending'
+        });
+      }
+      
+      renderUploadList();
+      submitUploadBtn.disabled = selectedFiles.length === 0;
+    }
+    
+    function renderUploadList() {
+      uploadList.innerHTML = '';
+      
+      selectedFiles.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'upload-item';
+        div.innerHTML = `
+          <div class="upload-item-info">
+            <div>
+              <div class="upload-item-name">${escapeHtml(item.name)}</div>
+              <div class="upload-item-size">${formatFileSize(item.size)}</div>
+            </div>
+          </div>
+          <span class="upload-item-status ${item.status}">${getStatusText(item.status)}</span>
+        `;
+        uploadList.appendChild(div);
+      });
+    }
+    
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    function getStatusText(status) {
+      const texts = {
+        pending: 'Pending',
+        uploading: 'Uploading...',
+        success: 'Success',
+        error: 'Error'
+      };
+      return texts[status] || status;
+    }
+    
+    // Submit upload
+    submitUploadBtn.addEventListener('click', async () => {
+      submitUploadBtn.disabled = true;
+      
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const item = selectedFiles[i];
+        
+        // Update status to uploading
+        item.status = 'uploading';
+        renderUploadList();
+        
+        try {
+          // Read file as base64
+          const base64 = await fileToBase64(item.file);
+          
+          // Send to API
+          const response = await fetch(`${API_BASE}/api/ingest`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              file: base64,
+              filename: item.name,
+              title: item.name.replace(/\.[^/.]+$/, '') // Remove extension
+            })
+          });
+          
+          if (response.ok) {
+            item.status = 'success';
+            const result = await response.json();
+            console.log('Upload successful:', result);
+          } else {
+            item.status = 'error';
+            console.error('Upload failed:', response.statusText);
+          }
+        } catch (error) {
+          item.status = 'error';
+          console.error('Upload error:', error);
+        }
+        
+        renderUploadList();
+      }
+      
+      // Check if all succeeded
+      const allSuccess = selectedFiles.every(f => f.status === 'success');
+      
+      if (allSuccess) {
+        setTimeout(() => {
+          closeUploadModal();
+          // Reload data
+          loadAllData().then(() => drawInitialView());
+        }, 1500);
+      } else {
+        submitUploadBtn.disabled = false;
+        submitUploadBtn.textContent = 'Retry Failed';
+      }
+    });
+    
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Remove data:*/*;base64, prefix
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     }
   </script>
 </body>
