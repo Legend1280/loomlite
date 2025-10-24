@@ -1,5 +1,5 @@
 {
-  "buildCommand": "mkdir -p .vercel/output/static && cp index.html .vercel/output/static/",
+  "buildCommand": "mkdir -p .vercel/output/static && cp frontend/index.html .vercel/output/static/",
   "outputDirectory": ".vercel/output/static"
 }
 
