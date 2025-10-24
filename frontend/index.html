@@ -616,6 +616,10 @@
     }
     
     function populateDynamicFilters(tags) {
+      if (!tags || !Array.isArray(tags)) {
+        console.warn('Tags is not an array:', tags);
+        return;
+      }
       tags.forEach(tag => {
         const chip = document.createElement('div');
         chip.className = 'filter-chip';
