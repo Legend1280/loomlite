@@ -132,6 +132,11 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-5") -> 
             # Parse response
             result = json.loads(response.choices[0].message.content)
             
+            # DEBUG: Log what GPT-5 returned
+            print(f"    GPT-5 returned: {len(result.get('concepts', []))} concepts, {len(result.get('relations', []))} relations, {len(result.get('spans', []))} spans")
+            if len(result.get('concepts', [])) == 0:
+                print(f"    WARNING: No concepts extracted! Full response: {json.dumps(result, indent=2)[:500]}")
+            
             # Process concepts
             for concept in result.get("concepts", []):
                 label = concept["label"]
@@ -174,7 +179,9 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-5") -> 
                     all_relations.append(relation)
         
         except Exception as e:
-            print(f"    Error processing chunk: {e}")
+            print(f"    ERROR processing chunk: {e}")
+            import traceback
+            traceback.print_exc()
             continue
     
     return {
