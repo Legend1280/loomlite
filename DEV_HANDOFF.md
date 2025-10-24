@@ -361,36 +361,56 @@ GET https://loomlite-production.up.railway.app/concepts?types=Person,Project
 ## 📋 Next Steps for Developer
 
 ### Immediate (Critical)
-1. **Fix N8N Workflow**
+
+**⚠️ UPDATED 2025-10-24:** Added Pydantic validation as critical task
+
+1. **Add Pydantic Validation for GPT-5 Output** ⭐ NEW
+   - **Priority:** CRITICAL (prevents silent failures)
+   - **Effort:** ~1 hour
+   - **Why:** Currently GPT-5 extraction errors are silently swallowed
+   - **Implementation:**
+     - Create Pydantic models in `extractor.py` for:
+       - `ExtractedSpan` (start, end, text)
+       - `ExtractedConcept` (label, type, confidence, aliases, tags)
+       - `ExtractedRelation` (src, rel, dst, confidence)
+       - `ExtractedMention` (concept_label, span_index, confidence)
+       - `ExtractionResult` (spans, concepts, relations, mentions)
+     - Validate each chunk's extraction result
+     - Log validation failures (don't silently skip!)
+     - Return validation stats with extraction result
+   - **See:** `EXTRACTION_PROMPT_SPEC.md` Section 7 for details
+   - **Benefit:** Catches schema mismatches, prevents data corruption, enables quality monitoring
+
+2. **Fix N8N Workflow**
    - Re-create webhook trigger node
    - Configure HTTP Request node with proper JSON body
    - Test with sample document
    - Activate workflow
 
-2. **Debug API Ingestion**
+3. **Debug API Ingestion**
    - Check Railway logs for errors
    - Add debug logging to `api.py`
    - Test with curl/Postman
    - Verify GPT-5 API connectivity
 
-3. **Initialize Database**
-   - Verify schema is created
-   - Add sample data for testing
-   - Document initialization process
+4. **Initialize Database** ✅ COMPLETED (2025-10-24)
+   - ✅ Schema auto-initialization added to `api.py`
+   - ✅ Runs on API startup
+   - Verify with real document ingestion
 
 ### Short-term (High Priority)
-4. **Complete End-to-End Test**
+5. **Complete End-to-End Test**
    - Ingest real document
    - Verify extraction quality
    - Check frontend display
    - Document any issues
 
-5. **Add Error Handling**
+6. **Add Error Handling**
    - Graceful failures for API errors
    - User-friendly error messages
    - Retry logic for transient failures
 
-6. **Implement Monitoring**
+7. **Implement Monitoring**
    - Railway logging setup
    - Error tracking (Sentry?)
    - Usage analytics
