@@ -18,18 +18,25 @@ client = OpenAI()
 
 DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "loom_lite_v2.db"))
 
-EXTRACTION_PROMPT = """You are an expert at extracting structured ontologies from documents.
+EXTRACTION_PROMPT = """You are an expert ontology extractor following the Loom Lite Ontology Standard v1.1.
 
-Extract concepts and relationships from the following text. Return a JSON object with this structure:
+Extract a structured micro-ontology from the text below. You MUST return a JSON object with this exact structure:
 
 {
+  "spans": [
+    {
+      "start": <character_offset_int>,
+      "end": <character_offset_int>,
+      "text": "exact quoted text from document"
+    }
+  ],
   "concepts": [
     {
       "label": "Concept Name",
       "type": "Person|Project|Date|Metric|Technology|Feature|Process|Topic|Team",
       "confidence": 0.0-1.0,
-      "aliases": ["Alternative Name 1", "Alternative Name 2"],
-      "tags": ["tag1", "tag2"]
+      "aliases": ["Alternative Name"],
+      "tags": ["category", "domain"]
     }
   ],
   "relations": [
@@ -39,18 +46,50 @@ Extract concepts and relationships from the following text. Return a JSON object
       "dst": "Destination Concept Label",
       "confidence": 0.0-1.0
     }
+  ],
+  "mentions": [
+    {
+      "concept_label": "Concept Name",
+      "span_index": <index_in_spans_array>,
+      "confidence": 0.0-1.0
+    }
   ]
 }
 
-Guidelines:
-- Extract 10-20 key concepts per chunk
-- Use appropriate concept types (Person for people, Date for time references, etc.)
-- Create meaningful relationships between concepts
-- Confidence should reflect how explicitly the concept/relation appears
-- Include aliases for concepts mentioned in different ways
-- Add relevant tags for categorization
+**CRITICAL REQUIREMENTS:**
 
-Text to analyze:
+1. **Spans (Provenance)**
+   - Extract 15-30 key text spans that contain important information
+   - Use EXACT character offsets (count from start of text)
+   - Include the exact quoted text
+   - Each span should be 10-100 characters
+
+2. **Concepts (Entities)**
+   - Extract 10-20 key concepts per chunk
+   - Types: Person (people), Project (initiatives), Date (time), Metric (numbers/KPIs), Technology (tools/systems), Feature (capabilities), Process (workflows), Topic (subjects), Team (groups)
+   - Confidence: 1.0 = explicitly stated, 0.7 = clearly implied, 0.5 = inferred
+   - Include aliases (alternative names/abbreviations)
+   - Add domain-relevant tags
+
+3. **Relations (Connections)**
+   - Create 5-15 meaningful relationships between concepts
+   - Use ONLY the allowed verbs listed above
+   - Both src and dst must be concept labels from the concepts array
+   - Confidence based on how explicit the relationship is
+
+4. **Mentions (Evidence)**
+   - Link each concept to 1-3 spans where it appears
+   - span_index refers to position in spans array (0-indexed)
+   - This provides provenance for each concept
+
+**Example:**
+If text says "Brady Simmons founded Loom Lite in Q4 2024", extract:
+- Span: {start: 0, end: 45, text: "Brady Simmons founded Loom Lite in Q4 2024"}
+- Concepts: [{label: "Brady Simmons", type: "Person"}, {label: "Loom Lite", type: "Project"}, {label: "Q4 2024", type: "Date"}]
+- Relations: [{src: "Brady Simmons", rel: "owns", dst: "Loom Lite"}]
+- Mentions: [{concept_label: "Brady Simmons", span_index: 0, confidence: 1.0}, ...]
+
+**Text to analyze:**
 """
 
 
