@@ -42,6 +42,37 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "loom_lite_v2.db")
 jobs = {}
 
 # ============================================================================
+# DATABASE INITIALIZATION
+# ============================================================================
+
+def init_database():
+    """Initialize database with schema if it doesn't exist"""
+    schema_path = os.path.join(os.path.dirname(__file__), "schema_v2.sql")
+    
+    # Check if database exists and has tables
+    if os.path.exists(DB_PATH):
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='documents'")
+        if cur.fetchone():
+            conn.close()
+            print(f"Database already initialized at {DB_PATH}")
+            return
+        conn.close()
+    
+    # Initialize database
+    print(f"Initializing database at {DB_PATH}...")
+    conn = sqlite3.connect(DB_PATH)
+    with open(schema_path, 'r') as f:
+        conn.executescript(f.read())
+    conn.commit()
+    conn.close()
+    print("Database initialized successfully")
+
+# Initialize on startup
+init_database()
+
+# ============================================================================
 # REQUEST/RESPONSE MODELS
 # ============================================================================
 
