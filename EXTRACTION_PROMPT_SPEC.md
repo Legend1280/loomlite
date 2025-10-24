@@ -57,8 +57,10 @@ This prompt MUST comply with:
 **Location:** `/backend/extractor.py` (lines 21-93)
 
 **Model:** `gpt-5`  
-**Temperature:** `0.3` (deterministic)  
+**Temperature:** `1.0` (default - GPT-5 only supports this value)  
 **Response Format:** `json_object` (structured output)
+
+**Note:** GPT-5 does not support custom temperature values. Attempts to use `temperature=0.3` result in a 400 error: "Unsupported value: 'temperature' does not support 0.3 with this model. Only the default (1) value is supported."
 
 ### 2.1 Full Prompt
 
