@@ -93,7 +93,7 @@ If text says "Brady Simmons founded Loom Lite in Q4 2024", extract:
 """
 
 
-def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-5") -> Dict:
+def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-4.1") -> Dict:
     """
     Extract concepts and relations from text using OpenAI API
     
@@ -125,15 +125,15 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-5") -> 
                     {"role": "system", "content": "You are an expert ontology extractor."},
                     {"role": "user", "content": EXTRACTION_PROMPT + "\n\n" + chunk}
                 ],
-                # Note: GPT-5 only supports temperature=1 (default)
+                temperature=0.0,
                 response_format={"type": "json_object"}
             )
             
             # Parse response
             result = json.loads(response.choices[0].message.content)
             
-            # DEBUG: Log what GPT-5 returned
-            print(f"    GPT-5 returned: {len(result.get('concepts', []))} concepts, {len(result.get('relations', []))} relations, {len(result.get('spans', []))} spans")
+            # DEBUG: Log what GPT-4.1 returned
+            print(f"    GPT-4.1 returned: {len(result.get('concepts', []))} concepts, {len(result.get('relations', []))} relations, {len(result.get('spans', []))} spans")
             if len(result.get('concepts', [])) == 0:
                 print(f"    WARNING: No concepts extracted! Full response: {json.dumps(result, indent=2)[:500]}")
             
@@ -216,7 +216,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
     cur.execute("""
         INSERT INTO ontology_versions (id, doc_id, model_name, model_version, pipeline, extracted_at, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (version_id, doc_id, "gpt-5", "2025-10-22", "ingest+extract@v0.3.0", datetime.utcnow().isoformat() + "Z", "OpenAI extraction"))
+    """, (version_id, doc_id, "gpt-4.1", "2025-10-22", "ingest+extract@v0.3.0", datetime.utcnow().isoformat() + "Z", "OpenAI extraction"))
     
     # Insert spans
     span_map = {}  # concept_label -> [span_ids]
@@ -225,7 +225,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
         cur.execute("""
             INSERT INTO spans (id, doc_id, start, "end", text, extractor, quality)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (span_id, doc_id, span["start"], span["end"], span["text"], "openai@gpt-5", 0.9))
+        """, (span_id, doc_id, span["start"], span["end"], span["text"], "openai@gpt-4.1", 0.9))
         
         concept_label = span["concept_label"]
         if concept_label not in span_map:
@@ -244,7 +244,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
         """, (concept_id, doc_id, concept["label"], concept["type"], concept["confidence"],
               json.dumps(concept.get("aliases", [])),
               json.dumps(concept.get("tags", [])),
-              "gpt-5", "v1.0"))
+              "gpt-4.1", "v1.0"))
     
     # Insert relations
     for i, relation in enumerate(ontology["relations"]):
@@ -257,7 +257,7 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
                 INSERT INTO relations (id, doc_id, src, rel, dst, confidence, model_name)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (relation_id, doc_id, src_id, relation["rel"], dst_id,
-                  relation["confidence"], "gpt-5"))
+                  relation["confidence"], "gpt-4.1"))
     
     # Insert mentions
     mention_id = 0
