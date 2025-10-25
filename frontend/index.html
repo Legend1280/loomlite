@@ -538,20 +538,291 @@
     
     /**
      * Load all ontology data from backend
-     * Will fetch: /tree (document list), /doc/{id}/ontology (per-document concepts)
+     * Fetches: /tree (document list), /doc/{id}/ontology (per-document concepts)
      */
-    function loadAllData() {
-      // TODO: Implement backend data loading
-      console.log('[FUTURE] loadAllData() - will fetch from API');
+    async function loadAllData() {
+      console.log('📡 Loading all documents from backend...');
+      
+      try {
+        // Fetch document list
+        const treeResponse = await fetch(`${API_BASE}/tree`);
+        if (!treeResponse.ok) {
+          throw new Error(`Failed to fetch /tree: ${treeResponse.status}`);
+        }
+        
+        const documents = await treeResponse.json();
+        console.log(`📄 Found ${documents.length} documents`);
+        
+        if (documents.length === 0) {
+          console.log('ℹ️  No documents uploaded yet');
+          logEvent('No documents found');
+          return { documents: [], totalConcepts: 0, totalRelations: 0 };
+        }
+        
+        // Fetch ontology for each document
+        const galaxy = {
+          documents: []
+        };
+        
+        let totalConcepts = 0;
+        let totalRelations = 0;
+        
+        for (const doc of documents) {
+          console.log(`🔍 Fetching ontology for: ${doc.name}`);
+          
+          try {
+            const ontologyResponse = await fetch(`${API_BASE}/doc/${doc.id}/ontology`);
+            if (!ontologyResponse.ok) {
+              console.warn(`⚠️  Failed to fetch ontology for ${doc.name}`);
+              continue;
+            }
+            
+            const ontology = await ontologyResponse.json();
+            
+            galaxy.documents.push({
+              id: doc.id,
+              name: doc.name,
+              concepts: ontology.concepts || [],
+              relations: ontology.relations || []
+            });
+            
+            totalConcepts += (ontology.concepts || []).length;
+            totalRelations += (ontology.relations || []).length;
+            
+            console.log(`  🧠 ${ontology.concepts?.length || 0} concepts, 🔗 ${ontology.relations?.length || 0} relations`);
+          } catch (err) {
+            console.error(`❌ Error fetching ontology for ${doc.name}:`, err);
+          }
+        }
+        
+        console.log('\n✅ Ontology Parsing Complete:');
+        console.log(`📄 ${galaxy.documents.length} documents parsed`);
+        console.log(`🧠 ${totalConcepts} total concepts extracted`);
+        console.log(`🔗 ${totalRelations} total relations identified\n`);
+        
+        logEvent(`Loaded ${galaxy.documents.length} documents, ${totalConcepts} concepts`);
+        
+        return { ...galaxy, totalConcepts, totalRelations };
+        
+      } catch (error) {
+        console.error('❌ Error loading data:', error);
+        logEvent('Error loading documents');
+        return { documents: [], totalConcepts: 0, totalRelations: 0 };
+      }
     }
     
     /**
-     * Render the ontology graph visualization
-     * Will use D3 force-directed graph or hierarchical tree
+     * Render the Galaxy View - multi-document ontology visualization
+     * Each document = color-coded cluster, concepts = nodes, relations = edges
      */
-    function drawOntologyGraph(data) {
-      // TODO: Implement ontology visualization
-      console.log('[FUTURE] drawOntologyGraph() - will render D3 graph');
+    function renderGalaxy(galaxyData) {
+      console.log('🌌 Rendering Galaxy View...');
+      
+      if (!galaxyData || galaxyData.documents.length === 0) {
+        console.log('ℹ️  No documents to visualize');
+        return;
+      }
+      
+      const svg = d3.select('#ontologySvg');
+      const width = document.getElementById('ontologyPanel').clientWidth;
+      const height = document.getElementById('ontologyPanel').clientHeight;
+      
+      svg.attr('width', width).attr('height', height);
+      svg.selectAll('*').remove();
+      
+      // Create container for zoom/pan
+      const g = svg.append('g');
+      
+      // Color scale for documents
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+      
+      // Prepare nodes and links
+      const nodes = [];
+      const links = [];
+      
+      galaxyData.documents.forEach((doc, docIndex) => {
+        const docColor = colorScale(docIndex);
+        
+        console.log(`🪐  Document cluster: ${doc.name} (${doc.concepts.length} concepts)`);
+        
+        // Add document center node
+        nodes.push({
+          id: `doc_${doc.id}`,
+          label: doc.name,
+          type: 'document',
+          color: docColor,
+          size: 15,
+          docId: doc.id
+        });
+        
+        // Add concept nodes
+        doc.concepts.forEach(concept => {
+          nodes.push({
+            id: `${doc.id}_${concept.id}`,
+            label: concept.name,
+            type: concept.type || 'concept',
+            color: docColor,
+            size: 8,
+            docId: doc.id,
+            docName: doc.name,
+            conceptData: concept
+          });
+          
+          // Link concept to document center
+          links.push({
+            source: `doc_${doc.id}`,
+            target: `${doc.id}_${concept.id}`,
+            type: 'contains'
+          });
+        });
+        
+        // Add relation links
+        doc.relations.forEach(rel => {
+          links.push({
+            source: `${doc.id}_${rel.source}`,
+            target: `${doc.id}_${rel.target}`,
+            type: rel.type || 'relates',
+            label: rel.type
+          });
+        });
+      });
+      
+      console.log(`🔵 ${nodes.length} nodes, 🔗 ${links.length} links`);
+      
+      // Create force simulation
+      const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links)
+          .id(d => d.id)
+          .distance(d => d.type === 'contains' ? 50 : 80))
+        .force('charge', d3.forceManyBody().strength(-200))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => d.size + 5));
+      
+      // Draw links
+      const link = g.append('g')
+        .selectAll('line')
+        .data(links)
+        .join('line')
+        .attr('stroke', d => d.type === 'contains' ? '#4a5568' : '#718096')
+        .attr('stroke-opacity', d => d.type === 'contains' ? 0.3 : 0.6)
+        .attr('stroke-width', d => d.type === 'contains' ? 1 : 2);
+      
+      // Draw nodes
+      const node = g.append('g')
+        .selectAll('circle')
+        .data(nodes)
+        .join('circle')
+        .attr('r', d => d.size)
+        .attr('fill', d => d.color)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5)
+        .style('cursor', 'pointer')
+        .call(d3.drag()
+          .on('start', dragstarted)
+          .on('drag', dragged)
+          .on('end', dragended));
+      
+      // Add labels
+      const label = g.append('g')
+        .selectAll('text')
+        .data(nodes.filter(d => d.type === 'document'))
+        .join('text')
+        .text(d => d.label)
+        .attr('font-size', 12)
+        .attr('font-weight', 'bold')
+        .attr('fill', '#e2e8f0')
+        .attr('text-anchor', 'middle')
+        .attr('dy', -20)
+        .style('pointer-events', 'none');
+      
+      // Tooltips and interactions
+      node.on('mouseover', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', d.size * 1.5)
+          .attr('stroke-width', 3);
+        
+        // Show tooltip
+        const tooltip = g.append('text')
+          .attr('class', 'tooltip')
+          .attr('x', d.x)
+          .attr('y', d.y - 25)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#fff')
+          .attr('font-size', 11)
+          .attr('font-weight', 'bold')
+          .style('pointer-events', 'none')
+          .text(d.label);
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', d.size)
+          .attr('stroke-width', d.type === 'document' ? 3 : 1.5);
+        
+        g.selectAll('.tooltip').remove();
+      })
+      .on('click', function(event, d) {
+        console.log('👆 Clicked:', d.label);
+        console.log('  Type:', d.type);
+        console.log('  Source document:', d.docName || d.label);
+        if (d.conceptData) {
+          console.log('  Concept data:', d.conceptData);
+        }
+        logEvent(`Clicked: ${d.label}`);
+        
+        // TODO: Solar System View (single doc)
+        // TODO: Planet Surface View (concept detail)
+      });
+      
+      // Update positions on simulation tick
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+        
+        node
+          .attr('cx', d => d.x)
+          .attr('cy', d => d.y);
+        
+        label
+          .attr('x', d => d.x)
+          .attr('y', d => d.y);
+      });
+      
+      // Drag functions
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+      
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+      
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+      
+      // Add zoom behavior
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 4])
+        .on('zoom', (event) => {
+          g.attr('transform', event.transform);
+        });
+      
+      svg.call(zoom);
+      
+      console.log('✅ Galaxy View rendered successfully');
+      logEvent('Galaxy View rendered');
     }
     
     /**
@@ -751,7 +1022,7 @@
     /**
      * Initialize the application
      */
-    function init() {
+    async function init() {
       console.log('=== INITIALIZING MVP ===');
       
       // Run diagnostic
@@ -760,9 +1031,18 @@
       // Setup event listeners
       setupEventListeners();
       
-      // If all checks pass, render test visualization
+      // Load and render data
       if (checks.ontologyPanel && checks.ontologySvg) {
-        renderTestVisualization();
+        // Load all documents and ontologies
+        const galaxyData = await loadAllData();
+        
+        if (galaxyData.documents.length > 0) {
+          // Render Galaxy View
+          renderGalaxy(galaxyData);
+        } else {
+          // No documents yet, show welcome message
+          renderTestVisualization();
+        }
       } else {
         console.error('❌ Required containers not found!');
       }
@@ -956,10 +1236,13 @@
       
       if (allSuccess) {
         logEvent('All uploads successful!');
-        setTimeout(() => {
+        setTimeout(async () => {
           closeUploadModal();
-          // TODO: Reload data when backend integration is complete
-          // loadAllData().then(() => drawOntologyGraph());
+          // Reload and re-render Galaxy View
+          const galaxyData = await loadAllData();
+          if (galaxyData.documents.length > 0) {
+            renderGalaxy(galaxyData);
+          }
         }, 1500);
       } else {
         submitUploadBtn.disabled = false;
