@@ -521,9 +521,15 @@
     <div class="event-log">
       <h5>Event Log:</h5>
       <div id="eventLog"></div>
-    </di    // API Configuration
+    </div>
+  </div>
+
+  <script>
+    // API Configuration
     const API_BASE = 'https://loomlite-production.up.railway.app';
-    const N8N_WEBHOOK = 'https://sovfound.app.n8n.cloud/webhook/loom-lite-ingest';    let currentMode = 'categories';
+    const N8N_WEBHOOK = 'https://sovfound.app.n8n.cloud/webhook/loom-lite-ingest';
+    
+    let currentMode = 'categories';
     let eventLogEntries = [];
     
     // ============================================================================
