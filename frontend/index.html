@@ -541,20 +541,22 @@
      * Fetches: /tree (document list), /doc/{id}/ontology (per-document concepts)
      */
     async function loadAllData() {
-      console.log('📡 Loading all documents from backend...');
+      console.log('🧭 Loading all documents from backend...');
       
       try {
         // Fetch document list
+        console.log('🔍 Fetching /tree...');
         const treeResponse = await fetch(`${API_BASE}/tree`);
         if (!treeResponse.ok) {
           throw new Error(`Failed to fetch /tree: ${treeResponse.status}`);
         }
         
         const documents = await treeResponse.json();
-        console.log(`📄 Found ${documents.length} documents`);
+        console.log('🔍 /tree response:', documents);
+        console.log(`✅ Documents retrieved: ${documents.length}`);
         
-        if (documents.length === 0) {
-          console.log('ℹ️  No documents uploaded yet');
+        if (!documents || documents.length === 0) {
+          console.warn('⚠️  No data returned from backend');
           logEvent('No documents found');
           return { documents: [], totalConcepts: 0, totalRelations: 0 };
         }
@@ -567,31 +569,48 @@
         let totalConcepts = 0;
         let totalRelations = 0;
         
+        console.log('🧠 Parsing ontologies...');
+        
         for (const doc of documents) {
-          console.log(`🔍 Fetching ontology for: ${doc.name}`);
+          console.log(`🔍 Fetching ontology for: ${doc.title || doc.name}`);
           
           try {
             const ontologyResponse = await fetch(`${API_BASE}/doc/${doc.id}/ontology`);
             if (!ontologyResponse.ok) {
-              console.warn(`⚠️  Failed to fetch ontology for ${doc.name}`);
+              console.warn(`⚠️  Failed to fetch ontology for ${doc.title}: ${ontologyResponse.status}`);
               continue;
             }
             
             const ontology = await ontologyResponse.json();
+            console.log(`📄 /doc response for ${doc.title}:`, ontology);
+            
+            if (!ontology || !ontology.concepts) {
+              console.warn(`⚠️  No ontology data in response for ${doc.title}`);
+              continue;
+            }
+            
+            // Normalize concept field names (backend uses 'label', we use 'name')
+            const normalizedConcepts = (ontology.concepts || []).map(c => ({
+              id: c.id,
+              name: c.label || c.name,
+              type: c.type,
+              confidence: c.confidence,
+              ...c
+            }));
             
             galaxy.documents.push({
               id: doc.id,
-              name: doc.name,
-              concepts: ontology.concepts || [],
+              name: doc.title || doc.name,
+              concepts: normalizedConcepts,
               relations: ontology.relations || []
             });
             
-            totalConcepts += (ontology.concepts || []).length;
+            totalConcepts += normalizedConcepts.length;
             totalRelations += (ontology.relations || []).length;
             
-            console.log(`  🧠 ${ontology.concepts?.length || 0} concepts, 🔗 ${ontology.relations?.length || 0} relations`);
+            console.log(`  ✅ Parsed ${normalizedConcepts.length} concepts, ${(ontology.relations || []).length} relations`);
           } catch (err) {
-            console.error(`❌ Error fetching ontology for ${doc.name}:`, err);
+            console.error(`❌ Error fetching ontology for ${doc.title}:`, err);
           }
         }
         
@@ -617,9 +636,27 @@
      */
     function renderGalaxy(galaxyData) {
       console.log('🌌 Rendering Galaxy View...');
+      console.log('Galaxy data received:', galaxyData);
       
-      if (!galaxyData || galaxyData.documents.length === 0) {
-        console.log('ℹ️  No documents to visualize');
+      if (!galaxyData || !galaxyData.documents || galaxyData.documents.length === 0) {
+        console.warn('⚠️  No ontology data found — check parsing.');
+        logEvent('No data to visualize');
+        
+        // Show placeholder message
+        const svg = d3.select('#ontologySvg');
+        const width = document.getElementById('ontologyPanel').clientWidth;
+        const height = document.getElementById('ontologyPanel').clientHeight;
+        svg.attr('width', width).attr('height', height);
+        svg.selectAll('*').remove();
+        
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#e2e8f0')
+          .attr('font-size', '18px')
+          .text('⚠️  No ontology data found — check parsing.');
+        
         return;
       }
       
@@ -688,6 +725,23 @@
       });
       
       console.log(`🔵 ${nodes.length} nodes, 🔗 ${links.length} links`);
+      
+      // Debug: If no nodes, show placeholder
+      if (nodes.length === 0) {
+        console.warn('⚠️  No nodes to render - concepts array might be empty');
+        svg.append('circle')
+          .attr('cx', width / 2)
+          .attr('cy', height / 2)
+          .attr('r', 30)
+          .attr('fill', '#3b82f6');
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2 + 50)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#e2e8f0')
+          .text(`Debug: ${galaxyData.documents.length} documents loaded but no concepts`);
+        return;
+      }
       
       // Create force simulation
       const simulation = d3.forceSimulation(nodes)
