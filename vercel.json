@@ -1,5 +1,8 @@
 {
-  "buildCommand": "mkdir -p .vercel/output/static && cp frontend/index.html frontend/favicon* .vercel/output/static/",
-  "outputDirectory": ".vercel/output/static"
+  "builds": [
+    { "src": "frontend/index.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/frontend/index.html" }
+  ]
 }
-
