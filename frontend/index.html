@@ -702,8 +702,8 @@
         // Add concept nodes
         doc.concepts.forEach(concept => {
           nodes.push({
-            id: `${doc.id}_${concept.id}`,
-            label: concept.name,
+            id: concept.id,  // API returns full IDs like "c_doc_12388be05cac_0"
+            label: concept.label,  // API uses 'label' not 'name'
             type: concept.type || 'concept',
             color: docColor,
             size: 8,
@@ -715,7 +715,7 @@
           // Link concept to document center
           links.push({
             source: `doc_${doc.id}`,
-            target: `${doc.id}_${concept.id}`,
+            target: concept.id,  // Use full concept ID from API
             type: 'contains'
           });
         });
@@ -723,10 +723,10 @@
         // Add relation links
         doc.relations.forEach(rel => {
           links.push({
-            source: `${doc.id}_${rel.source}`,
-            target: `${doc.id}_${rel.target}`,
-            type: rel.type || 'relates',
-            label: rel.type
+            source: rel.src,  // API returns full concept IDs in src/dst
+            target: rel.dst,
+            type: rel.rel || 'relates',  // API uses 'rel' not 'type'
+            label: rel.rel
           });
         });
       });
