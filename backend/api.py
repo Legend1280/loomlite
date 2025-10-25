@@ -249,10 +249,27 @@ async def get_tree():
 @app.get("/doc/{doc_id}/ontology")
 async def get_doc_ontology(doc_id: str):
     """Get full MicroOntology for a document"""
-    ontology = get_ontology_from_db(doc_id)
-    if not ontology:
-        raise HTTPException(status_code=404, detail="Document not found")
-    return ontology.dict()
+    try:
+        ontology = get_ontology_from_db(doc_id)
+        if not ontology:
+            raise HTTPException(status_code=404, detail="Document not found")
+        return ontology.dict()
+    except Exception as e:
+        # Fallback: return simplified structure
+        conn = get_db()
+        doc = conn.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        concepts = conn.execute("SELECT * FROM concepts WHERE doc_id = ?", (doc_id,)).fetchall()
+        relations = conn.execute("SELECT * FROM relations WHERE doc_id = ?", (doc_id,)).fetchall()
+        conn.close()
+        
+        return {
+            "document": dict(doc),
+            "concepts": [dict(c) for c in concepts],
+            "relations": [dict(r) for r in relations]
+        }
 
 @app.get("/search")
 async def search(q: str = "", types: str = "", tags: str = ""):
