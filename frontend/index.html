@@ -640,8 +640,10 @@
      * Each document = color-coded cluster, concepts = nodes, relations = edges
      */
     function renderGalaxy(galaxyData) {
-      console.log('🌌 Rendering Galaxy View...');
-      console.log('Galaxy data received:', galaxyData);
+      try {
+        console.log('🌌 Rendering Galaxy View...');
+        console.log('Galaxy data received:', galaxyData);
+        logEvent('Rendering Galaxy visualization...');
       
       if (!galaxyData || !galaxyData.documents || galaxyData.documents.length === 0) {
         console.warn('⚠️  No ontology data found — check parsing.');
@@ -886,6 +888,34 @@
       
       console.log('✅ Galaxy View rendered successfully');
       logEvent('Galaxy View rendered');
+      
+      } catch (error) {
+        console.error('❌ GALAXY RENDER ERROR:', error);
+        console.error('Error stack:', error.stack);
+        logEvent(`Galaxy render failed: ${error.message}`);
+        
+        // Show error message in visualization
+        const svg = d3.select('#ontologySvg');
+        const panel = document.getElementById('ontologyPanel');
+        svg.attr('width', panel.clientWidth).attr('height', panel.clientHeight);
+        svg.selectAll('*').remove();
+        
+        svg.append('text')
+          .attr('x', panel.clientWidth / 2)
+          .attr('y', panel.clientHeight / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#ef4444')
+          .attr('font-size', '16px')
+          .text('❌ Render Error: ' + error.message);
+        
+        svg.append('text')
+          .attr('x', panel.clientWidth / 2)
+          .attr('y', panel.clientHeight / 2 + 30)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#94a3b8')
+          .attr('font-size', '12px')
+          .text('Check console for details');
+      }
     }
     
     /**
