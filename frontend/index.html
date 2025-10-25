@@ -504,6 +504,200 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #5a6678;
     }
+    
+    /* SEARCH RESULTS STYLES */
+    #searchResults {
+      padding: 20px;
+      overflow-y: auto;
+      height: 100%;
+    }
+    
+    .search-header {
+      margin-bottom: 24px;
+    }
+    
+    .search-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+    
+    .search-meta {
+      font-size: 13px;
+      color: #718096;
+    }
+    
+    .type-chips-container {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    
+    .type-chip {
+      padding: 8px 16px;
+      background: #1a202c;
+      border: 2px solid #4a5568;
+      border-radius: 20px;
+      color: #cbd5e0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .type-chip:hover {
+      border-color: #5a6678;
+      background: #2d3748;
+    }
+    
+    .type-chip.active {
+      background: #3182ce;
+      border-color: #3182ce;
+      color: white;
+    }
+    
+    .type-chip-count {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .type-chip.active .type-chip-count {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .clear-search-btn {
+      padding: 8px 16px;
+      background: #4a5568;
+      border: none;
+      border-radius: 20px;
+      color: #cbd5e0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .clear-search-btn:hover {
+      background: #5a6678;
+    }
+    
+    .document-group {
+      background: #1a202c;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+    
+    .document-group:hover {
+      border-color: #4a5568;
+    }
+    
+    .document-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #2d3748;
+    }
+    
+    .document-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e2e8f0;
+      flex: 1;
+    }
+    
+    .document-meta {
+      font-size: 12px;
+      color: #718096;
+    }
+    
+    .view-doc-btn {
+      padding: 6px 12px;
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      border-radius: 6px;
+      color: #cbd5e0;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .view-doc-btn:hover {
+      background: #374151;
+      border-color: #5a6678;
+    }
+    
+    .concepts-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+    }
+    
+    .concept-card {
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .concept-card:hover {
+      background: #374151;
+      border-color: #5a6678;
+      transform: translateY(-1px);
+    }
+    
+    .concept-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+    
+    .concept-type {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .concept-card.type-Metric { border-left: 3px solid #3b82f6; }
+    .concept-card.type-Date { border-left: 3px solid #10b981; }
+    .concept-card.type-Person { border-left: 3px solid #8b5cf6; }
+    .concept-card.type-Project { border-left: 3px solid #f59e0b; }
+    .concept-card.type-Topic { border-left: 3px solid #ec4899; }
+    .concept-card.type-Technology { border-left: 3px solid #06b6d4; }
+    .concept-card.type-Document { border-left: 3px solid #64748b; }
+    
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: #718096;
+    }
+    
+    .no-results-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .no-results-text {
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -927,9 +1121,235 @@
       drawTree(filteredOntology);
     }
     
+    let searchResultsData = null;
+    let selectedTypes = new Set();
+    
     function drawSearchResults(results) {
-      // TODO: Implement search results visualization
-      console.log('Search results:', results);
+      searchResultsData = results;
+      selectedTypes.clear();
+      
+      const svg = d3.select('#ontologySvg');
+      svg.selectAll('*').remove();
+      
+      const panel = d3.select('#ontologyPanel');
+      panel.selectAll('#searchResults').remove();
+      
+      if (!results.concepts || results.concepts.length === 0) {
+        showNoResults();
+        return;
+      }
+      
+      // Group concepts by document
+      const conceptsByDoc = {};
+      results.concepts.forEach(concept => {
+        if (!conceptsByDoc[concept.doc_id]) {
+          conceptsByDoc[concept.doc_id] = [];
+        }
+        conceptsByDoc[concept.doc_id].push(concept);
+      });
+      
+      // Extract unique types and count
+      const typeCounts = {};
+      results.concepts.forEach(concept => {
+        typeCounts[concept.type] = (typeCounts[concept.type] || 0) + 1;
+      });
+      
+      // Create search results container
+      const container = panel.append('div')
+        .attr('id', 'searchResults');
+      
+      // Header
+      const header = container.append('div')
+        .attr('class', 'search-header');
+      
+      header.append('div')
+        .attr('class', 'search-title')
+        .text(`Found ${results.concepts.length} concept${results.concepts.length !== 1 ? 's' : ''}`);
+      
+      header.append('div')
+        .attr('class', 'search-meta')
+        .text(`Across ${Object.keys(conceptsByDoc).length} document${Object.keys(conceptsByDoc).length !== 1 ? 's' : ''}`);
+      
+      // Type chips
+      const chipsContainer = container.append('div')
+        .attr('class', 'type-chips-container');
+      
+      Object.entries(typeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([type, count]) => {
+          const chip = chipsContainer.append('div')
+            .attr('class', 'type-chip')
+            .on('click', () => toggleTypeFilter(type));
+          
+          chip.append('span').text(type);
+          chip.append('span')
+            .attr('class', 'type-chip-count')
+            .text(count);
+        });
+      
+      // Clear search button
+      chipsContainer.append('button')
+        .attr('class', 'clear-search-btn')
+        .text('Clear Search')
+        .on('click', () => {
+          searchInput.value = '';
+          drawInitialView();
+        });
+      
+      // Results container
+      const resultsContainer = container.append('div')
+        .attr('class', 'results-container');
+      
+      renderFilteredResults(resultsContainer, conceptsByDoc);
+    }
+    
+    function toggleTypeFilter(type) {
+      if (selectedTypes.has(type)) {
+        selectedTypes.delete(type);
+      } else {
+        selectedTypes.add(type);
+      }
+      
+      // Update chip styles
+      d3.selectAll('.type-chip')
+        .classed('active', function() {
+          const chipType = d3.select(this).select('span').text();
+          return selectedTypes.has(chipType);
+        });
+      
+      // Re-render results
+      if (searchResultsData) {
+        const conceptsByDoc = {};
+        searchResultsData.concepts.forEach(concept => {
+          if (!conceptsByDoc[concept.doc_id]) {
+            conceptsByDoc[concept.doc_id] = [];
+          }
+          conceptsByDoc[concept.doc_id].push(concept);
+        });
+        
+        const resultsContainer = d3.select('#searchResults .results-container');
+        resultsContainer.selectAll('*').remove();
+        renderFilteredResults(resultsContainer, conceptsByDoc);
+      }
+    }
+    
+    async function renderFilteredResults(container, conceptsByDoc) {
+      // Fetch document titles
+      const docTitles = {};
+      for (const docId of Object.keys(conceptsByDoc)) {
+        const doc = allDocuments.find(d => d.id === docId);
+        if (doc) {
+          docTitles[docId] = doc.title;
+        }
+      }
+      
+      // Filter and render each document group
+      Object.entries(conceptsByDoc).forEach(([docId, concepts]) => {
+        // Filter concepts by selected types
+        const filteredConcepts = selectedTypes.size === 0 
+          ? concepts 
+          : concepts.filter(c => selectedTypes.has(c.type));
+        
+        if (filteredConcepts.length === 0) return;
+        
+        const docGroup = container.append('div')
+          .attr('class', 'document-group');
+        
+        // Document header
+        const docHeader = docGroup.append('div')
+          .attr('class', 'document-header');
+        
+        const headerLeft = docHeader.append('div')
+          .style('flex', '1');
+        
+        headerLeft.append('div')
+          .attr('class', 'document-title')
+          .text(docTitles[docId] || docId);
+        
+        headerLeft.append('div')
+          .attr('class', 'document-meta')
+          .text(`${filteredConcepts.length} concept${filteredConcepts.length !== 1 ? 's' : ''}`);
+        
+        docHeader.append('button')
+          .attr('class', 'view-doc-btn')
+          .text('View Ontology')
+          .on('click', async () => {
+            await loadDocumentOntology(docId);
+          });
+        
+        // Concepts grid
+        const conceptsList = docGroup.append('div')
+          .attr('class', 'concepts-list');
+        
+        filteredConcepts.forEach(concept => {
+          const card = conceptsList.append('div')
+            .attr('class', `concept-card type-${concept.type}`)
+            .on('click', async () => {
+              await showConceptEvidence(docId, concept.id);
+            });
+          
+          card.append('div')
+            .attr('class', 'concept-label')
+            .text(concept.label);
+          
+          card.append('div')
+            .attr('class', 'concept-type')
+            .text(concept.type);
+        });
+      });
+    }
+    
+    function showNoResults() {
+      const panel = d3.select('#ontologyPanel');
+      const container = panel.append('div')
+        .attr('id', 'searchResults');
+      
+      const noResults = container.append('div')
+        .attr('class', 'no-results');
+      
+      noResults.append('div')
+        .attr('class', 'no-results-title')
+        .text('No results found');
+      
+      noResults.append('div')
+        .attr('class', 'no-results-text')
+        .text('Try a different search term or upload more documents');
+      
+      noResults.append('button')
+        .attr('class', 'clear-search-btn')
+        .style('margin-top', '16px')
+        .text('Clear Search')
+        .on('click', () => {
+          searchInput.value = '';
+          drawInitialView();
+        });
+    }
+    
+    async function showConceptEvidence(docId, conceptId) {
+      try {
+        const evidence = await fetchJSON(`${API_BASE}/jump?doc_id=${docId}&concept_id=${conceptId}`);
+        const fileContent = document.getElementById('fileContent');
+        
+        if (!evidence.evidence || evidence.evidence.length === 0) {
+          fileContent.innerHTML = '<div class="empty-state">No evidence found for this concept</div>';
+          return;
+        }
+        
+        let html = '<div class="evidence-panel">';
+        html += `<h3 style="margin-bottom: 16px; color: #e2e8f0;">Evidence Spans</h3>`;
+        
+        evidence.evidence.forEach(item => {
+          html += '<div class="evidence-item">';
+          html += `<div style="font-size: 11px; color: #718096; margin-bottom: 8px;">Position: ${item.start}-${item.end}</div>`;
+          html += `<div>${escapeHtml(item.text)}</div>`;
+          html += '</div>';
+        });
+        
+        html += '</div>';
+        fileContent.innerHTML = html;
+      } catch (error) {
+        console.error('Failed to load evidence:', error);
+      }
     }
     
     function escapeHtml(text) {
