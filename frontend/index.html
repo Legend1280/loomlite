@@ -874,7 +874,12 @@
       const query = searchInput.value.trim();
       const debugDiv = document.getElementById('debugInfo');
       if (debugDiv) debugDiv.innerHTML += '<br>handleSearch: "' + query + '"';
-      if (query.length < 2) {
+      
+      // If no query, show tree view
+      if (!query || query.length < 2) {
+        d3.select('#searchResults').style('display', 'none');
+        d3.select('#ontologySvg').style('display', 'block');
+        if (!query) return; // Don't reload tree if just clearing
         drawInitialView();
         return;
       }
@@ -897,6 +902,10 @@
     }
     
     async function drawInitialView() {
+      // Show SVG, hide search results
+      d3.select('#ontologySvg').style('display', 'block');
+      d3.select('#searchResults').style('display', 'none');
+      
       // Load first document's ontology as initial view
       if (allDocuments.length > 0) {
         const firstDoc = allDocuments[0];
@@ -1151,11 +1160,23 @@
       selectedTypes.clear();
       
       const debugDiv = document.getElementById('debugInfo');
+      console.log('drawSearchResults(): rendering', results.concepts ? results.concepts.length : 0, 'concepts');
       
-      // Clear the entire ontology panel
+      // Hide SVG, show search results
+      const svg = d3.select('#ontologySvg');
+      svg.style('display', 'none');
+      
+      // Get or create search results container
       const panel = d3.select('#ontologyPanel');
-      panel.selectAll('*').remove(); // Remove SVG and any existing search results
-      if (debugDiv) debugDiv.innerHTML += '<br>Panel cleared';
+      let container = d3.select('#searchResults');
+      if (container.empty()) {
+        container = panel.append('div').attr('id', 'searchResults');
+        if (debugDiv) debugDiv.innerHTML += '<br>Created searchResults container';
+      } else {
+        container.selectAll('*').remove(); // Clear only inside
+        if (debugDiv) debugDiv.innerHTML += '<br>Cleared searchResults content';
+      }
+      container.style('display', 'block');
       
       if (!results.concepts || results.concepts.length === 0) {
         if (debugDiv) debugDiv.innerHTML += '<br>No concepts to show';
@@ -1179,10 +1200,8 @@
         typeCounts[concept.type] = (typeCounts[concept.type] || 0) + 1;
       });
       
-      // Create search results container
-      const container = panel.append('div')
-        .attr('id', 'searchResults');
-      if (debugDiv) debugDiv.innerHTML += '<br>Container: ' + (container.node() ? 'created' : 'FAILED');
+      // Container already created above, just use it
+      if (debugDiv) debugDiv.innerHTML += '<br>Using container';
       
       // Header
       const header = container.append('div')
