@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loom Lite - Ontology Navigator</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a202c;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+    
+    /* TOP BAR */
+    #topBar {
+      background: #2d3748;
+      border-bottom: 1px solid #4a5568;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      height: 60px;
+    }
+    
+    #searchInput {
+      flex: 1;
+      max-width: 600px;
+      padding: 10px 15px;
+      background: #1a202c;
+      border: 1px solid #4a5568;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    #searchInput:focus {
+      outline: none;
+      border-color: #63b3ed;
+    }
+    
+    #viewModes {
+      display: flex;
+      gap: 10px;
+    }
+    
+    #viewModes button {
+      padding: 8px 16px;
+      background: #4a5568;
+      border: none;
+      border-radius: 6px;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    
+    #viewModes button:hover {
+      background: #5a6678;
+      transform: translateY(-1px);
+    }
+    
+    #viewModes button.active {
+      background: #3182ce;
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+    }
+    
+    /* Upload Button */
+    .upload-btn {
+      padding: 8px 16px;
+      background: #10b981;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .upload-btn:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+    
+    /* Upload Modal */
+    #uploadModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #uploadModal.active {
+      display: flex;
+    }
+    
+    .upload-container {
+      background: #2d3748;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .upload-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .upload-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    
+    .close-btn:hover {
+      background: #374151;
+      color: #e2e8f0;
+    }
+    
+    .upload-dropzone {
+      border: 3px dashed #4a5568;
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+    
+    .upload-dropzone:hover,
+    .upload-dropzone.dragover {
+      border-color: #3182ce;
+      background: rgba(49, 130, 206, 0.1);
+    }
+    
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #64748b;
+    }
+    
+    .upload-text {
+      font-size: 16px;
+      color: #cbd5e0;
+      margin-bottom: 8px;
+    }
+    
+    .upload-hint {
+      font-size: 13px;
+      color: #718096;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .upload-list {
+      margin-top: 24px;
+    }
+    
+    .upload-item {
+      background: #1a202c;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .upload-item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .upload-item-name {
+      font-size: 14px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+    
+    .upload-item-size {
+      font-size: 12px;
+      color: #718096;
+    }
+    
+    .upload-item-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .upload-item-status.pending {
+      background: #4a5568;
+      color: #cbd5e0;
+    }
+    
+    .upload-item-status.uploading {
+      background: #3182ce;
+      color: white;
+    }
+    
+    .upload-item-status.success {
+      background: #10b981;
+      color: white;
+    }
+    
+    .upload-item-status.error {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .upload-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .upload-submit-btn {
+      flex: 1;
+      padding: 12px 24px;
+      background: #3182ce;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-submit-btn:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    .upload-submit-btn:disabled {
+      background: #4a5568;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .upload-cancel-btn {
+      padding: 12px 24px;
+      background: #4a5568;
+      border: none;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-cancel-btn:hover {
+      background: #5a6678;
+    }
+    
+    /* MAIN CONTAINER - THREE PANEL GRID */
+    #mainContainer {
+      display: grid;
+      grid-template-columns: 20% 55% 25%;
+      height: calc(100vh - 60px);
+      gap: 0;
+    }
+    
+    .panel {
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    /* LEFT PANEL - Ontology Navigator */
+    #ontologyNavigator {
+      background: #1a202c;
+      border-right: 1px solid #2d3748;
+      padding: 20px;
+    }
+    
+    #ontologyNavigator h3 {
+      color: #63b3ed;
+      margin-bottom: 15px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #ontologyNavigator .placeholder {
+      color: #718096;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    /* CENTER PANEL - Visualization */
+    #ontologyPanel {
+      background: #1a202c;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #ontologySvg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    #centerStatus {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(45, 55, 72, 0.95);
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 1px solid #4a5568;
+      font-size: 14px;
+      font-weight: 600;
+      color: #63b3ed;
+      z-index: 100;
+    }
+    
+    #searchResults {
+      display: none;
+      padding: 20px;
+      overflow-y: auto;
+      height: 100%;
+      width: 100%;
+    }
+    
+    /* RIGHT PANEL - Context Viewer */
+    #contextPanel {
+      background: #1a202c;
+      border-left: 1px solid #2d3748;
+      padding: 20px;
+    }
+    
+    #contextPanel h3 {
+      color: #63b3ed;
+      margin-bottom: 15px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #contextPanel .placeholder {
+      color: #718096;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    /* DIAGNOSTIC OVERLAY */
+    #diagnostic {
+      position: fixed;
+      top: 70px;
+      right: 10px;
+      background: rgba(45, 55, 72, 0.98);
+      border: 2px solid #4a5568;
+      border-radius: 6px;
+      padding: 15px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      max-width: 300px;
+      z-index: 10000;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    #diagnostic h4 {
+      color: #63b3ed;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    
+    #diagnostic .status {
+      margin: 5px 0;
+      padding: 5px;
+      background: #1a202c;
+      border-radius: 3px;
+    }
+    
+    #diagnostic .pass { color: #48bb78; }
+    #diagnostic .fail { color: #f56565; }
+    
+    #diagnostic .event-log {
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px solid #4a5568;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    
+    #diagnostic .event-log h5 {
+      color: #a0aec0;
+      font-size: 10px;
+      margin-bottom: 5px;
+    }
+    
+    #diagnostic .event {
+      font-size: 10px;
+      color: #cbd5e0;
+      margin: 2px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP BAR -->
+  <div id="topBar">
+    <input type="text" id="searchInput" placeholder="Search concepts, documents, topics...">
+    <div id="viewModes">
+      <button id="categoriesBtn" data-mode="categories" class="active">Categories</button>
+      <button id="conceptsBtn" data-mode="concepts">Concepts</button>
+      <button id="galaxyBtn" data-mode="galaxy">Galaxy</button>
+    </div>
+    <button class="upload-btn" id="uploadBtn">
+      <span>📤</span>
+      <span>Upload</span>
+    </button>
+  </div>
+
+  <!-- UPLOAD MODAL -->
+  <div id="uploadModal">
+    <div class="upload-container">
+      <div class="upload-header">
+        <h2 class="upload-title">Upload Documents</h2>
+        <button class="close-btn" id="closeUploadBtn">&times;</button>
+      </div>
+      
+      <div class="upload-dropzone" id="dropzone">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Drag & drop files here or click to browse</div>
+        <div class="upload-hint">Supports PDF, TXT, DOCX, MD, and ZIP files</div>
+      </div>
+      
+      <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.txt,.docx,.md,.zip">
+      
+      <div id="uploadList" class="upload-list"></div>
+      
+      <div class="upload-actions">
+        <button class="upload-cancel-btn" id="cancelUploadBtn">Cancel</button>
+        <button class="upload-submit-btn" id="submitUploadBtn" disabled>Upload Files</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER - THREE PANELS -->
+  <div id="mainContainer">
+    <!-- LEFT PANEL - Ontology Navigator -->
+    <div id="ontologyNavigator" class="panel">
+      <h3>📚 Ontology Navigator</h3>
+      <div class="placeholder">
+        <p><strong>Future Development:</strong></p>
+        <p>• Mind-map style hierarchical navigation</p>
+        <p>• Expandable/collapsible nodes</p>
+        <p>• Document grouping by ontology</p>
+        <p>• Quick jump to concepts</p>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL - Visualization -->
+    <div id="ontologyPanel" class="panel">
+      <div id="centerStatus">Active Mode: Categories</div>
+      <svg id="ontologySvg"></svg>
+      <div id="searchResults"></div>
+    </div>
+
+    <!-- RIGHT PANEL - Context Viewer -->
+    <div id="contextPanel" class="panel">
+      <h3>📄 Context Viewer</h3>
+      <div class="placeholder">
+        <p><strong>Dual-Mode Display:</strong></p>
+        <p>• <strong>Document Mode:</strong> View source text with highlighted evidence spans</p>
+        <p>• <strong>Ontology Data:</strong> View concept metadata, relations, and provenance</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIAGNOSTIC OVERLAY -->
+  <div id="diagnostic">
+    <h4>🔍 System Status</h4>
+    <div id="diagnosticContent">Initializing...</div>
+    <div class="event-log">
+      <h5>Event Log:</h5>
+      <div id="eventLog"></div>
+    </di    // API Configuration
+    const API_BASE = 'https://loomlite-production.up.railway.app';
+    const N8N_WEBHOOK = 'https://sovfound.app.n8n.cloud/webhook/loom-lite-ingest';    let currentMode = 'categories';
+    let eventLogEntries = [];
+    
+    // ============================================================================
+    // FUTURE DEVELOPMENT HOOKS (Not Implemented Yet)
+    // ============================================================================
+    
+    /**
+     * Load all ontology data from backend
+     * Will fetch: /tree (document list), /doc/{id}/ontology (per-document concepts)
+     */
+    function loadAllData() {
+      // TODO: Implement backend data loading
+      console.log('[FUTURE] loadAllData() - will fetch from API');
+    }
+    
+    /**
+     * Render the ontology graph visualization
+     * Will use D3 force-directed graph or hierarchical tree
+     */
+    function drawOntologyGraph(data) {
+      // TODO: Implement ontology visualization
+      console.log('[FUTURE] drawOntologyGraph() - will render D3 graph');
+    }
+    
+    /**
+     * Load and display document content in right panel
+     * Will fetch document text and highlight evidence spans
+     */
+    function loadDocumentContent(docId) {
+      // TODO: Implement document viewer
+      console.log('[FUTURE] loadDocumentContent() - will show document:', docId);
+    }
+    
+    /**
+     * Highlight evidence for a specific concept
+     * Will scroll to and highlight text spans in document
+     */
+    function highlightEvidence(conceptId) {
+      // TODO: Implement evidence highlighting
+      console.log('[FUTURE] highlightEvidence() - will highlight:', conceptId);
+    }
+    
+    // ============================================================================
+    // MVP FUNCTIONALITY (Active)
+    // ============================================================================
+    
+    /**
+     * Set the active view mode (Categories / Concepts / Galaxy)
+     */
+    function setViewMode(mode) {
+      currentMode = mode;
+      logEvent(`View mode changed to: ${mode}`);
+      console.log('✓ View mode set to:', mode);
+      
+      // Update status display
+      const statusEl = document.getElementById('centerStatus');
+      statusEl.textContent = `Active Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+      
+      // Update button states
+      document.querySelectorAll('#viewModes button').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.mode === mode) {
+          btn.classList.add('active');
+        }
+      });
+      
+      // TODO: In future, this will trigger different visualizations
+      // For now, just update the display
+    }
+    
+    /**
+     * Handle search input
+     */
+    function handleSearchInput(query) {
+      if (query.length > 0) {
+        logEvent(`Search: "${query}"`);
+        console.log('🔍 Search query:', query);
+      }
+      
+      // TODO: In future, this will call /search?q= endpoint
+      // For now, just log it
+    }
+    
+    /**
+     * Log an event to the diagnostic panel
+     */
+    function logEvent(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      eventLogEntries.unshift(`${timestamp} - ${message}`);
+      if (eventLogEntries.length > 10) eventLogEntries.pop();
+      
+      const eventLog = document.getElementById('eventLog');
+      if (eventLog) {
+        eventLog.innerHTML = eventLogEntries.map(e => `<div class="event">${e}</div>`).join('');
+      }
+    }
+    
+    /**
+     * Run diagnostic checks
+     */
+    function runDiagnostic() {
+      const diagnosticContent = document.getElementById('diagnosticContent');
+      const checks = {
+        'd3': typeof d3 !== 'undefined',
+        'ontologyPanel': !!document.getElementById('ontologyPanel'),
+        'ontologySvg': !!document.getElementById('ontologySvg'),
+        'searchInput': !!document.getElementById('searchInput'),
+        'ontologyNavigator': !!document.getElementById('ontologyNavigator'),
+        'contextPanel': !!document.getElementById('contextPanel'),
+        'searchResults': !!document.getElementById('searchResults')
+      };
+      
+      let html = '';
+      for (const [key, value] of Object.entries(checks)) {
+        html += `<div class="status ${value ? 'pass' : 'fail'}">${value ? '✅' : '❌'} ${key}</div>`;
+      }
+      
+      diagnosticContent.innerHTML = html;
+      
+      console.log('=== DIAGNOSTIC RESULTS ===');
+      console.log('Containers:', checks);
+      console.log('D3 version:', d3.version);
+      
+      logEvent('System initialized');
+      
+      return checks;
+    }
+    
+    /**
+     * Render test D3 visualization
+     */
+    function renderTestVisualization() {
+      console.log('=== RENDERING TEST VISUALIZATION ===');
+      
+      const svg = d3.select('#ontologySvg');
+      const width = document.getElementById('ontologyPanel').clientWidth;
+      const height = document.getElementById('ontologyPanel').clientHeight;
+      
+      console.log('SVG dimensions:', width, 'x', height);
+      
+      svg.attr('width', width)
+         .attr('height', height);
+      
+      // Clear any existing content
+      svg.selectAll('*').remove();
+      
+      // Draw test circle
+      svg.append('circle')
+         .attr('cx', width / 2)
+         .attr('cy', height / 2)
+         .attr('r', 80)
+         .attr('fill', '#3182ce')
+         .attr('stroke', '#63b3ed')
+         .attr('stroke-width', 3)
+         .style('opacity', 0)
+         .transition()
+         .duration(800)
+         .style('opacity', 1);
+      
+      // Add text
+      svg.append('text')
+         .attr('x', width / 2)
+         .attr('y', height / 2)
+         .attr('text-anchor', 'middle')
+         .attr('dominant-baseline', 'middle')
+         .attr('fill', '#e2e8f0')
+         .attr('font-size', '18px')
+         .attr('font-weight', 'bold')
+         .style('opacity', 0)
+         .text('MVP Ready')
+         .transition()
+         .duration(800)
+         .delay(200)
+         .style('opacity', 1);
+      
+      // Add subtitle
+      svg.append('text')
+         .attr('x', width / 2)
+         .attr('y', height / 2 + 30)
+         .attr('text-anchor', 'middle')
+         .attr('fill', '#a0aec0')
+         .attr('font-size', '14px')
+         .style('opacity', 0)
+         .text('D3 Rendering Active')
+         .transition()
+         .duration(800)
+         .delay(400)
+         .style('opacity', 1);
+      
+      console.log('✅ Test visualization rendered successfully');
+      logEvent('D3 visualization rendered');
+    }
+    
+    /**
+     * Setup event listeners
+     */
+    function setupEventListeners() {
+      // Search input
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          handleSearchInput(e.target.value.trim());
+        });
+        console.log('✓ Search input listener attached');
+      }
+      
+      // View mode buttons
+      document.querySelectorAll('#viewModes button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.mode;
+          setViewMode(mode);
+        });
+      });
+      console.log('✓ View mode button listeners attached');
+      
+      logEvent('Event listeners attached');
+    }
+    
+    /**
+     * Initialize the application
+     */
+    function init() {
+      console.log('=== INITIALIZING MVP ===');
+      
+      // Run diagnostic
+      const checks = runDiagnostic();
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      // If all checks pass, render test visualization
+      if (checks.ontologyPanel && checks.ontologySvg) {
+        renderTestVisualization();
+      } else {
+        console.error('❌ Required containers not found!');
+      }
+      
+      console.log('=== INITIALIZATION COMPLETE ===');
+      console.log('Current mode:', currentMode);
+      console.log('Ready for development!');
+    }
+    
+    // ============================================================================
+    // UPLOAD FUNCTIONALITY
+    // ============================================================================
+    
+    const uploadModal = document.getElementById('uploadModal');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const closeUploadBtn = document.getElementById('closeUploadBtn');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadList = document.getElementById('uploadList');
+    const submitUploadBtn = document.getElementById('submitUploadBtn');
+    
+    let selectedFiles = [];
+    
+    // Open modal
+    uploadBtn.addEventListener('click', () => {
+      uploadModal.classList.add('active');
+      logEvent('Upload modal opened');
+    });
+    
+    // Close modal
+    closeUploadBtn.addEventListener('click', closeUploadModal);
+    cancelUploadBtn.addEventListener('click', closeUploadModal);
+    uploadModal.addEventListener('click', (e) => {
+      if (e.target === uploadModal) closeUploadModal();
+    });
+    
+    function closeUploadModal() {
+      uploadModal.classList.remove('active');
+      selectedFiles = [];
+      uploadList.innerHTML = '';
+      submitUploadBtn.disabled = true;
+      logEvent('Upload modal closed');
+    }
+    
+    // Dropzone click
+    dropzone.addEventListener('click', () => {
+      fileInput.click();
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+    
+    // Drag and drop
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    
+    function handleFiles(files) {
+      for (let file of files) {
+        // Check if already added
+        if (selectedFiles.find(f => f.name === file.name)) continue;
+        
+        // Validate file type
+        const validTypes = ['.pdf', '.txt', '.docx', '.md', '.zip'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!validTypes.includes(ext)) {
+          alert(`File type not supported: ${file.name}`);
+          continue;
+        }
+        
+        selectedFiles.push({
+          file: file,
+          name: file.name,
+          size: file.size,
+          status: 'pending'
+        });
+      }
+      
+      renderUploadList();
+      submitUploadBtn.disabled = selectedFiles.length === 0;
+      logEvent(`${selectedFiles.length} file(s) selected`);
+    }
+    
+    function renderUploadList() {
+      uploadList.innerHTML = '';
+      
+      selectedFiles.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'upload-item';
+        div.innerHTML = `
+          <div class="upload-item-info">
+            <div>
+              <div class="upload-item-name">${escapeHtml(item.name)}</div>
+              <div class="upload-item-size">${formatFileSize(item.size)}</div>
+            </div>
+          </div>
+          <span class="upload-item-status ${item.status}">${getStatusText(item.status)}</span>
+        `;
+        uploadList.appendChild(div);
+      });
+    }
+    
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    function getStatusText(status) {
+      const texts = {
+        pending: 'Pending',
+        uploading: 'Uploading...',
+        success: 'Success',
+        error: 'Error'
+      };
+      return texts[status] || status;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Submit upload
+    submitUploadBtn.addEventListener('click', async () => {
+      submitUploadBtn.disabled = true;
+      logEvent(`Uploading ${selectedFiles.length} file(s)`);
+      
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const item = selectedFiles[i];
+        
+        // Update status to uploading
+        item.status = 'uploading';
+        renderUploadList();
+        
+        try {
+          // Read file as base64
+          const base64 = await fileToBase64(item.file);
+          
+          // Send to N8N webhook
+          logEvent(`Uploading ${item.name} to N8N...`);
+          const response = await fetch(N8N_WEBHOOK, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              file: base64,
+              filename: item.name,
+              title: item.name.replace(/\.[^/.]+$/, '') // Remove extension
+            })
+          });
+          
+          if (response.ok) {
+            item.status = 'success';
+            const result = await response.json();
+            console.log('Upload successful:', result);
+            logEvent(`✓ ${item.name} uploaded`);
+          } else {
+            item.status = 'error';
+            console.error('Upload failed:', response.statusText);
+            logEvent(`✗ ${item.name} failed`);
+          }
+        } catch (error) {
+          item.status = 'error';
+          console.error('Upload error:', error);
+          logEvent(`✗ ${item.name} error`);
+        }
+        
+        renderUploadList();
+      }
+      
+      // Check if all succeeded
+      const allSuccess = selectedFiles.every(f => f.status === 'success');
+      
+      if (allSuccess) {
+        logEvent('All uploads successful!');
+        setTimeout(() => {
+          closeUploadModal();
+          // TODO: Reload data when backend integration is complete
+          // loadAllData().then(() => drawOntologyGraph());
+        }, 1500);
+      } else {
+        submitUploadBtn.disabled = false;
+        submitUploadBtn.textContent = 'Retry Failed';
+      }
+    });
+    
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Remove data:*/*;base64, prefix
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // Run on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
+
