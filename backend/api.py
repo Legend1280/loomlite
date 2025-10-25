@@ -35,8 +35,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database path
-DB_PATH = os.path.join(os.path.dirname(__file__), "loom_lite_v2.db")
+# Database path - use /data volume for persistence on Railway
+DB_DIR = os.getenv("DB_DIR", "/data")
+os.makedirs(DB_DIR, exist_ok=True)
+DB_PATH = os.path.join(DB_DIR, "loom_lite_v2.db")
 
 # Job storage (in-memory for now, use Redis/DB for production)
 jobs = {}
