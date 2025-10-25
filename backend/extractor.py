@@ -16,7 +16,9 @@ from reader import read_document, chunk_text
 # Initialize OpenAI client (API key from environment)
 client = OpenAI()
 
-DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "loom_lite_v2.db"))
+# Use same DB path as api.py for consistency
+DB_DIR = os.getenv("DB_DIR", "/data")
+DB_PATH = os.path.join(DB_DIR, "loom_lite_v2.db")
 
 EXTRACTION_PROMPT = """You are an expert ontology extractor following the Loom Lite Ontology Standard v1.1.
 
