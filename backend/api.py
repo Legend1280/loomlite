@@ -243,7 +243,8 @@ async def get_tree():
     conn = get_db()
     docs = conn.execute("SELECT id, title, source_uri, created_at FROM documents ORDER BY created_at DESC").fetchall()
     conn.close()
-    return {"documents": [dict(d) for d in docs]}
+    # Return array with type='file' for frontend compatibility
+    return [{**dict(d), "type": "file"} for d in docs]
 
 @app.get("/doc/{doc_id}/ontology")
 async def get_doc_ontology(doc_id: str):
