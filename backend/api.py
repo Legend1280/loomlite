@@ -241,7 +241,7 @@ async def root():
 async def get_tree():
     """Get document tree"""
     conn = get_db()
-    docs = conn.execute("SELECT id, title, filename FROM documents ORDER BY created_at DESC").fetchall()
+    docs = conn.execute("SELECT id, title, source_uri, created_at FROM documents ORDER BY created_at DESC").fetchall()
     conn.close()
     return {"documents": [dict(d) for d in docs]}
 
