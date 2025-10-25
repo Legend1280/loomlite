@@ -826,6 +826,28 @@
       });
     }
     
+    function ensureVisibility() {
+      const svg = d3.select('#ontologySvg');
+      const resultsDiv = d3.select('#searchResults');
+      
+      // If neither visible, default to showing SVG
+      if (svg.style('display') === 'none' && (resultsDiv.empty() || resultsDiv.style('display') === 'none')) {
+        svg.style('display', 'block');
+      }
+      
+      // Guarantee height/width for SVG
+      svg.attr('width', '100%').attr('height', '100%');
+      
+      // Ensure results div has minimum height when visible
+      if (!resultsDiv.empty() && resultsDiv.style('display') !== 'none') {
+        resultsDiv.style('min-height', '400px');
+      }
+      
+      // Debug logging
+      console.log('SVG visible:', svg.style('display'));
+      console.log('Results visible:', resultsDiv.empty() ? 'not created' : resultsDiv.style('display'));
+    }
+    
     function setupEventListeners() {
       // Add debug info to page
       const debugDiv = document.createElement('div');
@@ -911,6 +933,9 @@
         const firstDoc = allDocuments[0];
         await loadDocumentOntology(firstDoc.id);
       }
+      
+      // Ensure visibility is correct
+      ensureVisibility();
     }
     
     async function loadDocumentOntology(docId) {
@@ -1177,6 +1202,12 @@
         if (debugDiv) debugDiv.innerHTML += '<br>Cleared searchResults content';
       }
       container.style('display', 'block');
+      
+      // Force visibility with transition
+      setTimeout(() => {
+        container.style('opacity', '1');
+        ensureVisibility();
+      }, 50);
       
       if (!results.concepts || results.concepts.length === 0) {
         if (debugDiv) debugDiv.innerHTML += '<br>No concepts to show';
