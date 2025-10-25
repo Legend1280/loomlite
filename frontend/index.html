@@ -827,8 +827,20 @@
     }
     
     function setupEventListeners() {
+      // Add debug info to page
+      const debugDiv = document.createElement('div');
+      debugDiv.id = 'debugInfo';
+      debugDiv.style.cssText = 'position:fixed;top:60px;right:10px;background:#2d3748;color:#e2e8f0;padding:10px;border:2px solid #4a5568;z-index:10000;font-size:11px;max-width:300px;';
+      debugDiv.innerHTML = 'setupEventListeners called<br>searchInput: ' + (searchInput ? 'FOUND' : 'NULL');
+      document.body.appendChild(debugDiv);
+      
       // Search input
-      searchInput.addEventListener('input', handleSearch);
+      if (searchInput) {
+        searchInput.addEventListener('input', handleSearch);
+        debugDiv.innerHTML += '<br>Event listener attached';
+      } else {
+        debugDiv.innerHTML += '<br>ERROR: searchInput is NULL!';
+      }
       
       // View buttons
       document.querySelectorAll('.view-btn').forEach(btn => {
@@ -860,6 +872,8 @@
     
     async function handleSearch() {
       const query = searchInput.value.trim();
+      const debugDiv = document.getElementById('debugInfo');
+      if (debugDiv) debugDiv.innerHTML += '<br>handleSearch: "' + query + '"';
       if (query.length < 2) {
         drawInitialView();
         return;
@@ -867,8 +881,12 @@
       
       try {
         const results = await fetchJSON(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+        const debugDiv = document.getElementById('debugInfo');
+        if (debugDiv) debugDiv.innerHTML += '<br>Got ' + (results.concepts ? results.concepts.length : 0) + ' results';
         drawSearchResults(results);
       } catch (error) {
+        const debugDiv = document.getElementById('debugInfo');
+        if (debugDiv) debugDiv.innerHTML += '<br>ERROR: ' + error.message;
         console.error('Search failed:', error);
       }
     }
@@ -1125,19 +1143,26 @@
     let selectedTypes = new Set();
     
     function drawSearchResults(results) {
+      const debugDiv = document.getElementById('debugInfo');
+      if (debugDiv) debugDiv.innerHTML += '<br>drawSearchResults: ' + (results.concepts ? results.concepts.length : 0) + ' concepts';
+      console.log('=== drawSearchResults called ===');
+      console.log('Results:', results);
       searchResultsData = results;
       selectedTypes.clear();
       
-      const svg = d3.select('#ontologySvg');
-      svg.selectAll('*').remove();
+      const debugDiv = document.getElementById('debugInfo');
       
+      // Clear the entire ontology panel
       const panel = d3.select('#ontologyPanel');
-      panel.selectAll('#searchResults').remove();
+      panel.selectAll('*').remove(); // Remove SVG and any existing search results
+      if (debugDiv) debugDiv.innerHTML += '<br>Panel cleared';
       
       if (!results.concepts || results.concepts.length === 0) {
+        if (debugDiv) debugDiv.innerHTML += '<br>No concepts to show';
         showNoResults();
         return;
       }
+      if (debugDiv) debugDiv.innerHTML += '<br>Creating container...';
       
       // Group concepts by document
       const conceptsByDoc = {};
@@ -1157,6 +1182,7 @@
       // Create search results container
       const container = panel.append('div')
         .attr('id', 'searchResults');
+      if (debugDiv) debugDiv.innerHTML += '<br>Container: ' + (container.node() ? 'created' : 'FAILED');
       
       // Header
       const header = container.append('div')
