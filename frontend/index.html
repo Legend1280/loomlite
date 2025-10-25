@@ -368,6 +368,56 @@
       width: 100%;
     }
     
+    /* NAVIGATION UI */
+    #backButton {
+      display: none;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(59, 130, 246, 0.9);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 200;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    #backButton:hover {
+      background: rgba(59, 130, 246, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    
+    #breadcrumbs {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(45, 55, 72, 0.95);
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #4a5568;
+      font-size: 13px;
+      color: #94a3b8;
+      z-index: 150;
+      display: none;
+    }
+    
+    #breadcrumbs .crumb {
+      color: #63b3ed;
+      font-weight: 600;
+    }
+    
+    #breadcrumbs .separator {
+      margin: 0 8px;
+      color: #4a5568;
+    }
+    
     /* RIGHT PANEL - Context Viewer */
     #contextPanel {
       background: #1a202c;
@@ -498,6 +548,8 @@
 
     <!-- CENTER PANEL - Visualization -->
     <div id="ontologyPanel" class="panel">
+      <button id="backButton">← Back</button>
+      <div id="breadcrumbs"></div>
       <div id="centerStatus">Active Mode: Categories</div>
       <svg id="ontologySvg"></svg>
       <div id="searchResults"></div>
@@ -533,6 +585,13 @@
     let eventLogEntries = [];
     let galaxyData = null; // Store loaded galaxy data for search
     let currentNodes = []; // Store D3 nodes for highlighting
+    
+    // View hierarchy state
+    let viewStack = ['galaxy']; // Track navigation history: ['galaxy'] or ['galaxy', 'solar', 'planet']
+    let currentView = 'galaxy'; // Current view level
+    let currentDocument = null; // Currently viewed document (in solar/planet view)
+    let currentConcept = null; // Currently viewed concept (in planet view)
+    let cachedSimulations = {}; // Cache D3 simulations for smooth transitions
     
     // ============================================================================
     // FUTURE DEVELOPMENT HOOKS (Not Implemented Yet)
@@ -644,6 +703,13 @@
         console.log('🌌 Rendering Galaxy View...');
         console.log('Galaxy data received:', galaxyData);
         logEvent('Rendering Galaxy visualization...');
+        
+        // Reset view hierarchy state
+        currentView = 'galaxy';
+        currentDocument = null;
+        currentConcept = null;
+        viewStack = ['galaxy'];
+        updateBreadcrumbs();
       
       if (!galaxyData || !galaxyData.documents || galaxyData.documents.length === 0) {
         console.warn('⚠️  No ontology data found — check parsing.');
@@ -833,13 +899,22 @@
         console.log('👆 Clicked:', d.label);
         console.log('  Type:', d.type);
         console.log('  Source document:', d.docName || d.label);
-        if (d.conceptData) {
-          console.log('  Concept data:', d.conceptData);
-        }
-        logEvent(`Clicked: ${d.label}`);
         
-        // TODO: Solar System View (single doc)
-        // TODO: Planet Surface View (concept detail)
+        if (d.type === 'document') {
+          // Transition to Solar View (single document)
+          const doc = galaxyData.documents.find(doc => doc.id === d.docId);
+          if (doc) {
+            transitionToSolarView(doc);
+          }
+        } else if (d.type === 'concept') {
+          // In Galaxy view, clicking concept goes to its document's Solar View
+          const doc = galaxyData.documents.find(doc => doc.id === d.docId);
+          if (doc) {
+            transitionToSolarView(doc);
+          }
+        }
+        
+        logEvent(`Clicked: ${d.label}`);
       });
       
       // Update positions on simulation tick
@@ -936,6 +1011,378 @@
       console.log('[FUTURE] highlightEvidence() - will highlight:', conceptId);
     }
     
+    
+    /**
+     * Update breadcrumbs display based on current view stack
+     */
+    function updateBreadcrumbs() {
+      const breadcrumbs = document.getElementById('breadcrumbs');
+      const backButton = document.getElementById('backButton');
+      
+      if (currentView === 'galaxy') {
+        breadcrumbs.style.display = 'none';
+        backButton.style.display = 'none';
+      } else {
+        breadcrumbs.style.display = 'block';
+        backButton.style.display = 'block';
+        
+        let crumbHTML = '<span class="crumb">Galaxy</span>';
+        
+        if (currentDocument) {
+          crumbHTML += '<span class="separator">/</span>';
+          crumbHTML += `<span class="crumb">${currentDocument.name || currentDocument.title}</span>`;
+        }
+        
+        if (currentConcept) {
+          crumbHTML += '<span class="separator">/</span>';
+          crumbHTML += `<span class="crumb">${currentConcept.label}</span>`;
+        }
+        
+        breadcrumbs.innerHTML = crumbHTML;
+      }
+    }
+    
+    /**
+     * Navigate back one level in the hierarchy
+     */
+    function navigateBack() {
+      if (viewStack.length <= 1) return; // Already at top level
+      
+      viewStack.pop(); // Remove current view
+      const previousView = viewStack[viewStack.length - 1];
+      
+      console.log(`⬅️  Navigating back to: ${previousView}`);
+      logEvent(`Back to ${previousView} view`);
+      
+      if (previousView === 'galaxy') {
+        currentView = 'galaxy';
+        currentDocument = null;
+        currentConcept = null;
+        renderGalaxy(galaxyData);
+      } else if (previousView === 'solar') {
+        currentView = 'solar';
+        currentConcept = null;
+        renderSolarView(currentDocument);
+      }
+      
+      updateBreadcrumbs();
+    }
+    
+    /**
+     * Transition to Solar View (single document's ontology)
+     * @param {Object} doc - Document object with id, name, etc.
+     */
+    async function transitionToSolarView(doc) {
+      console.log(`🌟 Transitioning to Solar View: ${doc.name || doc.title}`);
+      logEvent(`Entering Solar View: ${doc.name || doc.title}`);
+      
+      currentView = 'solar';
+      currentDocument = doc;
+      viewStack.push('solar');
+      
+      updateBreadcrumbs();
+      
+      // Fetch full ontology if not already loaded
+      if (!doc.concepts || doc.concepts.length === 0) {
+        try {
+          const response = await fetch(`${API_BASE}/doc/${doc.id}/ontology`);
+          if (!response.ok) throw new Error(`Failed to fetch ontology: ${response.status}`);
+          
+          const ontology = await response.json();
+          doc.concepts = ontology.concepts || [];
+          doc.relations = ontology.relations || [];
+          
+          console.log(`✅ Loaded ${doc.concepts.length} concepts, ${doc.relations.length} relations`);
+        } catch (error) {
+          console.error('❌ Failed to load document ontology:', error);
+          logEvent(`Failed to load ${doc.name}: ${error.message}`);
+          return;
+        }
+      }
+      
+      renderSolarView(doc);
+    }
+    
+    /**
+     * Render Solar View - single document's ontology
+     * @param {Object} doc - Document with concepts and relations
+     */
+    function renderSolarView(doc) {
+      try {
+        console.log(`🌟 Rendering Solar View: ${doc.name || doc.title}`);
+        logEvent(`Rendering Solar View...`);
+        
+        const svg = d3.select('#ontologySvg');
+        const width = document.getElementById('ontologyPanel').clientWidth;
+        const height = document.getElementById('ontologyPanel').clientHeight;
+        
+        svg.attr('width', width).attr('height', height);
+        svg.selectAll('*').remove();
+        
+        const g = svg.append('g');
+        
+        // Prepare nodes and links for single document
+        const nodes = [];
+        const links = [];
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+        const docColor = colorScale(0);
+        
+        // Add document center node
+        nodes.push({
+          id: `doc_${doc.id}`,
+          label: doc.name || doc.title,
+          type: 'document',
+          color: docColor,
+          size: 20,
+          docId: doc.id
+        });
+        
+        // Add concept nodes
+        doc.concepts.forEach(concept => {
+          nodes.push({
+            id: concept.id,
+            label: concept.label,
+            type: concept.type || 'concept',
+            color: docColor,
+            size: 10,
+            docId: doc.id,
+            docName: doc.name || doc.title,
+            conceptData: concept
+          });
+          
+          // Link to document center
+          links.push({
+            source: `doc_${doc.id}`,
+            target: concept.id,
+            type: 'contains'
+          });
+        });
+        
+        // Add relation links
+        doc.relations.forEach(rel => {
+          links.push({
+            source: rel.src,
+            target: rel.dst,
+            type: rel.rel || 'relates',
+            label: rel.rel
+          });
+        });
+        
+        console.log(`🔵 Solar View: ${nodes.length} nodes, ${links.length} links`);
+        
+        // Create force simulation (tighter for single document)
+        const simulation = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links)
+            .id(d => d.id)
+            .distance(d => d.type === 'contains' ? 80 : 60))
+          .force('charge', d3.forceManyBody().strength(-150))
+          .force('center', d3.forceCenter(width / 2, height / 2).strength(0.2))
+          .force('collision', d3.forceCollide().radius(d => d.size + 5));
+        
+        // Draw links
+        const link = g.append('g')
+          .selectAll('line')
+          .data(links)
+          .join('line')
+          .attr('stroke', d => d.type === 'contains' ? '#4a5568' : '#718096')
+          .attr('stroke-opacity', d => d.type === 'contains' ? 0.3 : 0.6)
+          .attr('stroke-width', d => d.type === 'contains' ? 1 : 2);
+        
+        // Draw nodes
+        const node = g.append('g')
+          .selectAll('circle')
+          .data(nodes)
+          .join('circle')
+          .attr('r', d => d.size)
+          .attr('fill', d => d.color)
+          .attr('stroke', '#fff')
+          .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5)
+          .style('cursor', 'pointer')
+          .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
+        
+        // Add labels for all nodes
+        const label = g.append('g')
+          .selectAll('text')
+          .data(nodes)
+          .join('text')
+          .text(d => d.label)
+          .attr('font-size', d => d.type === 'document' ? 14 : 11)
+          .attr('font-weight', d => d.type === 'document' ? 'bold' : 'normal')
+          .attr('fill', '#e2e8f0')
+          .attr('text-anchor', 'middle')
+          .attr('dy', d => d.type === 'document' ? -25 : -15)
+          .style('pointer-events', 'none');
+        
+        // Node interactions
+        node.on('click', function(event, d) {
+          if (d.type === 'concept') {
+            transitionToPlanetView(d);
+          }
+        });
+        
+        // Update positions
+        simulation.on('tick', () => {
+          link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+          
+          node
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y);
+          
+          label
+            .attr('x', d => d.x)
+            .attr('y', d => d.y);
+        });
+        
+        // Drag functions
+        function dragstarted(event, d) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+          d.fx = event.x;
+          d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+        
+        // Add zoom
+        const zoom = d3.zoom()
+          .scaleExtent([0.1, 4])
+          .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+          });
+        
+        svg.call(zoom);
+        
+        console.log('✅ Solar View rendered');
+        logEvent('Solar View rendered');
+        
+      } catch (error) {
+        console.error('❌ Solar View render error:', error);
+        logEvent(`Solar View failed: ${error.message}`);
+      }
+    }
+    
+    /**
+     * Transition to Planet View (concept details)
+     * @param {Object} conceptNode - D3 node data with concept info
+     */
+    function transitionToPlanetView(conceptNode) {
+      console.log(`🪐 Transitioning to Planet View: ${conceptNode.label}`);
+      logEvent(`Entering Planet View: ${conceptNode.label}`);
+      
+      currentView = 'planet';
+      currentConcept = conceptNode.conceptData;
+      viewStack.push('planet');
+      
+      updateBreadcrumbs();
+      
+      // Highlight the concept in visualization
+      d3.selectAll('circle')
+        .attr('stroke', d => d.id === conceptNode.id ? '#fbbf24' : '#fff')
+        .attr('stroke-width', d => d.id === conceptNode.id ? 4 : (d.type === 'document' ? 3 : 1.5));
+      
+      // Display concept details in right panel
+      renderPlanetView(conceptNode);
+    }
+    
+    /**
+     * Render Planet View - concept details in right panel
+     * @param {Object} conceptNode - Concept node with full data
+     */
+    function renderPlanetView(conceptNode) {
+      const contextPanel = document.getElementById('contextPanel');
+      const concept = conceptNode.conceptData;
+      
+      let html = `
+        <h3>🪐 Concept Details</h3>
+        <div style="margin-top: 20px;">
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">LABEL</div>
+            <div style="color: #e2e8f0; font-size: 18px; font-weight: 600;">${concept.label}</div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">TYPE</div>
+            <div style="color: #63b3ed; font-size: 14px;">${concept.type}</div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">CONFIDENCE</div>
+            <div style="color: #10b981; font-size: 14px;">${(concept.confidence * 100).toFixed(0)}%</div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">SOURCE DOCUMENT</div>
+            <div style="color: #e2e8f0; font-size: 14px;">${conceptNode.docName}</div>
+          </div>
+      `;
+      
+      if (concept.aliases && concept.aliases !== '[]') {
+        try {
+          const aliases = JSON.parse(concept.aliases);
+          if (aliases.length > 0) {
+            html += `
+              <div style="margin-bottom: 20px;">
+                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">ALIASES</div>
+                <div style="color: #e2e8f0; font-size: 14px;">${aliases.join(', ')}</div>
+              </div>
+            `;
+          }
+        } catch (e) {}
+      }
+      
+      if (concept.tags && concept.tags !== '[]') {
+        try {
+          const tags = JSON.parse(concept.tags);
+          if (tags.length > 0) {
+            html += `
+              <div style="margin-bottom: 20px;">
+                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">TAGS</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+            `;
+            tags.forEach(tag => {
+              html += `<span style="background: #2d3748; padding: 4px 12px; border-radius: 12px; font-size: 12px; color: #94a3b8;">${tag}</span>`;
+            });
+            html += `</div></div>`;
+          }
+        } catch (e) {}
+      }
+      
+      html += `
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #2d3748;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">METADATA</div>
+            <div style="color: #64748b; font-size: 12px;">
+              Model: ${concept.model_name || 'N/A'}<br>
+              ID: ${concept.id}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      contextPanel.innerHTML = html;
+      
+      console.log('✅ Planet View rendered');
+      logEvent('Planet View rendered');
+    }
+
+    
+    // ============================================================================
+    // HIERARCHICAL NAVIGATION (Galaxy → Solar → Planet)
+    // ============================================================================
     // ============================================================================
     // MVP FUNCTIONALITY (Active)
     // ============================================================================
@@ -1239,6 +1686,13 @@
         });
       });
       console.log('✓ View mode button listeners attached');
+      
+      // Back button
+      const backButton = document.getElementById('backButton');
+      if (backButton) {
+        backButton.addEventListener('click', navigateBack);
+        console.log('✓ Back button listener attached');
+      }
       
       logEvent('Event listeners attached');
     }
