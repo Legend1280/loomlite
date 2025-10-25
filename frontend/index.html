@@ -531,6 +531,8 @@
     
     let currentMode = 'categories';
     let eventLogEntries = [];
+    let galaxyData = null; // Store loaded galaxy data for search
+    let currentNodes = []; // Store D3 nodes for highlighting
     
     // ============================================================================
     // FUTURE DEVELOPMENT HOOKS (Not Implemented Yet)
@@ -621,7 +623,10 @@
         
         logEvent(`Loaded ${galaxy.documents.length} documents, ${totalConcepts} concepts`);
         
-        return { ...galaxy, totalConcepts, totalRelations };
+        // Store globally for search
+        galaxyData = { ...galaxy, totalConcepts, totalRelations };
+        
+        return galaxyData;
         
       } catch (error) {
         console.error('❌ Error loading data:', error);
@@ -770,11 +775,15 @@
         .attr('fill', d => d.color)
         .attr('stroke', '#fff')
         .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5)
+        .attr('class', 'galaxy-node')
         .style('cursor', 'pointer')
         .call(d3.drag()
           .on('start', dragstarted)
           .on('drag', dragged)
           .on('end', dragended));
+      
+      // Store nodes globally for search highlighting
+      currentNodes = nodes;
       
       // Add labels
       const label = g.append('g')
@@ -929,13 +938,141 @@
      * Handle search input
      */
     function handleSearchInput(query) {
-      if (query.length > 0) {
-        logEvent(`Search: "${query}"`);
-        console.log('🔍 Search query:', query);
+      if (query.length === 0) {
+        // Clear search highlights and results
+        clearSearchHighlights();
+        document.getElementById('contextPanel').innerHTML = '<p style="color: #94a3b8; padding: 20px;">Context Viewer / Evidence Preview</p>';
+        return;
       }
       
-      // TODO: In future, this will call /search?q= endpoint
-      // For now, just log it
+      logEvent(`Search: "${query}"`);
+      console.log('🔍 Search query:', query);
+      
+      if (!galaxyData || !galaxyData.documents) {
+        console.warn('⚠️  No data loaded for search');
+        return;
+      }
+      
+      // Search across all concepts
+      const matches = [];
+      const queryLower = query.toLowerCase();
+      
+      galaxyData.documents.forEach(doc => {
+        doc.concepts.forEach(concept => {
+          // Check both name and label fields
+          const text = (concept.name || concept.label || '').toLowerCase();
+          if (text.includes(queryLower)) {
+            matches.push({
+              concept: concept,
+              docName: doc.name,
+              docId: doc.id
+            });
+          }
+        });
+      });
+      
+      console.log(`🔍 Search '${query}' → ${matches.length} matches`);
+      
+      // Display results in context panel
+      displaySearchResults(matches, query);
+      
+      // Highlight matching nodes in Galaxy view
+      highlightSearchMatches(matches);
+    }
+    
+    /**
+     * Display search results in the right panel
+     */
+    function displaySearchResults(matches, query) {
+      const contextPanel = document.getElementById('contextPanel');
+      
+      if (matches.length === 0) {
+        contextPanel.innerHTML = `
+          <div style="padding: 20px; color: #94a3b8;">
+            <h3 style="color: #e2e8f0; margin-bottom: 10px;">🔍 Search Results</h3>
+            <p>No results found for "${query}"</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <div style="padding: 20px;">
+          <h3 style="color: #e2e8f0; margin-bottom: 15px;">🔍 Search Results (${matches.length})</h3>
+          <div style="max-height: calc(100vh - 150px); overflow-y: auto;">
+      `;
+      
+      matches.forEach((match, index) => {
+        html += `
+          <div style="
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+            <div style="color: #60a5fa; font-weight: 600; margin-bottom: 4px;">
+              ${match.concept.name || match.concept.label}
+            </div>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">
+              Type: ${match.concept.type || 'Unknown'}
+            </div>
+            <div style="color: #64748b; font-size: 11px;">
+              📄 ${match.docName}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div></div>';
+      contextPanel.innerHTML = html;
+      
+      console.log(`✅ Displayed ${matches.length} search results in context panel`);
+    }
+    
+    /**
+     * Highlight matching nodes in the Galaxy visualization
+     */
+    function highlightSearchMatches(matches) {
+      if (matches.length === 0) {
+        clearSearchHighlights();
+        return;
+      }
+      
+      // Get matching concept IDs
+      const matchIds = new Set(matches.map(m => m.concept.id));
+      
+      // Update node styles
+      d3.selectAll('.galaxy-node')
+        .transition()
+        .duration(300)
+        .attr('fill', function(d) {
+          if (d.type === 'document') return d.color; // Don't highlight document nodes
+          return matchIds.has(d.conceptData?.id) ? '#fbbf24' : d.color; // Yellow for matches
+        })
+        .attr('r', function(d) {
+          if (d.type === 'document') return d.size;
+          return matchIds.has(d.conceptData?.id) ? d.size * 1.8 : d.size;
+        })
+        .attr('stroke-width', function(d) {
+          return matchIds.has(d.conceptData?.id) ? 3 : (d.type === 'document' ? 3 : 1.5);
+        });
+      
+      console.log(`✅ Highlighted ${matches.length} nodes in Galaxy`);
+    }
+    
+    /**
+     * Clear search highlights from Galaxy visualization
+     */
+    function clearSearchHighlights() {
+      d3.selectAll('.galaxy-node')
+        .transition()
+        .duration(300)
+        .attr('fill', d => d.color)
+        .attr('r', d => d.size)
+        .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5);
     }
     
     /**
