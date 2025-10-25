@@ -1218,7 +1218,8 @@
         
         // Node interactions
         node.on('click', function(event, d) {
-          if (d.type === 'concept') {
+          if (d.type !== 'document') {
+            // Any node that's not a document is a concept
             transitionToPlanetView(d);
           }
         });
