@@ -279,7 +279,7 @@ async def search(q: str = "", types: str = "", tags: str = ""):
     params = []
     
     if q:
-        query += " AND name LIKE ?"
+        query += " AND label LIKE ?"
         params.append(f"%{q}%")
     
     if types:
