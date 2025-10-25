@@ -930,8 +930,11 @@
         }
       });
       
-      // TODO: In future, this will trigger different visualizations
-      // For now, just update the display
+      // Trigger visualization based on mode
+      if (mode === 'galaxy' && galaxyData && galaxyData.documents.length > 0) {
+        renderGalaxy(galaxyData);
+      }
+      // TODO: Add handlers for 'categories' and 'concepts' modes in future
     }
     
     /**
