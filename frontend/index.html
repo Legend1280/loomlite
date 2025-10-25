@@ -1227,8 +1227,8 @@
       
       // Load and render data
       if (checks.ontologyPanel && checks.ontologySvg) {
-        // Load all documents and ontologies
-        const galaxyData = await loadAllData();
+        // Load all documents and ontologies (assign to global variable)
+        galaxyData = await loadAllData();
         
         if (galaxyData.documents.length > 0) {
           // Render Galaxy View
