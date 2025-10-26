@@ -204,6 +204,109 @@
         height: auto;
       }
     }
+    
+    /* SYSTEM STATUS DASHBOARD */
+    #systemStatus {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 0;
+      min-width: 250px;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 9999;
+      font-size: 12px;
+    }
+    
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      border-radius: 8px 8px 0 0;
+      cursor: move;
+    }
+    
+    .status-title {
+      font-weight: 600;
+      color: #e2e8f0;
+      font-size: 13px;
+    }
+    
+    .status-toggle {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    .status-toggle:hover {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    
+    .status-content {
+      padding: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .status-section {
+      margin-bottom: 12px;
+    }
+    
+    .status-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .status-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      transition: opacity 0.2s;
+    }
+    
+    .status-icon {
+      font-size: 14px;
+      width: 18px;
+      text-align: center;
+    }
+    
+    .status-label {
+      flex: 1;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+    
+    .status-value {
+      color: #60a5fa;
+      font-weight: 600;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -254,6 +357,7 @@
     import { initSidebar } from './sidebar.js';
     import { initSurfaceViewer } from './surfaceViewer.js';
     import { initSearchBar } from './searchBar.js';
+    import { initSystemStatus } from './systemStatus.js';
     
     // Initialize app
     document.addEventListener('DOMContentLoaded', async () => {
@@ -370,6 +474,22 @@
         }
       } catch (error) {
         console.error('❌ Error loading documents:', error);
+      }
+      
+      // Initialize System Status Dashboard
+      try {
+        initSystemStatus();
+        console.log('✅ System Status Dashboard initialized');
+      } catch (e) {
+        console.error('❌ System Status init failed:', e);
+      }
+
+      // Initialize System Status Dashboard
+      try {
+        initSystemStatus();
+        console.log('✅ System Status Dashboard initialized');
+      } catch (e) {
+        console.error('❌ System Status init failed:', e);
       }
       
       console.log('✅ Loom Lite v2.0 Core - Ready');
