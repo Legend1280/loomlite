@@ -302,7 +302,8 @@ async function fetchAvailableFilters() {
     // Fetch available types from concepts
     const typesResponse = await fetch(`${API_BASE}/concepts?types=`);
     if (typesResponse.ok) {
-      const concepts = await typesResponse.json();
+      const data = await typesResponse.json();
+      const concepts = data.concepts || data; // Handle both {concepts: [...]} and [...] formats
       availableTypes = [...new Set(concepts.map(c => c.type))].sort();
     }
     
