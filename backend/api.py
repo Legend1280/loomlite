@@ -612,6 +612,57 @@ async def migrate_parent_concept_id():
             "traceback": traceback.format_exc()
         }
 
+@app.post("/admin/clear-all")
+async def clear_all_documents():
+    """
+    Clear all documents, concepts, relations, and spans from the database.
+    WARNING: This is destructive and cannot be undone!
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get counts before deletion
+        cursor.execute("SELECT COUNT(*) FROM documents")
+        doc_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM concepts")
+        concept_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM relations")
+        relation_count = cursor.fetchone()[0]
+        
+        # Delete all data
+        cursor.execute("DELETE FROM mentions")
+        cursor.execute("DELETE FROM relations")
+        cursor.execute("DELETE FROM concepts")
+        cursor.execute("DELETE FROM spans")
+        cursor.execute("DELETE FROM ontology_versions")
+        cursor.execute("DELETE FROM documents")
+        
+        conn.commit()
+        conn.close()
+        
+        # Clear in-memory job storage
+        global jobs
+        jobs = {}
+        
+        return {
+            "status": "success",
+            "message": "All data cleared successfully",
+            "deleted": {
+                "documents": doc_count,
+                "concepts": concept_count,
+                "relations": relation_count
+            }
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
