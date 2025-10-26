@@ -431,6 +431,62 @@ async def list_jobs():
     """List all jobs"""
     return {"jobs": list(jobs.values())}
 
+@app.get("/admin/migrate")
+async def run_migration():
+    """Run database migration to add text column (safe, idempotent)"""
+    try:
+        conn = get_db()
+        
+        # Check if text column already exists
+        cursor = conn.execute("PRAGMA table_info(documents)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        if 'text' in columns:
+            conn.close()
+            return {
+                "status": "already_migrated",
+                "message": "Text column already exists, no migration needed"
+            }
+        
+        # Add text column
+        conn.execute("ALTER TABLE documents ADD COLUMN text TEXT")
+        conn.commit()
+        
+        # Reconstruct text from spans for existing documents
+        docs = conn.execute("SELECT id FROM documents WHERE text IS NULL").fetchall()
+        migrated_count = 0
+        
+        for (doc_id,) in docs:
+            spans = conn.execute(
+                "SELECT text FROM spans WHERE doc_id = ? ORDER BY start",
+                (doc_id,)
+            ).fetchall()
+            
+            if spans:
+                full_text = " ".join([s[0] for s in spans])
+                conn.execute(
+                    "UPDATE documents SET text = ? WHERE id = ?",
+                    (full_text, doc_id)
+                )
+                migrated_count += 1
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": f"Migration completed successfully. Added text column and migrated {migrated_count} documents.",
+            "migrated_documents": migrated_count
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
