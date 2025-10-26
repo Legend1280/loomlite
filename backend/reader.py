@@ -131,9 +131,20 @@ def read_docx(file_path: str, checksum: str, file_bytes: int) -> Dict:
             if para.style.name.startswith('Heading'):
                 if current_section:
                     sections.append(current_section)
+                
+                # Extract heading level safely
+                style_name = para.style.name
+                try:
+                    if style_name == 'Heading':
+                        level = 1  # Default generic "Heading" to level 1
+                    else:
+                        level = int(style_name.replace('Heading ', ''))
+                except (ValueError, AttributeError):
+                    level = 1  # Fallback for any non-standard heading styles
+                
                 current_section = {
                     "title": text,
-                    "level": int(para.style.name.replace('Heading ', '')),
+                    "level": level,
                     "content": []
                 }
             else:
