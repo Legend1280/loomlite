@@ -150,12 +150,11 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
       });
     });
     
-    // DEBUG: Keep clusters expanded initially for verification
-    // if (clusterNode.children.length > 0) {
-    //   clusterNode._children = clusterNode.children;
-    //   clusterNode.children = null;
-    // }
-    console.log(`✅ Cluster "${clusterNode.name}" has ${clusterNode.children.length} children`);
+    // Collapse clusters by default for cleaner initial view
+    if (clusterNode.children.length > 0) {
+      clusterNode._children = clusterNode.children;
+      clusterNode.children = null;
+    }
     
     rootNode.children.push(clusterNode);
   });
@@ -203,9 +202,10 @@ function buildHierarchy() {
   const concepts = currentOntology.concepts;
   const relations = currentOntology.relations || [];
   
-  // Create root node (document)
+  // Create root node (document) - use title or filename
+  const docTitle = currentOntology.title || currentOntology.doc_id || 'Document';
   const rootNode = {
-    name: currentOntology.title || 'Document',
+    name: docTitle.replace('.pdf', '').replace('.docx', '').replace(/_/g, ' '),
     id: 'root',
     type: 'document',
     hierarchyLevel: 0,
@@ -331,13 +331,8 @@ function createMindMapVisualization(container) {
   const hierarchyData = buildHierarchy();
   root = d3.hierarchy(hierarchyData);
   
-  // DEBUG: Keep all nodes expanded for verification
-  // root.children?.forEach(collapse);
-  console.log('📊 Initial hierarchy:', {
-    total_nodes: root.descendants().length,
-    root_children: root.children?.length,
-    visible_concepts: root.children?.flatMap(c => c.children || []).length
-  });
+  // Collapse all cluster nodes initially (show only Document + clusters)
+  root.children?.forEach(collapse);
   
   // Initial render
   update(root);
