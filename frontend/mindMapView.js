@@ -332,8 +332,8 @@ function createMindMapVisualization(container) {
   const hierarchyData = buildHierarchy();
   root = d3.hierarchy(hierarchyData);
   
-  // Collapse all cluster nodes initially (show only Document + clusters)
-  root.children?.forEach(collapse);
+  // Clusters are already collapsed in buildSemanticHierarchy()
+  // Don't collapse again here or it will clear the _children!
   console.log('📊 Initial hierarchy:', {
     total_nodes: root.descendants().length,
     root_children: root.children?.length,
