@@ -320,6 +320,7 @@
       <button class="view-mode-btn active" data-mode="galaxy">🌌 Galaxy</button>
       <button class="view-mode-btn" data-mode="solar">☀️ Solar</button>
       <button class="view-mode-btn" data-mode="split">Split</button>
+      <button class="view-mode-btn" data-mode="mind">🌳 Mind Map</button>
     </div>
     
     <button class="upload-btn">📤 Upload</button>
@@ -362,7 +363,7 @@
     // Import core modules
     import { initGalaxyView } from './galaxyView.js';
     import { drawDualVisualizer } from './dualVisualizer.js';
-    import { drawMindMap } from './mindMap.js';
+    import { initMindMapView } from './mindMapView.js';
     import { initSidebar } from './sidebar.js';
     import { initSurfaceViewer } from './surfaceViewer.js';
     import { initSearchBar } from './searchBar.js';
@@ -470,6 +471,22 @@
             galaxyContainer.style.display = 'none';
             solarContainer.style.display = 'block';
             mindContainer.style.display = 'block';
+            
+            // Initialize mind map for current document
+            const currentDoc = window.getCurrentDocId ? window.getCurrentDocId() : null;
+            if (currentDoc) {
+              initMindMapView(currentDoc).catch(e => console.error('Mind map init failed:', e));
+            }
+          } else if (mode === 'mind') {
+            galaxyContainer.style.display = 'none';
+            solarContainer.style.display = 'none';
+            mindContainer.style.display = 'block';
+            
+            // Initialize mind map for current document
+            const currentDoc = window.getCurrentDocId ? window.getCurrentDocId() : null;
+            if (currentDoc) {
+              initMindMapView(currentDoc).catch(e => console.error('Mind map init failed:', e));
+            }
           }
           
           // Update app class
@@ -497,6 +514,12 @@
         
         // Load the solar system visualization
         await drawDualVisualizer(docId);
+        
+        // Also load mind map if in split mode
+        const currentMode = document.querySelector('.view-mode-btn.active')?.dataset.mode;
+        if (currentMode === 'split') {
+          await initMindMapView(docId);
+        }
       });
       
       // Initialize System Status Dashboard
