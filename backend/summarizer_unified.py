@@ -140,7 +140,7 @@ Return ONLY valid JSON in this exact format:
         print(f"   Response: {result_text[:200]}...")
         return None
     except Exception as e:
-        print(f"   ❌ Summarization failed: {e}")
+        print(f"   ❌ Summarization failed: {e}", flush=True)
         import traceback
         traceback.print_exc()
         return None
@@ -160,9 +160,9 @@ def summarize_document_hierarchy_unified(doc_id: str, doc_text: str, doc_title: 
         concepts: List of all concept dicts from ontology
         db_conn: Database connection
     """
-    print(f"\n🔄 Starting unified summarization for document {doc_id}")
-    print(f"   Title: {doc_title}")
-    print(f"   Total concepts: {len(concepts)}")
+    print(f"\n🔄 Starting unified summarization for document {doc_id}", flush=True)
+    print(f"   Title: {doc_title}", flush=True)
+    print(f"   Total concepts: {len(concepts)}", flush=True)
     
     if not client:
         print("❌ Summarization skipped: OpenAI client not initialized")
@@ -175,7 +175,7 @@ def summarize_document_hierarchy_unified(doc_id: str, doc_text: str, doc_title: 
     refinements = [c for c in concepts if c.get('hierarchy_level') == 2]
     atomic_concepts = [c for c in concepts if c.get('hierarchy_level') == 3]
     
-    print(f"   Hierarchy: {len(clusters)} clusters, {len(refinements)} refinements, {len(atomic_concepts)} concepts")
+    print(f"   Hierarchy: {len(clusters)} clusters, {len(refinements)} refinements, {len(atomic_concepts)} concepts", flush=True)
     
     # Attach child concepts to clusters and refinements for context
     for cluster in clusters:
@@ -202,7 +202,7 @@ def summarize_document_hierarchy_unified(doc_id: str, doc_text: str, doc_title: 
         return {"error": "Summarization failed"}
     
     # Write summaries to database
-    print(f"\n💾 Writing summaries to database...")
+    print(f"\n💾 Writing summaries to database...", flush=True)
     
     # 1. Document summary
     doc_summary = summaries.get("document_summary")
@@ -239,7 +239,7 @@ def summarize_document_hierarchy_unified(doc_id: str, doc_text: str, doc_title: 
     
     db_conn.commit()
     
-    print(f"\n✅ Unified summarization complete for document {doc_id}")
+    print(f"\n✅ Unified summarization complete for document {doc_id}", flush=True)
     print(f"   - 1 document summary")
     print(f"   - {len(cluster_summaries)} cluster summaries")
     print(f"   - {len(refinement_summaries)} refinement summaries")
