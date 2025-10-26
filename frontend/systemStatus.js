@@ -159,8 +159,8 @@ async function checkAllComponents() {
   // Modules (check if functions exist)
   componentStatus.dualVisualizer = typeof window.drawDualVisualizer === 'function';
   componentStatus.sidebar = document.getElementById('sidebar') !== null;
-  componentStatus.surfaceViewer = document.getElementById('surfaceViewer') !== null;
-  componentStatus.searchBar = document.querySelector('.search-container') !== null;
+  componentStatus.surfaceViewer = document.getElementById('surface-viewer') !== null;
+  componentStatus.searchBar = document.getElementById('search-container') !== null;
   componentStatus.mindMap = document.getElementById('mindMapContainer') !== null;
   
   // UI Elements
