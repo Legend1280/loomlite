@@ -155,6 +155,7 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
       clusterNode._children = clusterNode.children;
       clusterNode.children = null;
     }
+    console.log(`✅ Cluster "${clusterNode.name}" created with ${clusterNode._children?.length || 0} children (collapsed)`);
     
     rootNode.children.push(clusterNode);
   });
@@ -333,6 +334,11 @@ function createMindMapVisualization(container) {
   
   // Collapse all cluster nodes initially (show only Document + clusters)
   root.children?.forEach(collapse);
+  console.log('📊 Initial hierarchy:', {
+    total_nodes: root.descendants().length,
+    root_children: root.children?.length,
+    collapsed_children: root.children?.reduce((sum, c) => sum + (c._children?.length || 0), 0)
+  });
   
   // Initial render
   update(root);
