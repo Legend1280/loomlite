@@ -10,6 +10,10 @@ import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
  * Main function to draw the dual visualizer
  * @param {string} docId - Document ID to visualize
  */
+// Store current visualization state
+let currentSvg = null;
+let currentOntology = null;
+
 export async function drawDualVisualizer(docId) {
   try {
     // Fetch ontology data from API
@@ -18,10 +22,12 @@ export async function drawDualVisualizer(docId) {
       throw new Error(`Failed to fetch ontology: ${response.statusText}`);
     }
     const ontology = await response.json();
+    currentOntology = ontology;
     
     // Get SVG containers
     const svgTop = d3.select('#visualizer-top svg');
     const svgBottom = d3.select('#visualizer-bottom svg');
+    currentSvg = svgTop;
     
     // Clear existing content
     svgTop.selectAll('*').remove();
@@ -32,6 +38,12 @@ export async function drawDualVisualizer(docId) {
     
     // Render mind map in bottom panel (placeholder for now)
     renderMindMapPlaceholder(svgBottom, ontology);
+    
+    // Listen for search results
+    bus.on('searchResults', (event) => {
+      const { results } = event.detail;
+      highlightSearchResultsInSolar(results);
+    });
     
     console.log('✅ Dual Visualizer rendered successfully');
   } catch (error) {
@@ -272,6 +284,64 @@ function hideTooltip() {
   d3.selectAll('.node-tooltip').remove();
 }
 
+/**
+ * Highlight concepts in Solar System view based on search results
+ * @param {Array} results - Search results array
+ */
+function highlightSearchResultsInSolar(results) {
+  if (!currentSvg || !currentOntology) return;
+  
+  // Get concept IDs from search results that match current document
+  const matchedConceptIds = new Set(
+    results
+      .filter(r => currentOntology.concepts.some(c => c.id === r.id))
+      .map(r => r.id)
+  );
+  
+  console.log(`🔍 Highlighting ${matchedConceptIds.size} concepts in Solar System View`);
+  
+  if (matchedConceptIds.size === 0) {
+    // No matches in current document, dim all
+    currentSvg.selectAll('circle')
+      .transition()
+      .duration(300)
+      .style('opacity', 0.3);
+    return;
+  }
+  
+  // Highlight matching concepts
+  currentSvg.selectAll('circle')
+    .transition()
+    .duration(300)
+    .style('opacity', d => matchedConceptIds.has(d.id) ? 1 : 0.3)
+    .attr('stroke', d => matchedConceptIds.has(d.id) ? '#10b981' : '#fff')
+    .attr('stroke-width', d => matchedConceptIds.has(d.id) ? 3 : 1.5);
+  
+  // Pulse effect for matched concepts
+  currentSvg.selectAll('circle')
+    .filter(d => matchedConceptIds.has(d.id))
+    .transition()
+    .duration(500)
+    .attr('r', 12)
+    .transition()
+    .duration(500)
+    .attr('r', 8);
+}
+
+/**
+ * Clear search highlights in Solar System view
+ */
+function clearSearchHighlightsInSolar() {
+  if (!currentSvg) return;
+  
+  currentSvg.selectAll('circle')
+    .transition()
+    .duration(300)
+    .style('opacity', 1)
+    .attr('stroke', '#fff')
+    .attr('stroke-width', 1.5);
+}
+
 // Listen for external concept selection events
 bus.on('conceptSelected', (event) => {
   const { conceptId } = event.detail;
@@ -287,4 +357,6 @@ bus.on('conceptSelected', (event) => {
 
 // Export for global access
 window.drawDualVisualizer = drawDualVisualizer;
+window.highlightSearchResultsInSolar = highlightSearchResultsInSolar;
+window.clearSearchHighlightsInSolar = clearSearchHighlightsInSolar;
 

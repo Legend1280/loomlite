@@ -35,6 +35,12 @@ export async function initGalaxyView() {
   // Create visualization
   createGalaxyVisualization(container);
   
+  // Listen for search results
+  bus.on('searchResults', (event) => {
+    const { results } = event.detail;
+    highlightSearchResults(results);
+  });
+  
   console.log('✅ Galaxy View initialized');
 }
 
@@ -354,7 +360,78 @@ export function resizeGalaxyView() {
   }
 }
 
+/**
+ * Highlight documents that contain search results
+ * @param {Array} results - Search results with doc_id
+ */
+function highlightSearchResults(results) {
+  if (!g) return;
+  
+  // Get unique document IDs from search results
+  const matchedDocIds = new Set(results.map(r => r.doc_id).filter(Boolean));
+  
+  console.log(`🔍 Highlighting ${matchedDocIds.size} documents in Galaxy View`);
+  
+  // Update node styles
+  g.selectAll('g')
+    .transition()
+    .duration(300)
+    .style('opacity', d => {
+      return matchedDocIds.has(d.id) ? 1 : 0.3;
+    });
+  
+  // Update node circles
+  g.selectAll('circle')
+    .filter(function() {
+      return this.parentNode.tagName === 'g'; // Only main circles, not glow
+    })
+    .transition()
+    .duration(300)
+    .attr('stroke', d => {
+      return matchedDocIds.has(d.id) ? '#10b981' : '#f59e0b';
+    })
+    .attr('stroke-width', d => {
+      return matchedDocIds.has(d.id) ? 4 : 2;
+    });
+  
+  // Pulse effect for matched documents
+  if (matchedDocIds.size > 0) {
+    g.selectAll('g')
+      .filter(d => matchedDocIds.has(d.id))
+      .selectAll('circle')
+      .transition()
+      .duration(500)
+      .attr('r', d => getNodeRadius(d) + 5)
+      .transition()
+      .duration(500)
+      .attr('r', d => getNodeRadius(d));
+  }
+}
+
+/**
+ * Clear search highlights
+ */
+function clearSearchHighlights() {
+  if (!g) return;
+  
+  g.selectAll('g')
+    .transition()
+    .duration(300)
+    .style('opacity', 1);
+  
+  g.selectAll('circle')
+    .filter(function() {
+      return this.parentNode.tagName === 'g';
+    })
+    .transition()
+    .duration(300)
+    .attr('stroke', '#f59e0b')
+    .attr('stroke-width', 2);
+}
+
 // Export for global access
 window.initGalaxyView = initGalaxyView;
 window.resizeGalaxyView = resizeGalaxyView;
+window.highlightSearchResults = highlightSearchResults;
+window.clearSearchHighlights = clearSearchHighlights;
 

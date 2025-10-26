@@ -179,8 +179,16 @@ async function performSearch(query) {
       throw new Error(`Search failed: ${response.statusText}`);
     }
     
-    const results = await response.json();
+    const data = await response.json();
+    const results = data.concepts || data; // Handle both {concepts: [...]} and [...] formats
     currentSuggestions = results.slice(0, MAX_SUGGESTIONS);
+    
+    // Emit search results event for graph highlighting
+    bus.emit('searchResults', { 
+      query, 
+      results,
+      count: results.length 
+    });
     
     // Show suggestions
     showSuggestions(currentSuggestions);
