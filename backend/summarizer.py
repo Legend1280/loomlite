@@ -183,15 +183,20 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
     clusters = [c for c in concepts if c.get('hierarchy_level') == 1]
     
     # 2. Generate cluster summaries
+    print(f"\n📊 Found {len(clusters)} clusters to summarize")
     for cluster in clusters:
         cluster_id = cluster['id']
         cluster_label = cluster['label']
+        
+        print(f"\n🧠 Summarizing cluster: {cluster_label} (id: {cluster_id})")
         
         # Get concepts in this cluster
         cluster_concepts = [
             c for c in concepts 
             if c.get('parent_cluster_id') == cluster_id and c.get('hierarchy_level') == 3
         ]
+        
+        print(f"   Found {len(cluster_concepts)} concepts in cluster")
         
         # Get relations within this cluster
         cluster_concept_ids = {c['id'] for c in cluster_concepts}
@@ -200,17 +205,32 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
             if r['src'] in cluster_concept_ids and r['dst'] in cluster_concept_ids
         ]
         
+        print(f"   Found {len(cluster_relations)} relations in cluster")
+        print(f"   Calling OpenAI to generate summary...")
+        
         # Generate summary
-        cluster_summary = generate_cluster_summary(cluster_label, cluster_concepts, cluster_relations)
+        try:
+            cluster_summary = generate_cluster_summary(cluster_label, cluster_concepts, cluster_relations)
+            print(f"   ✅ Summary generated: {cluster_summary[:100]}...")
+        except Exception as e:
+            print(f"   ❌ Summary generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+            cluster_summary = None
         
-        # Update database
-        cursor.execute(
-            "UPDATE concepts SET summary = ? WHERE id = ?",
-            (cluster_summary, cluster_id)
-        )
-        
-        # Store summary in cluster object for document summary generation
-        cluster['summary'] = cluster_summary
+        if cluster_summary:
+            # Update database
+            print(f"   Writing summary to database...")
+            cursor.execute(
+                "UPDATE concepts SET summary = ? WHERE id = ?",
+                (cluster_summary, cluster_id)
+            )
+            print(f"   ✅ Database updated")
+            
+            # Store summary in cluster object for document summary generation
+            cluster['summary'] = cluster_summary
+        else:
+            print(f"   ⚠️  Skipping database update (no summary generated)")
     
     # 3. Identify refinement nodes (hierarchy_level = 2)
     refinements = [c for c in concepts if c.get('hierarchy_level') == 2]
