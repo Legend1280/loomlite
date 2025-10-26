@@ -350,12 +350,17 @@ function collapse(d) {
  * Toggle node expansion
  */
 function toggle(d) {
+  console.log(`🔄 Toggle called for: ${d.data.name}`);
+  console.log(`   Has children: ${!!d.children}, Has _children: ${!!d._children}`);
+  
   if (d.children) {
     d._children = d.children;
     d.children = null;
+    console.log(`   ✅ Collapsed (moved ${d._children?.length || 0} children to _children)`);
   } else {
     d.children = d._children;
     d._children = null;
+    console.log(`   ✅ Expanded (moved ${d.children?.length || 0} children to children)`);
   }
 }
 
@@ -527,6 +532,8 @@ function diagonal(s, d) {
  * Handle node click
  */
 function handleNodeClick(d) {
+  console.log(`🖱️ Node clicked: ${d.data.name} (type: ${d.data.type}, level: ${d.data.hierarchyLevel})`);
+  
   // If it's a concept node (not category), emit concept selected
   if (d.data.concept) {
     console.log(`🎯 Concept selected: ${d.data.name}`);
