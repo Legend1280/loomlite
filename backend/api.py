@@ -558,6 +558,60 @@ async def migrate_hierarchy():
             "traceback": traceback.format_exc()
         }
 
+@app.get("/admin/migrate-parent-concept-id")
+async def migrate_parent_concept_id():
+    """
+    Run database migration to add parent_concept_id column for intra-cluster hierarchy (v2.3.2)
+    Safe to run multiple times - will skip if column already exists
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if migration already done
+        cursor.execute("PRAGMA table_info(concepts)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'parent_concept_id' in columns:
+            conn.close()
+            return {
+                "status": "already_migrated",
+                "message": "parent_concept_id column already exists, no migration needed",
+                "columns": columns
+            }
+        
+        # Run migration
+        results = []
+        
+        # Add parent_concept_id column
+        cursor.execute("ALTER TABLE concepts ADD COLUMN parent_concept_id TEXT")
+        results.append("✅ Added parent_concept_id column")
+        
+        # Create index for performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_concepts_parent_concept 
+            ON concepts(parent_concept_id)
+        """)
+        results.append("✅ Created index on parent_concept_id")
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "Migration completed successfully! Intra-cluster hierarchy enabled.",
+            "changes": results,
+            "next_steps": "Upload a document to test refinement node creation"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
