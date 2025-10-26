@@ -194,19 +194,20 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
         
         jobs[job_id]["progress"] = "Generating summaries..."
         
-        # Generate summaries for document hierarchy
+        # Generate summaries for document hierarchy (ONTOLOGY_STANDARD v1.4-preview)
+        # Unified summarization: 1 API call instead of 4+ (Reflective Layer Enhancement)
         try:
-            from summarizer import summarize_document_hierarchy
+            from summarizer_unified import summarize_document_hierarchy_unified
             conn = get_db()
-            summarize_document_hierarchy(
+            result = summarize_document_hierarchy_unified(
                 doc_id=doc_id,
                 doc_text=doc_data["text"],
                 doc_title=title,
                 concepts=ontology["concepts"],
-                relations=ontology["relations"],
                 db_conn=conn
             )
             conn.close()
+            print(f"✅ Unified summarization result: {result}")
         except Exception as e:
             print(f"⚠️  Summarization failed: {e}")
             import traceback
