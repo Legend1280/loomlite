@@ -154,7 +154,7 @@ function toggleSystemStatus() {
 async function checkAllComponents() {
   // Core Libraries
   componentStatus.d3 = typeof d3 !== 'undefined';
-  componentStatus.eventBus = typeof window.eventBus !== 'undefined';
+  componentStatus.eventBus = typeof window.bus !== 'undefined';
   
   // Modules (check if functions exist)
   componentStatus.dualVisualizer = typeof window.drawDualVisualizer === 'function';
@@ -169,11 +169,10 @@ async function checkAllComponents() {
   
   // Backend API
   try {
-    const response = await fetch(`${API_BASE}/tree`, { method: 'HEAD' });
-    componentStatus.backendAPI = response.ok;
+    const treeResponse = await fetch(`${API_BASE}/tree`);
+    componentStatus.backendAPI = treeResponse.ok;
     
-    if (response.ok) {
-      const treeResponse = await fetch(`${API_BASE}/tree`);
+    if (treeResponse.ok) {
       const docs = await treeResponse.json();
       componentStatus.documentCount = docs.length;
       componentStatus.documentsLoaded = docs.length > 0;
