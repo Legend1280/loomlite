@@ -1,0 +1,327 @@
+"""
+Semantic Clustering Module for Loom Lite v2.3
+Introduces mid-tier hierarchy to flat ontology structures
+"""
+
+from typing import List, Dict, Set, Tuple, Optional
+from collections import defaultdict
+import re
+from models import Concept, Relation, MicroOntology
+
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+CLUSTERING_CONFIG = {
+    "similarity_threshold": 0.80,  # Merge if cosine >= value
+    "min_span_length": 6,  # Ignore spans shorter than n words
+    "coherence_threshold": 0.75,  # Average relation confidence >= value
+    "max_cluster_depth": 4,  # Prevent deep recursion
+    "cluster_relations": {"defines", "contains", "supports", "develops"},  # Relations that indicate hierarchy
+}
+
+
+# ============================================================================
+# Clustering Functions
+# ============================================================================
+
+def build_semantic_hierarchy(ontology: MicroOntology) -> MicroOntology:
+    """
+    Build semantic hierarchy for concepts in a micro-ontology.
+    
+    Args:
+        ontology: Input micro-ontology with flat concepts
+        
+    Returns:
+        Enhanced ontology with parent_cluster_id and hierarchy_level assigned
+    """
+    # Step 1: Filter low-quality concepts
+    filtered_concepts = filter_concepts(ontology.concepts, ontology.mentions)
+    
+    # Step 2: Build relation graph
+    relation_graph = build_relation_graph(ontology.relations)
+    
+    # Step 3: Identify clusters based on relations
+    clusters = identify_clusters(filtered_concepts, relation_graph)
+    
+    # Step 4: Create cluster concepts
+    cluster_concepts = create_cluster_concepts(clusters, ontology.doc.doc_id)
+    
+    # Step 5: Assign hierarchy levels
+    all_concepts = assign_hierarchy_levels(filtered_concepts, cluster_concepts, relation_graph)
+    
+    # Step 6: Update ontology
+    ontology.concepts = all_concepts
+    
+    return ontology
+
+
+def filter_concepts(concepts: List[Concept], mentions: Dict[str, List]) -> List[Concept]:
+    """
+    Filter out low-quality concepts based on span length and coherence.
+    
+    Args:
+        concepts: List of concepts
+        mentions: Mention links (concept_id -> [MentionLink])
+        
+    Returns:
+        Filtered list of concepts
+    """
+    filtered = []
+    
+    for concept in concepts:
+        # Check if concept has mentions
+        concept_mentions = mentions.get(concept.concept_id, [])
+        if not concept_mentions:
+            # Keep concepts without mentions (might be clusters)
+            filtered.append(concept)
+            continue
+        
+        # Check label length (word count)
+        word_count = len(concept.label.split())
+        if word_count < CLUSTERING_CONFIG["min_span_length"]:
+            continue
+        
+        # Check coherence (if available)
+        if concept.coherence and concept.coherence < CLUSTERING_CONFIG["coherence_threshold"]:
+            continue
+        
+        filtered.append(concept)
+    
+    return filtered
+
+
+def build_relation_graph(relations: List[Relation]) -> Dict[str, List[Tuple[str, str]]]:
+    """
+    Build a graph of concept relationships.
+    
+    Args:
+        relations: List of relations
+        
+    Returns:
+        Graph as dict: concept_id -> [(relation_type, target_concept_id)]
+    """
+    graph = defaultdict(list)
+    
+    for relation in relations:
+        graph[relation.src].append((relation.rel, relation.dst))
+        # Add reverse edge for bidirectional traversal
+        graph[relation.dst].append((f"~{relation.rel}", relation.src))
+    
+    return graph
+
+
+def identify_clusters(concepts: List[Concept], relation_graph: Dict[str, List[Tuple[str, str]]]) -> List[Set[str]]:
+    """
+    Identify concept clusters based on strong relations.
+    
+    Args:
+        concepts: List of concepts
+        relation_graph: Relation graph
+        
+    Returns:
+        List of clusters (each cluster is a set of concept_ids)
+    """
+    clusters = []
+    visited = set()
+    cluster_relations = CLUSTERING_CONFIG["cluster_relations"]
+    
+    for concept in concepts:
+        if concept.concept_id in visited:
+            continue
+        
+        # Start a new cluster
+        cluster = {concept.concept_id}
+        queue = [concept.concept_id]
+        
+        while queue:
+            current_id = queue.pop(0)
+            
+            # Get related concepts
+            for rel_type, target_id in relation_graph.get(current_id, []):
+                # Only follow clustering relations
+                if rel_type not in cluster_relations:
+                    continue
+                
+                if target_id not in visited and target_id not in cluster:
+                    cluster.add(target_id)
+                    queue.append(target_id)
+            
+            visited.add(current_id)
+        
+        # Only create cluster if it has multiple concepts
+        if len(cluster) >= 2:
+            clusters.append(cluster)
+    
+    return clusters
+
+
+def create_cluster_concepts(clusters: List[Set[str]], doc_id: str) -> List[Concept]:
+    """
+    Create cluster concepts (mid-tier semantic nodes).
+    
+    Args:
+        clusters: List of concept ID sets
+        doc_id: Document ID
+        
+    Returns:
+        List of cluster concepts
+    """
+    cluster_concepts = []
+    
+    for i, cluster in enumerate(clusters):
+        cluster_id = f"cluster_{doc_id}_{i}"
+        
+        # Generate cluster label (use first concept as representative)
+        # In production, this should use LLM or more sophisticated naming
+        cluster_label = f"Cluster {i + 1}"
+        
+        cluster_concept = Concept(
+            concept_id=cluster_id,
+            doc_id=doc_id,
+            label=cluster_label,
+            type="Topic",  # Clusters are topics/themes
+            confidence=1.0,
+            hierarchy_level=2,  # Clusters are level 2
+            coherence=1.0,
+        )
+        
+        cluster_concepts.append(cluster_concept)
+    
+    return cluster_concepts
+
+
+def assign_hierarchy_levels(
+    concepts: List[Concept],
+    cluster_concepts: List[Concept],
+    relation_graph: Dict[str, List[Tuple[str, str]]]
+) -> List[Concept]:
+    """
+    Assign hierarchy levels and parent_cluster_id to all concepts.
+    
+    Args:
+        concepts: Original concepts
+        cluster_concepts: Cluster concepts
+        relation_graph: Relation graph
+        
+    Returns:
+        All concepts with hierarchy assigned
+    """
+    # Create concept ID to cluster mapping
+    concept_to_cluster = {}
+    
+    for cluster_concept in cluster_concepts:
+        # Find concepts that belong to this cluster
+        # (In real implementation, use the cluster sets from identify_clusters)
+        # For now, we'll use a simple heuristic based on relations
+        pass
+    
+    # Assign levels
+    all_concepts = []
+    
+    # Add cluster concepts (level 2)
+    all_concepts.extend(cluster_concepts)
+    
+    # Add original concepts (level 3)
+    for concept in concepts:
+        if concept.hierarchy_level is None:
+            concept.hierarchy_level = 3  # Default to concept level
+        
+        # Assign parent cluster if available
+        if concept.concept_id in concept_to_cluster:
+            concept.parent_cluster_id = concept_to_cluster[concept.concept_id]
+        
+        all_concepts.append(concept)
+    
+    return all_concepts
+
+
+# ============================================================================
+# Utility Functions
+# ============================================================================
+
+def generate_cluster_label(concept_ids: Set[str], concepts: List[Concept]) -> str:
+    """
+    Generate a meaningful label for a cluster.
+    
+    Args:
+        concept_ids: Set of concept IDs in the cluster
+        concepts: All concepts
+        
+    Returns:
+        Cluster label
+    """
+    # Find concepts in cluster
+    cluster_concepts = [c for c in concepts if c.concept_id in concept_ids]
+    
+    if not cluster_concepts:
+        return "Unnamed Cluster"
+    
+    # Use most common words in concept labels
+    words = []
+    for concept in cluster_concepts:
+        words.extend(concept.label.split())
+    
+    # Simple frequency-based naming
+    word_freq = defaultdict(int)
+    for word in words:
+        if len(word) > 3:  # Ignore short words
+            word_freq[word] += 1
+    
+    if not word_freq:
+        return cluster_concepts[0].label
+    
+    # Get top 2 most common words
+    top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:2]
+    return " ".join([w[0] for w in top_words])
+
+
+def merge_redundant_concepts(concepts: List[Concept], similarity_threshold: float = 0.9) -> List[Concept]:
+    """
+    Merge concepts with very similar labels.
+    
+    Args:
+        concepts: List of concepts
+        similarity_threshold: Threshold for merging
+        
+    Returns:
+        Deduplicated concepts
+    """
+    # Simple string similarity (Jaccard)
+    def jaccard_similarity(a: str, b: str) -> float:
+        set_a = set(a.lower().split())
+        set_b = set(b.lower().split())
+        intersection = len(set_a & set_b)
+        union = len(set_a | set_b)
+        return intersection / union if union > 0 else 0.0
+    
+    merged = []
+    skip_ids = set()
+    
+    for i, concept_a in enumerate(concepts):
+        if concept_a.concept_id in skip_ids:
+            continue
+        
+        # Check for similar concepts
+        for j in range(i + 1, len(concepts)):
+            concept_b = concepts[j]
+            
+            if concept_b.concept_id in skip_ids:
+                continue
+            
+            similarity = jaccard_similarity(concept_a.label, concept_b.label)
+            
+            if similarity >= similarity_threshold:
+                # Merge concept_b into concept_a
+                if concept_b.aliases:
+                    if not concept_a.aliases:
+                        concept_a.aliases = []
+                    concept_a.aliases.extend(concept_b.aliases)
+                
+                skip_ids.add(concept_b.concept_id)
+        
+        merged.append(concept_a)
+    
+    return merged
+

@@ -65,7 +65,88 @@ async function loadOntology(docId) {
 }
 
 /**
+ * Build semantic hierarchy using parent_cluster_id (v2.3)
+ */
+function buildSemanticHierarchy(rootNode, concepts, relations) {
+  // Create concept lookup
+  const conceptMap = {};
+  concepts.forEach(c => {
+    conceptMap[c.concept_id || c.id] = c;
+  });
+  
+  // Separate concepts by hierarchy level
+  const clusters = concepts.filter(c => c.hierarchy_level === 2 || c.type === 'Topic');
+  const regularConcepts = concepts.filter(c => c.hierarchy_level === 3 || (!c.hierarchy_level && c.type !== 'Topic'));
+  
+  // Build tree: root → clusters → concepts
+  clusters.forEach(cluster => {
+    const clusterNode = {
+      name: cluster.label,
+      id: cluster.concept_id || cluster.id,
+      type: 'cluster',
+      hierarchyLevel: 2,
+      concept: cluster,
+      children: [],
+      _children: null,
+      expanded: true
+    };
+    
+    // Find child concepts
+    const childConcepts = regularConcepts.filter(c => 
+      c.parent_cluster_id === cluster.concept_id || c.parent_cluster_id === cluster.id
+    );
+    
+    childConcepts.forEach(concept => {
+      clusterNode.children.push({
+        name: concept.label,
+        id: concept.concept_id || concept.id,
+        type: concept.type,
+        hierarchyLevel: 3,
+        confidence: concept.confidence,
+        concept: concept,
+        children: [],
+        _children: null
+      });
+    });
+    
+    rootNode.children.push(clusterNode);
+  });
+  
+  // Add orphan concepts (no parent cluster)
+  const orphans = regularConcepts.filter(c => !c.parent_cluster_id);
+  if (orphans.length > 0) {
+    const orphanNode = {
+      name: 'Uncategorized',
+      id: 'orphans',
+      type: 'category',
+      hierarchyLevel: 1,
+      children: [],
+      _children: null,
+      expanded: true
+    };
+    
+    orphans.forEach(concept => {
+      orphanNode.children.push({
+        name: concept.label,
+        id: concept.concept_id || concept.id,
+        type: concept.type,
+        hierarchyLevel: 3,
+        confidence: concept.confidence,
+        concept: concept,
+        children: [],
+        _children: null
+      });
+    });
+    
+    rootNode.children.push(orphanNode);
+  }
+  
+  return rootNode;
+}
+
+/**
  * Build hierarchical tree structure from ontology
+ * Now supports parent_cluster_id and hierarchy_level (v2.3)
  */
 function buildHierarchy() {
   if (!currentOntology || !currentOntology.concepts) {
@@ -80,12 +161,19 @@ function buildHierarchy() {
     name: currentOntology.title || 'Document',
     id: 'root',
     type: 'document',
+    hierarchyLevel: 0,
     children: [],
     _children: null,
     expanded: true
   };
   
-  // Group concepts by type
+  // Build hierarchy using parent_cluster_id
+  if (concepts.some(c => c.parent_cluster_id || c.hierarchy_level !== undefined)) {
+    // New hierarchical structure (v2.3)
+    return buildSemanticHierarchy(rootNode, concepts, relations);
+  }
+  
+  // Fallback: Group concepts by type (legacy flat structure)
   const conceptsByType = {};
   concepts.forEach(concept => {
     const type = concept.type || 'Other';
@@ -415,6 +503,7 @@ function getNodeColor(type) {
   const colors = {
     document: '#1e293b',
     category: '#334155',
+    cluster: '#334155',  // Cluster nodes: neutral grey-blue
     Person: '#3b82f6',
     Project: '#8b5cf6',
     Feature: '#10b981',
@@ -435,6 +524,7 @@ function getNodeStrokeColor(type) {
   const colors = {
     document: '#475569',
     category: '#64748b',
+    cluster: '#64748b',  // Cluster stroke
     Person: '#60a5fa',
     Project: '#a78bfa',
     Feature: '#34d399',
