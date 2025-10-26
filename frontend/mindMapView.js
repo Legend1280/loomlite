@@ -25,7 +25,6 @@ const ANIMATION_DURATION = 400;
  * Initialize Mind Map View
  */
 export async function initMindMapView(docId) {
-  console.log('🌳 Initializing Mind Map View...');
   
   currentDocId = docId;
   
@@ -44,7 +43,7 @@ export async function initMindMapView(docId) {
   // Listen for events
   setupEventListeners();
   
-  console.log('✅ Mind Map View initialized');
+  // Mind Map View initialized
 }
 
 /**
@@ -57,7 +56,7 @@ async function loadOntology(docId) {
       throw new Error(`Failed to fetch ontology: ${response.statusText}`);
     }
     currentOntology = await response.json();
-    console.log(`📊 Loaded ${currentOntology.concepts?.length || 0} concepts`);
+    // Ontology loaded
   } catch (error) {
     console.error('❌ Failed to load ontology:', error);
     currentOntology = { concepts: [], relations: [] };
@@ -151,7 +150,7 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
     });
     
     // Keep children visible - collapse will happen AFTER d3.hierarchy()
-    console.log(`✅ Cluster "${clusterNode.name}" created with ${clusterNode.children.length} children (visible)`);
+    // Cluster created with children
     
     rootNode.children.push(clusterNode);
   });
@@ -215,7 +214,7 @@ function buildHierarchy() {
   if (concepts.some(c => c.parent_cluster_id || c.hierarchy_level !== undefined)) {
     // New hierarchical structure (v2.3)
     const hierarchyTree = buildSemanticHierarchy(rootNode, concepts, relations);
-    console.log('🌳 Hierarchy build output:', hierarchyTree);
+    // Hierarchy built
     return hierarchyTree;
   }
   
@@ -331,12 +330,7 @@ function createMindMapVisualization(container) {
   // NOW collapse cluster nodes (after D3 has processed children)
   root.children?.forEach(collapse);
   
-  console.log('📊 Initial hierarchy:', {
-    total_nodes: root.descendants().length,
-    visible_nodes: root.descendants().filter(d => !d.parent || d.parent.children).length,
-    root_children: root.children?.length,
-    collapsed_children: root.children?.reduce((sum, c) => sum + (c._children?.length || 0), 0)
-  });
+  // Initial hierarchy ready
   
   // Initial render
   update(root);
@@ -357,17 +351,16 @@ function collapse(d) {
  * Toggle node expansion
  */
 function toggle(d) {
-  console.log(`🔄 Toggle called for: ${d.data.name}`);
-  console.log(`   Has children: ${!!d.children}, Has _children: ${!!d._children}`);
+  // Toggle node expansion
   
   if (d.children) {
     d._children = d.children;
     d.children = null;
-    console.log(`   ✅ Collapsed (moved ${d._children?.length || 0} children to _children)`);
+    // Collapsed
   } else {
     d.children = d._children;
     d._children = null;
-    console.log(`   ✅ Expanded (moved ${d.children?.length || 0} children to children)`);
+    // Expanded
   }
 }
 
@@ -380,7 +373,7 @@ function update(source) {
   const nodes = treeData.descendants();
   const links = treeData.links();
   
-  console.log('🔄 Update called - Rendered nodes:', nodes.length, 'links:', links.length);
+  // Tree rendered
   
   // Update nodes
   const node = g.selectAll('g.node')
@@ -541,11 +534,11 @@ function diagonal(s, d) {
  * Handle node click
  */
 function handleNodeClick(d) {
-  console.log(`🖱️ Node clicked: ${d.data.name} (type: ${d.data.type}, level: ${d.data.hierarchyLevel})`);
+  // Node clicked
   
   // If it's a concept node (not category), emit concept selected
   if (d.data.concept) {
-    console.log(`🎯 Concept selected: ${d.data.name}`);
+    // Concept selected
     bus.emit('conceptSelected', {
       conceptId: d.data.id,
       docId: currentDocId,
@@ -657,7 +650,7 @@ function highlightSearchResults(results) {
   
   const matchedIds = new Set(results.map(r => r.id));
   
-  console.log(`🔍 Highlighting ${matchedIds.size} concepts in Mind Map`);
+  // Highlighting search results
   
   // Auto-expand nodes that contain matches
   root.descendants().forEach(d => {
