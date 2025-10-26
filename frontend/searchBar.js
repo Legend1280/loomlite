@@ -332,7 +332,9 @@ async function fetchAvailableFilters() {
     // Fetch available tags
     const tagsResponse = await fetch(`${API_BASE}/tags`);
     if (tagsResponse.ok) {
-      const tags = await tagsResponse.json();
+      const tagsData = await tagsResponse.json();
+      // Handle both array and {tags: [...]} response formats
+      const tags = Array.isArray(tagsData) ? tagsData : (tagsData.tags || []);
       availableTags = tags.map(t => t.label || t).sort();
     }
     
