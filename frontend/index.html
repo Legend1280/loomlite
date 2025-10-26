@@ -113,7 +113,7 @@
       background: #1e293b;
       border-right: 1px solid #334155;
       overflow-y: auto;
-      transition: width 0.3s ease;
+      flex-shrink: 0;
     }
     
     #sidebar.collapsed {
@@ -125,9 +125,10 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 0;
       padding: 8px;
       background: #0f172a;
+      min-width: 0;
     }
     
     .visualizer-container {
@@ -137,6 +138,54 @@
       border-radius: 8px;
       overflow: hidden;
       position: relative;
+      min-height: 0;
+    }
+    
+    /* RESIZABLE DIVIDERS */
+    .resize-handle {
+      background: #334155;
+      position: relative;
+      z-index: 100;
+    }
+    
+    .resize-handle:hover {
+      background: #475569;
+    }
+    
+    .resize-handle-horizontal {
+      height: 8px;
+      cursor: ns-resize;
+      margin: 0;
+    }
+    
+    .resize-handle-vertical {
+      width: 8px;
+      cursor: ew-resize;
+      flex-shrink: 0;
+    }
+    
+    .resize-handle-horizontal::before,
+    .resize-handle-vertical::before {
+      content: '';
+      position: absolute;
+      background: #64748b;
+      border-radius: 2px;
+    }
+    
+    .resize-handle-horizontal::before {
+      width: 40px;
+      height: 3px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .resize-handle-vertical::before {
+      width: 3px;
+      height: 40px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
     
     .visualizer-label {
@@ -184,6 +233,7 @@
       background: #1e293b;
       border-left: 1px solid #334155;
       overflow-y: auto;
+      flex-shrink: 0;
     }
     
     /* RESPONSIVE */
@@ -331,6 +381,9 @@
     <!-- LEFT SIDEBAR -->
     <aside id="sidebar"></aside>
     
+    <!-- RESIZE HANDLE (Sidebar | Center) -->
+    <div class="resize-handle resize-handle-vertical" id="resize-sidebar"></div>
+    
     <!-- CENTER PANEL - MULTI-LEVEL VISUALIZER -->
     <main id="center">
       <!-- Galaxy View (Level 1: All Documents) -->
@@ -344,12 +397,18 @@
         <svg></svg>
       </div>
       
+      <!-- RESIZE HANDLE (Solar | Mind Map) -->
+      <div class="resize-handle resize-handle-horizontal" id="resize-center" style="display: none;"></div>
+      
       <!-- Mind Map View (Hierarchical) -->
       <div id="visualizer-bottom" class="visualizer-container" style="display: none;">
         <div class="visualizer-label">🌳 MIND MAP</div>
         <svg></svg>
       </div>
     </main>
+    
+    <!-- RESIZE HANDLE (Center | Surface) -->
+    <div class="resize-handle resize-handle-vertical" id="resize-surface"></div>
     
     <!-- RIGHT PANEL - SURFACE VIEWER -->
     <aside id="surface-viewer"></aside>
@@ -368,6 +427,119 @@
     import { initSurfaceViewer } from './surfaceViewer.js';
     import { initSearchBar } from './searchBar.js';
     import { initSystemStatus } from './systemStatus.js';
+    
+    /**
+     * Initialize resizable panels with drag handles
+     */
+    function initResizablePanels() {
+      // Sidebar resize
+      const resizeSidebar = document.getElementById('resize-sidebar');
+      const sidebar = document.getElementById('sidebar');
+      
+      if (resizeSidebar && sidebar) {
+        let isResizing = false;
+        
+        resizeSidebar.addEventListener('mousedown', (e) => {
+          isResizing = true;
+          document.body.style.cursor = 'ew-resize';
+          document.body.style.userSelect = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (!isResizing) return;
+          
+          const newWidth = e.clientX;
+          if (newWidth >= 200 && newWidth <= 400) {
+            sidebar.style.width = `${newWidth}px`;
+          }
+        });
+        
+        document.addEventListener('mouseup', () => {
+          if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+          }
+        });
+      }
+      
+      // Surface viewer resize
+      const resizeSurface = document.getElementById('resize-surface');
+      const surfaceViewer = document.getElementById('surface-viewer');
+      
+      if (resizeSurface && surfaceViewer) {
+        let isResizing = false;
+        
+        resizeSurface.addEventListener('mousedown', (e) => {
+          isResizing = true;
+          document.body.style.cursor = 'ew-resize';
+          document.body.style.userSelect = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (!isResizing) return;
+          
+          const newWidth = window.innerWidth - e.clientX;
+          if (newWidth >= 300 && newWidth <= 800) {
+            surfaceViewer.style.width = `${newWidth}px`;
+          }
+        });
+        
+        document.addEventListener('mouseup', () => {
+          if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+          }
+        });
+      }
+      
+      // Center panel resize (Solar | Mind Map)
+      const resizeCenter = document.getElementById('resize-center');
+      const visualizerTop = document.getElementById('visualizer-top');
+      const visualizerBottom = document.getElementById('visualizer-bottom');
+      
+      if (resizeCenter && visualizerTop && visualizerBottom) {
+        let isResizing = false;
+        let startY = 0;
+        let startTopHeight = 0;
+        let startBottomHeight = 0;
+        
+        resizeCenter.addEventListener('mousedown', (e) => {
+          isResizing = true;
+          startY = e.clientY;
+          startTopHeight = visualizerTop.offsetHeight;
+          startBottomHeight = visualizerBottom.offsetHeight;
+          document.body.style.cursor = 'ns-resize';
+          document.body.style.userSelect = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (!isResizing) return;
+          
+          const delta = e.clientY - startY;
+          const newTopHeight = startTopHeight + delta;
+          const newBottomHeight = startBottomHeight - delta;
+          
+          if (newTopHeight >= 200 && newBottomHeight >= 200) {
+            visualizerTop.style.flex = 'none';
+            visualizerTop.style.height = `${newTopHeight}px`;
+            visualizerBottom.style.flex = 'none';
+            visualizerBottom.style.height = `${newBottomHeight}px`;
+          }
+        });
+        
+        document.addEventListener('mouseup', () => {
+          if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+          }
+        });
+      }
+      
+      console.log('↔️ Resizable panels initialized');
+    }
     
     // Initialize app
     document.addEventListener('DOMContentLoaded', async () => {
@@ -458,19 +630,25 @@
           viewModeButtons.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           
+          // Get resize handle
+          const resizeCenter = document.getElementById('resize-center');
+          
           // Show/hide appropriate containers
           if (mode === 'galaxy') {
             galaxyContainer.style.display = 'block';
             solarContainer.style.display = 'none';
             mindContainer.style.display = 'none';
+            if (resizeCenter) resizeCenter.style.display = 'none';
           } else if (mode === 'solar') {
             galaxyContainer.style.display = 'none';
             solarContainer.style.display = 'block';
             mindContainer.style.display = 'none';
+            if (resizeCenter) resizeCenter.style.display = 'none';
           } else if (mode === 'split') {
             galaxyContainer.style.display = 'none';
             solarContainer.style.display = 'block';
             mindContainer.style.display = 'block';
+            if (resizeCenter) resizeCenter.style.display = 'block';
             
             // Initialize mind map for current document
             const currentDoc = window.getCurrentDocId ? window.getCurrentDocId() : null;
@@ -481,6 +659,7 @@
             galaxyContainer.style.display = 'none';
             solarContainer.style.display = 'none';
             mindContainer.style.display = 'block';
+            if (resizeCenter) resizeCenter.style.display = 'none';
             
             // Initialize mind map for current document
             const currentDoc = window.getCurrentDocId ? window.getCurrentDocId() : null;
@@ -536,6 +715,9 @@
         // Load document in Surface Viewer (Document Mode by default)
         // The surfaceViewer will handle this via its own event listener
       });
+      
+      // Initialize Resizable Panels
+      initResizablePanels();
       
       // Initialize System Status Dashboard
       try {

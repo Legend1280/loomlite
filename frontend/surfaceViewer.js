@@ -401,7 +401,6 @@ function renderHighlightedText(text, spans) {
       font-size: 17px;
       line-height: 1.7;
       color: #e2e8f0;
-      white-space: pre-wrap;
       word-wrap: break-word;
     ">
       ${highlightedHTML}
