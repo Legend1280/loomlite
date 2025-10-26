@@ -60,6 +60,8 @@ class Concept(BaseModel):
     parent_concept_id: Optional[str] = None  # Parent refinement concept_id (for intra-cluster hierarchy)
     hierarchy_level: Optional[int] = None  # 0=doc, 1=section, 2=cluster, 3=refinement, 4=concept
     coherence: Optional[float] = None  # Average relation confidence
+    # Summarization (v2.4)
+    summary: Optional[str] = None  # LLM-generated summary for clusters/refinements
 
 
 class Relation(BaseModel):
