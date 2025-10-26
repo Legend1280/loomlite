@@ -271,7 +271,7 @@ function hideSuggestions() {
  * Handle suggestion click
  * @param {Object} concept - Selected concept
  */
-function handleSuggestionClick(concept) {
+async function handleSuggestionClick(concept) {
   console.log(`✅ Suggestion selected: ${concept.label}`);
   
   // Hide suggestions
@@ -283,14 +283,28 @@ function handleSuggestionClick(concept) {
     input.value = '';
   }
   
-  // Emit events
-  bus.emit('conceptSelected', { 
-    conceptId: concept.id, 
-    docId: concept.doc_id 
-  });
-  
+  // If concept has a document, load it first
   if (concept.doc_id) {
+    console.log(`📄 Loading document: ${concept.doc_id}`);
+    
+    // Emit document focus to switch document in sidebar
     bus.emit('documentFocus', { docId: concept.doc_id });
+    
+    // Wait for document to load, then select the concept
+    // The drawDualVisualizer function will be called by the sidebar
+    // After it completes, we can select the concept
+    setTimeout(() => {
+      console.log(`🎯 Selecting concept: ${concept.label}`);
+      bus.emit('conceptSelected', { 
+        conceptId: concept.id, 
+        docId: concept.doc_id 
+      });
+    }, 500); // Wait 500ms for document to load
+  } else {
+    // No document, just emit concept selected
+    bus.emit('conceptSelected', { 
+      conceptId: concept.id 
+    });
   }
 }
 
