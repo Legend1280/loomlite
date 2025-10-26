@@ -150,12 +150,8 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
       });
     });
     
-    // Collapse clusters by default for cleaner initial view
-    if (clusterNode.children.length > 0) {
-      clusterNode._children = clusterNode.children;
-      clusterNode.children = null;
-    }
-    console.log(`✅ Cluster "${clusterNode.name}" created with ${clusterNode._children?.length || 0} children (collapsed)`);
+    // Keep children visible - collapse will happen AFTER d3.hierarchy()
+    console.log(`✅ Cluster "${clusterNode.name}" created with ${clusterNode.children.length} children (visible)`);
     
     rootNode.children.push(clusterNode);
   });
@@ -332,10 +328,12 @@ function createMindMapVisualization(container) {
   const hierarchyData = buildHierarchy();
   root = d3.hierarchy(hierarchyData);
   
-  // Clusters are already collapsed in buildSemanticHierarchy()
-  // Don't collapse again here or it will clear the _children!
+  // NOW collapse cluster nodes (after D3 has processed children)
+  root.children?.forEach(collapse);
+  
   console.log('📊 Initial hierarchy:', {
     total_nodes: root.descendants().length,
+    visible_nodes: root.descendants().filter(d => !d.parent || d.parent.children).length,
     root_children: root.children?.length,
     collapsed_children: root.children?.reduce((sum, c) => sum + (c._children?.length || 0), 0)
   });

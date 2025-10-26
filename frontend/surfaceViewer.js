@@ -50,7 +50,9 @@ export function initSurfaceViewer() {
     
     // Always start in Document Mode when loading a new document
     currentMode = 'document';
-    updateModeButtons();
+    if (typeof updateModeButtons === 'function') {
+      updateModeButtons();
+    }
     
     // Load document text
     await renderDocumentMode(docId);
