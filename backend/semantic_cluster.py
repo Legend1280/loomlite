@@ -33,7 +33,8 @@ CLUSTERING_CONFIG = {
 
 def build_semantic_hierarchy(ontology: MicroOntology) -> MicroOntology:
     """
-    Build semantic hierarchy for concepts in a micro-ontology.
+    Build adaptive semantic hierarchy for concepts in a micro-ontology.
+    Hierarchy depth scales with document complexity (4-6 levels).
     
     Args:
         ontology: Input micro-ontology with flat concepts
@@ -41,6 +42,8 @@ def build_semantic_hierarchy(ontology: MicroOntology) -> MicroOntology:
     Returns:
         Enhanced ontology with parent_cluster_id and hierarchy_level assigned
     """
+    from adaptive_hierarchy import build_adaptive_hierarchy, determine_hierarchy_depth
+    
     # Step 1: Filter low-quality concepts
     filtered_concepts = filter_concepts(ontology.concepts, ontology.mentions)
     
@@ -53,11 +56,18 @@ def build_semantic_hierarchy(ontology: MicroOntology) -> MicroOntology:
     # Step 4: Create cluster concepts with LLM-generated labels
     cluster_concepts = create_cluster_concepts(clusters, ontology.doc.doc_id, filtered_concepts)
     
-    # Step 5: Build intra-cluster refinement (NEW!)
-    refined_concepts = build_intra_cluster_hierarchy(filtered_concepts, cluster_concepts, clusters, relation_graph)
+    # Step 5: Estimate document length (word count approximation)
+    # Use text length as proxy: ~5 chars per word
+    doc_text = ontology.doc.text if hasattr(ontology.doc, 'text') else ""
+    doc_length = len(doc_text.split()) if doc_text else len(filtered_concepts) * 10
     
-    # Step 6: Assign hierarchy levels
-    all_concepts = assign_hierarchy_levels(refined_concepts, cluster_concepts, relation_graph)
+    # Step 6: Build adaptive hierarchy (4-6 levels based on complexity)
+    all_concepts = build_adaptive_hierarchy(
+        concepts=filtered_concepts,
+        clusters=cluster_concepts,
+        relation_graph=relation_graph,
+        doc_length=doc_length
+    )
     
     # Step 7: Update ontology
     ontology.concepts = all_concepts
