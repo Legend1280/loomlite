@@ -7,7 +7,13 @@ import os
 from openai import OpenAI
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("⚠️  WARNING: OPENAI_API_KEY not set! Summarization will fail.")
+    client = None
+else:
+    client = OpenAI(api_key=api_key)
+    print(f"✅ OpenAI client initialized (key: ...{api_key[-4:]})")
 
 def generate_document_summary(doc_text: str, doc_title: str, clusters: list) -> str:
     """
@@ -162,6 +168,15 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
         relations: All relations between concepts
         db_conn: Database connection
     """
+    print(f"\n🔄 Starting summarization for document {doc_id}...")
+    print(f"   Title: {doc_title}")
+    print(f"   Concepts: {len(concepts)}")
+    print(f"   Relations: {len(relations)}")
+    
+    if not client:
+        print("❌ Summarization skipped: OpenAI client not initialized (missing API key)")
+        return {"error": "OpenAI API key not configured"}
+    
     cursor = db_conn.cursor()
     
     # 1. Identify clusters (hierarchy_level = 1)

@@ -198,13 +198,18 @@ function buildHierarchy() {
   const concepts = currentOntology.concepts;
   const relations = currentOntology.relations || [];
   
-  // Create root node (document) - use title or filename
-  const docTitle = currentOntology.title || currentOntology.doc_id || 'Document';
+  // Create root node (document) - use title from document object
+  const docData = currentOntology.document || {};
+  const docTitle = docData.title || currentOntology.doc_id || 'Document';
+  const docSummary = docData.summary || null;
+  
   const rootNode = {
     name: docTitle.replace('.pdf', '').replace('.docx', '').replace(/_/g, ' '),
     id: 'root',
     type: 'document',
     hierarchyLevel: 0,
+    summary: docSummary,  // Include document summary
+    concept: docData,  // Include full document data
     children: [],
     _children: null,
     expanded: true
