@@ -6,7 +6,12 @@ Introduces mid-tier hierarchy to flat ontology structures
 from typing import List, Dict, Set, Tuple, Optional
 from collections import defaultdict
 import re
+import os
+from openai import OpenAI
 from models import Concept, Relation, MicroOntology
+
+# Initialize OpenAI client for cluster labeling
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 
 # ============================================================================
@@ -45,8 +50,8 @@ def build_semantic_hierarchy(ontology: MicroOntology) -> MicroOntology:
     # Step 3: Identify clusters based on relations
     clusters = identify_clusters(filtered_concepts, relation_graph)
     
-    # Step 4: Create cluster concepts
-    cluster_concepts = create_cluster_concepts(clusters, ontology.doc.doc_id)
+    # Step 4: Create cluster concepts with LLM-generated labels
+    cluster_concepts = create_cluster_concepts(clusters, ontology.doc.doc_id, filtered_concepts)
     
     # Step 5: Assign hierarchy levels
     all_concepts = assign_hierarchy_levels(filtered_concepts, cluster_concepts, relation_graph)
@@ -157,25 +162,32 @@ def identify_clusters(concepts: List[Concept], relation_graph: Dict[str, List[Tu
     return clusters
 
 
-def create_cluster_concepts(clusters: List[Set[str]], doc_id: str) -> List[Concept]:
+def create_cluster_concepts(clusters: List[Set[str]], doc_id: str, all_concepts: List[Concept]) -> List[Concept]:
     """
-    Create cluster concepts (mid-tier semantic nodes).
+    Create cluster concepts (mid-tier semantic nodes) with LLM-generated labels.
     
     Args:
         clusters: List of concept ID sets
         doc_id: Document ID
+        all_concepts: All concepts (to get labels for cluster members)
         
     Returns:
-        List of cluster concepts
+        List of cluster concepts with semantic labels
     """
     cluster_concepts = []
+    
+    # Create concept ID to label mapping
+    concept_map = {c.concept_id: c.label for c in all_concepts}
     
     for i, cluster in enumerate(clusters):
         cluster_id = f"cluster_{doc_id}_{i}"
         
-        # Generate cluster label (use first concept as representative)
-        # In production, this should use LLM or more sophisticated naming
-        cluster_label = f"Cluster {i + 1}"
+        # Get labels of concepts in this cluster
+        cluster_labels = [concept_map.get(cid, "") for cid in cluster if cid in concept_map]
+        cluster_labels = [label for label in cluster_labels if label]  # Remove empty
+        
+        # Generate semantic cluster label using LLM
+        cluster_label = generate_llm_cluster_label(cluster_labels)
         
         cluster_concept = Concept(
             concept_id=cluster_id,
@@ -240,6 +252,61 @@ def assign_hierarchy_levels(
 # ============================================================================
 # Utility Functions
 # ============================================================================
+
+def generate_llm_cluster_label(concept_labels: List[str]) -> str:
+    """
+    Use LLM to generate a semantic label for a cluster of concepts.
+    
+    Args:
+        concept_labels: List of concept labels in the cluster
+        
+    Returns:
+        Semantic cluster label (2-4 words)
+    """
+    if not concept_labels:
+        return "Unnamed Cluster"
+    
+    # Limit to first 10 concepts to keep prompt concise
+    sample_labels = concept_labels[:10]
+    
+    prompt = f'''Given these related concepts from a document:
+{", ".join(sample_labels)}
+
+Suggest a concise, semantic category name (2-4 words) that captures their common theme.
+Return ONLY the category name, nothing else.
+
+Examples:
+- ["revenue", "pricing", "subscription"] → "Revenue Models"
+- ["doctor", "nurse", "clinic"] → "Clinical Staff"
+- ["Q1 2024", "deadline", "launch"] → "Project Timeline"
+- ["Builders Phase", "Founders Phase", "MSO"] → "Project Phases"
+
+Category name:'''
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=15
+        )
+        
+        label = response.choices[0].message.content.strip()
+        
+        # Clean up the label (remove quotes, extra whitespace)
+        label = label.strip('"\'\'').strip()
+        
+        # Fallback if label is too long or empty
+        if not label or len(label) > 50:
+            return concept_labels[0]  # Use first concept as fallback
+        
+        return label
+        
+    except Exception as e:
+        # Fallback to first concept label on error
+        print(f"⚠️  LLM cluster labeling failed: {e}")
+        return concept_labels[0] if concept_labels else "Unnamed Cluster"
+
 
 def generate_cluster_label(concept_ids: Set[str], concepts: List[Concept]) -> str:
     """
