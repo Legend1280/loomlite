@@ -73,10 +73,10 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
     conceptMap[c.id] = c;
   });
   
-  // Separate concepts by hierarchy level (v2.3.2 - 4 levels)
-  const clusters = concepts.filter(c => c.hierarchy_level === 2);
-  const refinements = concepts.filter(c => c.hierarchy_level === 3);
-  const atomicConcepts = concepts.filter(c => c.hierarchy_level === 4);
+  // Separate concepts by hierarchy level (ONTOLOGY_STANDARD v1.3 - 4 levels: 0=doc, 1=cluster, 2=refinement, 3=concept)
+  const clusters = concepts.filter(c => c.hierarchy_level === 1);
+  const refinements = concepts.filter(c => c.hierarchy_level === 2);
+  const atomicConcepts = concepts.filter(c => c.hierarchy_level === 3);
   
   // Build tree: root → clusters → refinements → concepts
   clusters.forEach(cluster => {
