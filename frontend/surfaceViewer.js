@@ -254,50 +254,93 @@ function renderOntologyMode(concept) {
   const content = document.getElementById('surface-viewer-content');
   if (!content) return;
   
-  content.innerHTML = `
-    <div style="padding: 0;">
-      <h3 style="font-size: 16px; margin-bottom: 16px; color: #e2e8f0;">${concept.label}</h3>
-      
-      <div style="margin-bottom: 12px;">
-        <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">TYPE</div>
-        <div style="color: #e2e8f0;">${concept.type}</div>
-      </div>
-      
-      <div style="margin-bottom: 12px;">
-        <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">CONFIDENCE</div>
-        <div style="color: #e2e8f0;">${Math.round((concept.confidence || 0) * 100)}%</div>
-      </div>
-      
-      ${concept.aliases && concept.aliases.length > 0 ? `
+  // Check if this is a cluster/refinement node (hierarchy_level 1 or 2) or has a summary
+  const isClusterOrRefinement = concept.hierarchy_level === 1 || concept.hierarchy_level === 2;
+  const hasSummary = concept.summary && concept.summary.trim().length > 0;
+  
+  // If it's a cluster/refinement with a summary, display the summary prominently
+  if (isClusterOrRefinement && hasSummary) {
+    content.innerHTML = `
+      <div style="padding: 0;">
+        <h3 style="font-size: 16px; margin-bottom: 16px; color: #e2e8f0;">${concept.label}</h3>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">TYPE</div>
+          <div style="color: #e2e8f0;">${concept.type || (concept.hierarchy_level === 1 ? 'Cluster' : 'Refinement')}</div>
+        </div>
+        
+        <div style="margin-bottom: 16px; padding: 16px; background: #0f172a; border-radius: 8px; border-left: 3px solid #3b82f6;">
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📝 SUMMARY</div>
+          <div style="color: #e2e8f0; line-height: 1.6;">${concept.summary}</div>
+        </div>
+        
         <div style="margin-bottom: 12px;">
-          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">ALIASES</div>
-          <div style="color: #e2e8f0;">${Array.isArray(concept.aliases) ? concept.aliases.join(', ') : concept.aliases}</div>
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">HIERARCHY LEVEL</div>
+          <div style="color: #e2e8f0;">${concept.hierarchy_level === 1 ? 'Level 1 (Cluster)' : 'Level 2 (Refinement)'}</div>
         </div>
-      ` : ''}
-      
-      ${concept.tags && concept.tags.length > 0 ? `
+        
         <div style="margin-bottom: 12px;">
-          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">TAGS</div>
-          <div style="color: #e2e8f0;">${Array.isArray(concept.tags) ? concept.tags.join(', ') : concept.tags}</div>
-        </div>
-      ` : ''}
-      
-      <div style="margin-bottom: 12px;">
-        <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">METADATA</div>
-        <div style="font-family: monospace; font-size: 11px; color: #cbd5e1;">
-          ${concept.model_name ? `Model: ${concept.model_name}<br>` : ''}
-          ID: ${concept.id}
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">METADATA</div>
+          <div style="font-family: monospace; font-size: 11px; color: #cbd5e1;">
+            ID: ${concept.id}
+          </div>
         </div>
       </div>
-      
-      <div style="margin-top: 20px; padding: 12px; background: #0f172a; border-radius: 6px; border: 1px solid #334155;">
-        <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">💡 TIP</div>
-        <div style="font-size: 11px; color: #94a3b8;">
-          Switch to Document mode to see this concept highlighted in the original text.
+    `;
+  } else {
+    // Regular concept view
+    content.innerHTML = `
+      <div style="padding: 0;">
+        <h3 style="font-size: 16px; margin-bottom: 16px; color: #e2e8f0;">${concept.label}</h3>
+        
+        ${hasSummary ? `
+          <div style="margin-bottom: 16px; padding: 16px; background: #0f172a; border-radius: 8px; border-left: 3px solid #3b82f6;">
+            <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">📝 SUMMARY</div>
+            <div style="color: #e2e8f0; line-height: 1.6;">${concept.summary}</div>
+          </div>
+        ` : ''}
+        
+        <div style="margin-bottom: 12px;">
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">TYPE</div>
+          <div style="color: #e2e8f0;">${concept.type}</div>
+        </div>
+        
+        <div style="margin-bottom: 12px;">
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">CONFIDENCE</div>
+          <div style="color: #e2e8f0;">${Math.round((concept.confidence || 0) * 100)}%</div>
+        </div>
+        
+        ${concept.aliases && concept.aliases.length > 0 ? `
+          <div style="margin-bottom: 12px;">
+            <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">ALIASES</div>
+            <div style="color: #e2e8f0;">${Array.isArray(concept.aliases) ? concept.aliases.join(', ') : concept.aliases}</div>
+          </div>
+        ` : ''}
+        
+        ${concept.tags && concept.tags.length > 0 ? `
+          <div style="margin-bottom: 12px;">
+            <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">TAGS</div>
+            <div style="color: #e2e8f0;">${Array.isArray(concept.tags) ? concept.tags.join(', ') : concept.tags}</div>
+          </div>
+        ` : ''}
+        
+        <div style="margin-bottom: 12px;">
+          <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">METADATA</div>
+          <div style="font-family: monospace; font-size: 11px; color: #cbd5e1;">
+            ${concept.model_name ? `Model: ${concept.model_name}<br>` : ''}
+            ID: ${concept.id}
+          </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 12px; background: #0f172a; border-radius: 6px; border: 1px solid #334155;">
+          <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">💡 TIP</div>
+          <div style="font-size: 11px; color: #94a3b8;">
+            Switch to Document mode to see this concept highlighted in the original text.
+          </div>
         </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 }
 
 /**
