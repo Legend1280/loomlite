@@ -273,6 +273,36 @@ async def get_doc_ontology(doc_id: str):
             "relations": [dict(r) for r in relations]
         }
 
+@app.get("/doc/{doc_id}/text")
+async def get_doc_text(doc_id: str):
+    """Get document text with spans for highlighting"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Get document metadata
+    doc_row = cur.execute("SELECT id, title, checksum, text FROM documents WHERE id = ?", (doc_id,)).fetchone()
+    if not doc_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    doc = dict(doc_row)
+    
+    # Get spans for highlighting
+    spans = cur.execute(
+        "SELECT s.id, s.start, s.end, s.text, m.concept_id FROM spans s LEFT JOIN mentions m ON s.id = m.span_id WHERE s.doc_id = ? ORDER BY s.start",
+        (doc_id,)
+    ).fetchall()
+    
+    conn.close()
+    
+    return {
+        "doc_id": doc["id"],
+        "title": doc["title"],
+        "checksum": doc["checksum"],
+        "text": doc.get("text", ""),
+        "spans": [{"id": s["id"], "start": s["start"], "end": s["end"], "text": s["text"], "concept_id": s["concept_id"]} for s in spans]
+    }
+
 @app.get("/search")
 async def search(q: str = "", types: str = "", tags: str = ""):
     """Search concepts"""

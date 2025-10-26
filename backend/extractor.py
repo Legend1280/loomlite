@@ -189,7 +189,8 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-4.1") -
     return {
         "concepts": list(all_concepts.values()),
         "relations": all_relations,
-        "spans": all_spans
+        "spans": all_spans,
+        "full_text": text  # Include full text for Surface Viewer
     }
 
 
@@ -205,11 +206,12 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     
-    # Insert document
+    # Insert document (with full text for Surface Viewer)
     cur.execute("""
-        INSERT OR REPLACE INTO documents (id, title, source_uri, mime, checksum, bytes, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO documents (id, title, source_uri, mime, checksum, bytes, text, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (doc_id, title, source_uri, mime, checksum, file_bytes,
+          ontology.get("full_text", ""),  # Store full document text
           datetime.utcnow().isoformat() + "Z",
           datetime.utcnow().isoformat() + "Z"))
     
