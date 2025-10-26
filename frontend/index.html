@@ -259,9 +259,74 @@
       console.log('🚀 Loom Lite v2.0 Core - Initializing...');
       
       // Initialize modules
-      initSidebar();
-      initSurfaceViewer();
-      initSearchBar();
+      console.log('📦 Initializing modules...');
+      try {
+        initSidebar();
+        console.log('✅ Sidebar initialized');
+      } catch (e) {
+        console.error('❌ Sidebar init failed:', e);
+      }
+      
+      try {
+        initSurfaceViewer();
+        console.log('✅ Surface Viewer initialized');
+      } catch (e) {
+        console.error('❌ Surface Viewer init failed:', e);
+      }
+      
+      try {
+        initSearchBar();
+        console.log('✅ Search Bar initialized');
+      } catch (e) {
+        console.error('❌ Search Bar init failed:', e);
+      }
+      
+      // Initialize Upload button
+      const uploadBtn = document.querySelector('.upload-btn');
+      if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => {
+          // Create file input if it doesn't exist
+          let fileInput = document.getElementById('fileInput');
+          if (!fileInput) {
+            fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'fileInput';
+            fileInput.accept = '.txt,.md,.pdf,.docx';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            
+            fileInput.addEventListener('change', async () => {
+              const file = fileInput.files[0];
+              if (!file) return;
+              
+              console.log('📤 Uploading file:', file.name);
+              
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              try {
+                const response = await fetch('https://loomlite-production.up.railway.app/api/ingest', {
+                  method: 'POST',
+                  body: formData
+                });
+                
+                const result = await response.json();
+                console.log('✅ Upload result:', result);
+                alert(`File uploaded successfully! Job ID: ${result.job_id}`);
+                
+                // Refresh document list
+                location.reload();
+              } catch (error) {
+                console.error('❌ Upload failed:', error);
+                alert('Upload failed: ' + error.message);
+              }
+            });
+          }
+          
+          fileInput.click();
+        });
+        console.log('✅ Upload button initialized');
+      }
       
       // Set up view mode buttons
       const viewModeButtons = document.querySelectorAll('.view-mode-btn');
