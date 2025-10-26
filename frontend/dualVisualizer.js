@@ -3,7 +3,7 @@
  * Manages the split-panel visualization with force-directed graph (top) and mind map (bottom)
  */
 
-// Import mind map module (will be created next)
+import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
 // import { drawMindMap } from './mindMap.js';
 
 /**
@@ -99,10 +99,15 @@ function renderForceGraph(svg, data) {
     .attr('stroke-width', 1.5)
     .style('cursor', 'pointer')
     .on('click', (event, d) => {
-      // Dispatch global selectNode event
-      window.dispatchEvent(
-        new CustomEvent('selectNode', { detail: d })
-      );
+      // Emit concept selected event via event bus
+      bus.emit('conceptSelected', { 
+        conceptId: d.id, 
+        docId: d.doc_id,
+        concept: d
+      });
+      
+      // Update state
+      setCurrentConceptId(d.id, d.doc_id);
       
       // Visual feedback
       node.attr('stroke', n => n.id === d.id ? '#fbbf24' : '#fff')
@@ -258,6 +263,19 @@ function showTooltip(event, d) {
 function hideTooltip() {
   d3.selectAll('.node-tooltip').remove();
 }
+
+// Listen for external concept selection events
+bus.on('conceptSelected', (event) => {
+  const { conceptId } = event.detail;
+  
+  // Highlight the selected node in the visualization
+  const svg = d3.select('#visualizer-top svg');
+  svg.selectAll('circle')
+    .attr('stroke', d => d.id === conceptId ? '#fbbf24' : '#fff')
+    .attr('stroke-width', d => d.id === conceptId ? 3 : 1.5);
+  
+  console.log(`🎯 Dual Visualizer: Highlighted concept ${conceptId}`);
+});
 
 // Export for global access
 window.drawDualVisualizer = drawDualVisualizer;

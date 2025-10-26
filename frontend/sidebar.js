@@ -5,6 +5,8 @@
  * LOOM-V2-002: File Navigator Sidebar Implementation
  */
 
+import { bus, setCurrentDocId } from './eventBus.js';
+
 // Global state
 let documents = [];
 let activeDocId = null;
@@ -229,6 +231,10 @@ async function handleFileClick(doc) {
   // Update breadcrumbs
   updateBreadcrumbs(['Galaxy', doc.title || doc.id]);
   
+  // Update state via event bus
+  setCurrentDocId(doc.id);
+  bus.emit('documentLoaded', { docId: doc.id, title: doc.title });
+  
   // Trigger dual visualizer to load this document
   if (window.drawDualVisualizer) {
     await window.drawDualVisualizer(doc.id);
@@ -372,6 +378,20 @@ export function getActiveDocId() {
 export function getDocuments() {
   return documents;
 }
+
+// Listen for documentFocus events to sync active state
+bus.on('documentFocus', (event) => {
+  const { docId } = event.detail;
+  if (docId && docId !== activeDocId) {
+    setActiveDocument(docId);
+    
+    // Update breadcrumbs
+    const doc = documents.find(d => d.id === docId);
+    if (doc) {
+      updateBreadcrumbs(['Galaxy', doc.title || doc.id]);
+    }
+  }
+});
 
 // Export for global access
 window.initSidebar = initSidebar;

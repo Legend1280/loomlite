@@ -244,10 +244,15 @@
   
   <!-- LOAD MODULES -->
   <script type="module">
+    // Import event bus first (required by other modules)
+    import { bus, setCurrentDocId } from './eventBus.js';
+    
+    // Import core modules
     import { drawDualVisualizer } from './dualVisualizer.js';
     import { drawMindMap } from './mindMap.js';
     import { initSidebar } from './sidebar.js';
     import { initSurfaceViewer } from './surfaceViewer.js';
+    import { initSearchBar } from './searchBar.js';
     
     // Initialize app
     document.addEventListener('DOMContentLoaded', async () => {
@@ -256,6 +261,7 @@
       // Initialize modules
       initSidebar();
       initSurfaceViewer();
+      initSearchBar();
       
       // Set up view mode buttons
       const viewModeButtons = document.querySelectorAll('.view-mode-btn');
@@ -287,6 +293,11 @@
           // Load first document as demo
           const firstDoc = docs[0];
           console.log(`🔍 Loading demo document: ${firstDoc.title}`);
+          
+          // Set current doc via event bus
+          setCurrentDocId(firstDoc.id);
+          bus.emit('documentLoaded', { docId: firstDoc.id, title: firstDoc.title });
+          
           await drawDualVisualizer(firstDoc.id);
         } else {
           console.log('ℹ️ No documents found - upload a document to get started');

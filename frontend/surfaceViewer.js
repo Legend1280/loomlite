@@ -5,6 +5,8 @@
  * LOOM-V2-004: Enhanced Surface Viewer Implementation
  */
 
+import { bus, setCurrentConceptId } from './eventBus.js';
+
 // Global state
 let currentMode = 'ontology'; // 'ontology' or 'document'
 let currentConcept = null;
@@ -30,10 +32,15 @@ export function initSurfaceViewer() {
   // Render content area
   renderContentArea(surfaceViewer);
   
-  // Listen for selectNode events
-  window.addEventListener('selectNode', (event) => {
-    const concept = event.detail;
-    handleConceptSelection(concept);
+  // Listen for conceptSelected events via event bus
+  bus.on('conceptSelected', (event) => {
+    const { concept, conceptId } = event.detail;
+    if (concept) {
+      handleConceptSelection(concept);
+    } else if (conceptId) {
+      // Fetch concept details if only ID provided
+      fetchAndDisplayConcept(conceptId);
+    }
   });
   
   console.log('✅ Enhanced Surface Viewer initialized');
@@ -392,9 +399,9 @@ function handleMentionClick(conceptId) {
   currentMode = 'ontology';
   switchMode('ontology');
   
-  // Dispatch event to select node in visualization
-  // This will trigger the visualization to highlight the concept
-  window.dispatchEvent(new CustomEvent('selectConceptById', { detail: conceptId }));
+  // Emit concept selected event via event bus
+  bus.emit('conceptSelected', { conceptId, docId: currentDocId });
+  setCurrentConceptId(conceptId, currentDocId);
 }
 
 /**
