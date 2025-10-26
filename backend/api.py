@@ -487,6 +487,77 @@ async def run_migration():
             "traceback": traceback.format_exc()
         }
 
+@app.get("/admin/migrate-hierarchy")
+async def migrate_hierarchy():
+    """
+    Run database migration to add semantic hierarchy columns
+    Safe to run multiple times - will skip if columns already exist
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if migration already done
+        cursor.execute("PRAGMA table_info(concepts)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        already_migrated = all([
+            'parent_cluster_id' in columns,
+            'hierarchy_level' in columns,
+            'coherence' in columns
+        ])
+        
+        if already_migrated:
+            conn.close()
+            return {
+                "status": "already_migrated",
+                "message": "Hierarchy columns already exist, no migration needed",
+                "columns": columns
+            }
+        
+        # Run migration
+        results = []
+        
+        # Add parent_cluster_id column
+        if 'parent_cluster_id' not in columns:
+            cursor.execute("ALTER TABLE concepts ADD COLUMN parent_cluster_id TEXT")
+            results.append("✅ Added parent_cluster_id column")
+        
+        # Add hierarchy_level column
+        if 'hierarchy_level' not in columns:
+            cursor.execute("ALTER TABLE concepts ADD COLUMN hierarchy_level INTEGER DEFAULT 3")
+            results.append("✅ Added hierarchy_level column")
+        
+        # Add coherence column
+        if 'coherence' not in columns:
+            cursor.execute("ALTER TABLE concepts ADD COLUMN coherence REAL")
+            results.append("✅ Added coherence column")
+        
+        # Create index for performance
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_concepts_parent 
+            ON concepts(parent_cluster_id)
+        """)
+        results.append("✅ Created index on parent_cluster_id")
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "Migration completed successfully!",
+            "changes": results,
+            "next_steps": "Upload a document to test semantic hierarchy extraction"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
