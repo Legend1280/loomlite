@@ -251,9 +251,46 @@ async def root():
                 "ingest": "POST /api/ingest",
                 "job_status": "GET /api/jobs/{job_id}",
                 "list_jobs": "GET /api/jobs"
+            },
+            "diagnostics": {
+                "health": "GET /api/health"
             }
         }
     }
+
+@app.get("/api/health")
+async def health_check():
+    """Diagnostic endpoint to check system health and OpenAI API key status"""
+    api_key = os.getenv("OPENAI_API_KEY")
+    
+    health_status = {
+        "status": "healthy",
+        "database": os.path.exists(DB_PATH),
+        "database_path": DB_PATH,
+        "openai_api_key_set": api_key is not None,
+        "openai_api_key_length": len(api_key) if api_key else 0,
+        "openai_api_key_preview": f"...{api_key[-4:]}" if api_key and len(api_key) > 4 else None
+    }
+    
+    # Test OpenAI connection if key is set
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            response = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": "test"}],
+                max_tokens=5
+            )
+            health_status["openai_connection"] = "success"
+            health_status["openai_model"] = response.model
+        except Exception as e:
+            health_status["openai_connection"] = "failed"
+            health_status["openai_error"] = str(e)
+    else:
+        health_status["openai_connection"] = "api_key_not_set"
+    
+    return health_status
 
 # ----------------------------------------------------------------------------
 # ONTOLOGY QUERY ENDPOINTS
