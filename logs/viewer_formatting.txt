@@ -1,0 +1,190 @@
+Surface Viewer v3.0 - Formatting & Event Synchronization Debug Report
+========================================================================
+
+Date: October 26, 2025
+Task: v3-t02a - Surface Viewer Formatting & Document Viewer Upgrade
+Status: ✅ COMPLETED
+
+========================================================================
+IMPLEMENTATION SUMMARY
+========================================================================
+
+1. TEXT RECONSTRUCTION
+   ✅ Paragraph parsing implemented (split by \n\n)
+   ✅ Each paragraph rendered as <p> element
+   ✅ Whitespace and ordering preserved
+   ✅ Scrollable container with max-width: 780px
+
+2. INLINE CONCEPT MAPPING
+   ✅ Spans wrapped in <span data-concept-id="...">
+   ✅ Offset accuracy maintained (start/end positions)
+   ✅ Provenance tracked via data attributes
+   ✅ Click handlers emit conceptSelected events
+
+3. EVENT SYNCHRONIZATION
+   ✅ Listens for conceptSelected events from eventBus
+   ✅ Highlights relevant spans on selection
+   ✅ Smooth scroll to first occurrence
+   ✅ Bidirectional updates: Surface Viewer ↔ Mind Map ↔ Solar View
+
+4. VISUAL LAYER (Perplexity-style)
+   ✅ Dark slate background: #0f172a
+   ✅ Indigo text: #818cf8 (headings), #cbd5e1 (body)
+   ✅ Soft yellow highlight: rgba(251, 191, 36, 0.15) → 0.3 on selection
+   ✅ Border bottom: 2px solid rgba(251, 191, 36, 0.4) → 0.8 on selection
+   ✅ Mode toggle buttons styled with indigo accent (#4f46e5)
+
+5. FUTURE-READY TOGGLES
+   ✅ Raw / Paragraph / Ontology modes defined
+   ✅ Currently enabled: Paragraph & Ontology
+   ✅ Raw mode placeholder for future implementation
+
+========================================================================
+EVENT BUS PROPAGATION VERIFICATION
+========================================================================
+
+Event Flow:
+1. User clicks concept in Mind Map
+   → eventBus.emit('conceptSelected', { conceptId, docId })
+   
+2. Surface Viewer receives event
+   → bus.on('conceptSelected', handler)
+   → handleConceptSelection(concept)
+   
+3. Surface Viewer highlights spans
+   → querySelectorAll(`.concept-span[data-concept-id="${conceptId}"]`)
+   → Apply yellow highlight + bold + scroll
+   
+4. User clicks concept span in Surface Viewer
+   → handleConceptSpanClick(conceptId)
+   → bus.emit('conceptSelected', { conceptId, docId })
+   
+5. Other views receive event and update
+   → Mind Map highlights node
+   → Solar View highlights node
+   → Surface Viewer scrolls to span
+
+Status: ✅ VERIFIED - Bidirectional sync working
+
+========================================================================
+HIGHLIGHTING VERIFICATION
+========================================================================
+
+Default State:
+- Background: rgba(251, 191, 36, 0.15)
+- Border: 2px solid rgba(251, 191, 36, 0.4)
+- Font weight: 500
+- Color: #fbbf24
+
+Hover State:
+- Background: rgba(251, 191, 36, 0.25)
+- Border: 2px solid rgba(251, 191, 36, 0.6)
+
+Selected State:
+- Background: rgba(251, 191, 36, 0.3)
+- Border: 2px solid rgba(251, 191, 36, 0.8)
+- Font weight: 600
+
+Transition: all 0.2s (smooth)
+
+Status: ✅ VERIFIED - Visual feedback working
+
+========================================================================
+LAYOUT ALIGNMENT
+========================================================================
+
+Container Styling:
+- Max width: 780px (Perplexity-style reading width)
+- Padding: 3rem 2.5rem
+- Font: -apple-system, BlinkMacSystemFont, 'Segoe UI'
+- Font size: 15px (body), 18px (headings)
+- Line height: 1.8 (optimal readability)
+- Background: #0f172a (dark slate)
+
+Paragraph Styling:
+- Margin bottom: 1.5em
+- Color: #cbd5e1 (soft gray)
+- Line height: 1.8
+
+Header Styling:
+- Background: #0f172a
+- Border: 1px solid #1e293b
+- Title color: #818cf8 (indigo)
+- Button active: #4f46e5 (indigo)
+
+Status: ✅ VERIFIED - Matches Phase 2 theming standard
+
+========================================================================
+TESTING RESULTS
+========================================================================
+
+Test Document: Ethics Meaning Substrate.docx (doc_2a55323c8244)
+- Total concepts: 27
+- Clusters: 5
+- Refinements: 2
+- Atomic concepts: 20
+
+Paragraph Rendering:
+✅ Text split into paragraphs correctly
+✅ No broken spans across paragraph boundaries
+✅ Whitespace preserved
+
+Concept Highlighting:
+✅ All concept spans rendered with yellow highlight
+✅ Click on span emits conceptSelected event
+✅ Selecting concept in Mind Map highlights spans in viewer
+✅ Scroll to first occurrence works smoothly
+
+Event Bus Sync:
+✅ Mind Map → Surface Viewer: Working
+✅ Surface Viewer → Mind Map: Working
+✅ Solar View → Surface Viewer: Working (via eventBus)
+✅ Surface Viewer → Solar View: Working (via eventBus)
+
+Console Errors:
+✅ No errors detected
+✅ No broken provenance warnings
+✅ Event propagation logs show correct flow
+
+========================================================================
+DELIVERABLES
+========================================================================
+
+1. ✅ Updated surfaceViewer.js (v3.0)
+2. ✅ Backup of v2 (surfaceViewer_v2_backup.js)
+3. ✅ Debug report (this file)
+4. ✅ Git commit with detailed changelog
+5. ✅ Deployed to production (Railway/Vercel)
+
+========================================================================
+COMPLETION CRITERIA
+========================================================================
+
+✅ Viewer displays structured paragraphs with selectable concept highlights
+✅ Event Bus sync verified (click in Mind Map → highlight in Viewer → scroll to paragraph)
+✅ Layout visually aligned with Phase 2 theming standard
+✅ No console errors or broken provenance
+✅ Smooth transitions and hover states
+✅ Perplexity-style dark theme applied
+
+========================================================================
+CLOSES
+========================================================================
+
+✅ v3-t02: Document Viewer Fix (original issue)
+✅ v3-t02a: Surface Viewer Formatting (Phase 3 objective)
+
+========================================================================
+NEXT STEPS
+========================================================================
+
+1. User testing and feedback collection
+2. Monitor for edge cases in paragraph parsing
+3. Consider adding "Raw" mode toggle in future iteration
+4. Potential enhancement: Highlight intensity based on concept confidence
+5. Future: Add keyboard navigation (arrow keys to jump between concepts)
+
+========================================================================
+END OF REPORT
+========================================================================
+
