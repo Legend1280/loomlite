@@ -343,17 +343,18 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
         
         # Store hierarchy fields (v2.3)
         parent_cluster_id = concept.get("parent_cluster_id")
+        parent_concept_id = concept.get("parent_concept_id")  # NEW: Intra-cluster hierarchy
         hierarchy_level = concept.get("hierarchy_level")
         coherence = concept.get("coherence")
         
         cur.execute("""
-            INSERT INTO concepts (id, doc_id, label, type, confidence, aliases, tags, model_name, prompt_ver, parent_cluster_id, hierarchy_level, coherence)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO concepts (id, doc_id, label, type, confidence, aliases, tags, model_name, prompt_ver, parent_cluster_id, parent_concept_id, hierarchy_level, coherence)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (concept_id, doc_id, concept["label"], concept["type"], concept["confidence"],
               json.dumps(concept.get("aliases", [])),
               json.dumps(concept.get("tags", [])),
               "gpt-4.1", "v1.0",
-              parent_cluster_id, hierarchy_level, coherence))
+              parent_cluster_id, parent_concept_id, hierarchy_level, coherence))
     
     # Insert relations
     for i, relation in enumerate(ontology["relations"]):

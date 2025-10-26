@@ -53,10 +53,13 @@ def build_semantic_hierarchy(ontology: MicroOntology) -> MicroOntology:
     # Step 4: Create cluster concepts with LLM-generated labels
     cluster_concepts = create_cluster_concepts(clusters, ontology.doc.doc_id, filtered_concepts)
     
-    # Step 5: Assign hierarchy levels
-    all_concepts = assign_hierarchy_levels(filtered_concepts, cluster_concepts, relation_graph)
+    # Step 5: Build intra-cluster refinement (NEW!)
+    refined_concepts = build_intra_cluster_hierarchy(filtered_concepts, cluster_concepts, clusters, relation_graph)
     
-    # Step 6: Update ontology
+    # Step 6: Assign hierarchy levels
+    all_concepts = assign_hierarchy_levels(refined_concepts, cluster_concepts, relation_graph)
+    
+    # Step 7: Update ontology
     ontology.concepts = all_concepts
     
     return ontology
@@ -202,6 +205,138 @@ def create_cluster_concepts(clusters: List[Set[str]], doc_id: str, all_concepts:
         cluster_concepts.append(cluster_concept)
     
     return cluster_concepts
+
+
+def build_intra_cluster_hierarchy(
+    concepts: List[Concept],
+    cluster_concepts: List[Concept],
+    clusters: List[Set[str]],
+    relation_graph: Dict[str, List[Tuple[str, str]]]
+) -> List[Concept]:
+    """
+    Build intra-cluster hierarchical refinement.
+    Creates mid-tier refinement nodes within each cluster.
+    
+    Args:
+        concepts: Original concepts
+        cluster_concepts: Cluster concepts (level 2)
+        clusters: List of concept ID sets per cluster
+        relation_graph: Relation graph
+        
+    Returns:
+        Concepts with refinement nodes added and parent_concept_id assigned
+    """
+    all_refined_concepts = []
+    concept_map = {c.concept_id: c for c in concepts}
+    
+    for i, (cluster_concept, cluster_ids) in enumerate(zip(cluster_concepts, clusters)):
+        # Get concepts in this cluster
+        cluster_members = [concept_map[cid] for cid in cluster_ids if cid in concept_map]
+        
+        if len(cluster_members) <= 3:
+            # Too small to refine, keep flat
+            for concept in cluster_members:
+                concept.parent_cluster_id = cluster_concept.concept_id
+                concept.hierarchy_level = 4  # Direct children of cluster
+            all_refined_concepts.extend(cluster_members)
+            continue
+        
+        # Identify refinement groups within cluster using semantic similarity
+        refinement_groups = identify_refinement_groups(cluster_members, relation_graph)
+        
+        # Create refinement concepts (level 3)
+        for j, group in enumerate(refinement_groups):
+            if len(group) == 1:
+                # Single concept, attach directly to cluster
+                concept = group[0]
+                concept.parent_cluster_id = cluster_concept.concept_id
+                concept.hierarchy_level = 4
+                all_refined_concepts.append(concept)
+            else:
+                # Create refinement node
+                refinement_id = f"{cluster_concept.concept_id}_ref_{j}"
+                group_labels = [c.label for c in group]
+                
+                # Generate refinement label using LLM
+                refinement_label = generate_llm_cluster_label(group_labels)
+                
+                refinement_concept = Concept(
+                    concept_id=refinement_id,
+                    doc_id=cluster_concept.doc_id,
+                    label=refinement_label,
+                    type="Topic",
+                    confidence=0.9,
+                    parent_cluster_id=cluster_concept.concept_id,  # Parent is cluster
+                    hierarchy_level=3,  # Refinement level
+                    coherence=0.9,
+                )
+                
+                all_refined_concepts.append(refinement_concept)
+                
+                # Attach concepts to refinement node
+                for concept in group:
+                    concept.parent_cluster_id = cluster_concept.concept_id
+                    concept.parent_concept_id = refinement_id  # NEW: Parent refinement
+                    concept.hierarchy_level = 4  # Atomic concept level
+                    all_refined_concepts.append(concept)
+    
+    return all_refined_concepts
+
+
+def identify_refinement_groups(
+    concepts: List[Concept],
+    relation_graph: Dict[str, List[Tuple[str, str]]]
+) -> List[List[Concept]]:
+    """
+    Identify sub-groups within a cluster for refinement.
+    Uses relation strength and label similarity.
+    
+    Args:
+        concepts: Concepts in the cluster
+        relation_graph: Relation graph
+        
+    Returns:
+        List of concept groups (each group becomes a refinement node)
+    """
+    # Simple heuristic: group by relation density
+    # More sophisticated: use cosine similarity on embeddings
+    
+    groups = []
+    visited = set()
+    
+    for concept in concepts:
+        if concept.concept_id in visited:
+            continue
+        
+        # Start a new group
+        group = [concept]
+        visited.add(concept.concept_id)
+        
+        # Find related concepts
+        for rel_type, target_id in relation_graph.get(concept.concept_id, []):
+            if target_id in visited:
+                continue
+            
+            # Check if target is in this cluster
+            target_concept = next((c for c in concepts if c.concept_id == target_id), None)
+            if target_concept and rel_type in {"defines", "contains", "supports"}:
+                group.append(target_concept)
+                visited.add(target_id)
+        
+        # Only create group if it has 2+ concepts
+        if len(group) >= 2:
+            groups.append(group)
+        else:
+            # Single concept group
+            groups.append(group)
+    
+    # Add any unvisited concepts as singles
+    for concept in concepts:
+        if concept.concept_id not in visited:
+            groups.append([concept])
+            visited.add(concept.concept_id)
+    
+    return groups
 
 
 def assign_hierarchy_levels(

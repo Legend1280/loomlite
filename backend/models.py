@@ -57,7 +57,8 @@ class Concept(BaseModel):
     provenance: Optional[Dict[str, str]] = None  # {"model": "...", "prompt_ver": "..."}
     # Semantic Hierarchy (v1.2)
     parent_cluster_id: Optional[str] = None  # Parent cluster concept_id
-    hierarchy_level: Optional[int] = None  # 0=doc, 1=section, 2=cluster, 3=concept, 4=mention
+    parent_concept_id: Optional[str] = None  # Parent refinement concept_id (for intra-cluster hierarchy)
+    hierarchy_level: Optional[int] = None  # 0=doc, 1=section, 2=cluster, 3=refinement, 4=concept
     coherence: Optional[float] = None  # Average relation confidence
 
 

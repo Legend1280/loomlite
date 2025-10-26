@@ -74,11 +74,12 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
     conceptMap[c.concept_id || c.id] = c;
   });
   
-  // Separate concepts by hierarchy level
-  const clusters = concepts.filter(c => c.hierarchy_level === 2 || c.type === 'Topic');
-  const regularConcepts = concepts.filter(c => c.hierarchy_level === 3 || (!c.hierarchy_level && c.type !== 'Topic'));
+  // Separate concepts by hierarchy level (v2.3.2 - 4 levels)
+  const clusters = concepts.filter(c => c.hierarchy_level === 2);
+  const refinements = concepts.filter(c => c.hierarchy_level === 3);
+  const atomicConcepts = concepts.filter(c => c.hierarchy_level === 4 || c.hierarchy_level === undefined);
   
-  // Build tree: root → clusters → concepts
+  // Build tree: root → clusters → refinements → concepts
   clusters.forEach(cluster => {
     const clusterNode = {
       name: cluster.label,
@@ -91,17 +92,59 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
       expanded: true
     };
     
-    // Find child concepts
-    const childConcepts = regularConcepts.filter(c => 
-      c.parent_cluster_id === cluster.concept_id || c.parent_cluster_id === cluster.id
+    // Find refinement nodes under this cluster
+    const clusterRefinements = refinements.filter(r => 
+      r.parent_cluster_id === (cluster.concept_id || cluster.id)
     );
     
-    childConcepts.forEach(concept => {
+    if (clusterRefinements.length > 0) {
+      // Build 3-tier structure: cluster → refinement → concepts
+      clusterRefinements.forEach(refinement => {
+        const refinementNode = {
+          name: refinement.label,
+          id: refinement.concept_id || refinement.id,
+          type: 'refinement',
+          hierarchyLevel: 3,
+          concept: refinement,
+          children: [],
+          _children: null,
+          expanded: true
+        };
+        
+        // Find concepts under this refinement
+        const refinementConcepts = atomicConcepts.filter(c => 
+          c.parent_concept_id === (refinement.concept_id || refinement.id)
+        );
+        
+        refinementConcepts.forEach(concept => {
+          refinementNode.children.push({
+            name: concept.label,
+            id: concept.concept_id || concept.id,
+            type: concept.type,
+            hierarchyLevel: 4,
+            confidence: concept.confidence,
+            concept: concept,
+            children: [],
+            _children: null
+          });
+        });
+        
+        clusterNode.children.push(refinementNode);
+      });
+    }
+    
+    // Add concepts directly under cluster (no refinement parent)
+    const directConcepts = atomicConcepts.filter(c => 
+      (c.parent_cluster_id === (cluster.concept_id || cluster.id)) &&
+      !c.parent_concept_id
+    );
+    
+    directConcepts.forEach(concept => {
       clusterNode.children.push({
         name: concept.label,
         id: concept.concept_id || concept.id,
         type: concept.type,
-        hierarchyLevel: 3,
+        hierarchyLevel: 4,
         confidence: concept.confidence,
         concept: concept,
         children: [],
@@ -113,7 +156,7 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
   });
   
   // Add orphan concepts (no parent cluster)
-  const orphans = regularConcepts.filter(c => !c.parent_cluster_id);
+  const orphans = atomicConcepts.filter(c => !c.parent_cluster_id);
   if (orphans.length > 0) {
     const orphanNode = {
       name: 'Uncategorized',
