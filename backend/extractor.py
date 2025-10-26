@@ -12,6 +12,8 @@ import hashlib
 from openai import OpenAI
 
 from reader import read_document, chunk_text
+from semantic_cluster import build_semantic_hierarchy
+from models import Concept, Relation, MicroOntology, DocumentMetadata, OntologyVersion
 
 # Initialize OpenAI client (API key from environment)
 client = OpenAI()
@@ -186,12 +188,109 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-4.1") -
             traceback.print_exc()
             continue
     
-    return {
+    # Build semantic hierarchy (v2.3)
+    raw_ontology = {
         "concepts": list(all_concepts.values()),
         "relations": all_relations,
         "spans": all_spans,
         "full_text": text  # Include full text for Surface Viewer
     }
+    
+    # Apply semantic clustering
+    try:
+        print("\n🔄 Building semantic hierarchy...")
+        start_time = datetime.now()
+        
+        # Convert to Pydantic models for clustering
+        concept_models = [
+            Concept(
+                concept_id=f"c_{doc_id}_{i}",
+                doc_id=doc_id,
+                label=c["label"],
+                type=c["type"],
+                confidence=c.get("confidence", 1.0),
+                aliases=c.get("aliases"),
+                tags=c.get("tags")
+            )
+            for i, c in enumerate(raw_ontology["concepts"])
+        ]
+        
+        relation_models = [
+            Relation(
+                relation_id=f"r_{doc_id}_{i}",
+                doc_id=doc_id,
+                src=f"c_{doc_id}_{next((j for j, c in enumerate(raw_ontology['concepts']) if c['label'] == r['src']), 0)}",
+                rel=r["rel"],
+                dst=f"c_{doc_id}_{next((j for j, c in enumerate(raw_ontology['concepts']) if c['label'] == r['dst']), 0)}",
+                confidence=r.get("confidence", 1.0)
+            )
+            for i, r in enumerate(raw_ontology["relations"])
+        ]
+        
+        # Create minimal MicroOntology for clustering
+        micro_ontology = MicroOntology(
+            doc=DocumentMetadata(
+                doc_id=doc_id,
+                title="Processing",
+                created_at=datetime.utcnow().isoformat() + "Z",
+                updated_at=datetime.utcnow().isoformat() + "Z"
+            ),
+            version=OntologyVersion(
+                ontology_version_id=f"ver_{doc_id}_temp",
+                model={"name": "gpt-4.1", "version": "2025-10-22"},
+                extracted_at=datetime.utcnow().isoformat() + "Z",
+                pipeline="ingest+extract@v0.3.0"
+            ),
+            spans=[],
+            concepts=concept_models,
+            relations=relation_models,
+            mentions={}
+        )
+        
+        # Apply hierarchy
+        hierarchical_ontology = build_semantic_hierarchy(micro_ontology)
+        
+        # Convert back to dict format
+        hierarchical_concepts = [
+            {
+                "label": c.label,
+                "type": c.type,
+                "confidence": c.confidence,
+                "aliases": c.aliases or [],
+                "tags": c.tags or [],
+                "parent_cluster_id": c.parent_cluster_id,
+                "hierarchy_level": c.hierarchy_level,
+                "coherence": c.coherence
+            }
+            for c in hierarchical_ontology.concepts
+        ]
+        
+        elapsed = (datetime.now() - start_time).total_seconds() * 1000
+        
+        # Count clusters
+        cluster_count = len([c for c in hierarchical_ontology.concepts if c.hierarchy_level == 2])
+        concept_count = len([c for c in hierarchical_ontology.concepts if c.hierarchy_level == 3])
+        mean_coherence = sum([c.coherence or 0 for c in hierarchical_ontology.concepts if c.coherence]) / max(len(hierarchical_ontology.concepts), 1)
+        
+        print(f"✅ Hierarchy Built: {cluster_count} clusters, {concept_count} concepts")
+        print(f"   Average Coherence: {mean_coherence:.2f}")
+        print(f"   Processing Time: {elapsed:.0f}ms")
+        
+        if elapsed > 400:
+            print(f"   ⚠️  WARNING: Clustering exceeded 400ms target")
+        
+        return {
+            "concepts": hierarchical_concepts,
+            "relations": raw_ontology["relations"],
+            "spans": raw_ontology["spans"],
+            "full_text": text
+        }
+        
+    except Exception as e:
+        print(f"⚠️  Clustering failed, falling back to flat structure: {e}")
+        import traceback
+        traceback.print_exc()
+        return raw_ontology
 
 
 def store_ontology(doc_id: str, title: str, source_uri: str, mime: str, 
@@ -242,13 +341,19 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
         concept_id = f"c_{doc_id}_{i}"
         concept_map[concept["label"]] = concept_id
         
+        # Store hierarchy fields (v2.3)
+        parent_cluster_id = concept.get("parent_cluster_id")
+        hierarchy_level = concept.get("hierarchy_level")
+        coherence = concept.get("coherence")
+        
         cur.execute("""
-            INSERT INTO concepts (id, doc_id, label, type, confidence, aliases, tags, model_name, prompt_ver)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO concepts (id, doc_id, label, type, confidence, aliases, tags, model_name, prompt_ver, parent_cluster_id, hierarchy_level, coherence)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (concept_id, doc_id, concept["label"], concept["type"], concept["confidence"],
               json.dumps(concept.get("aliases", [])),
               json.dumps(concept.get("tags", [])),
-              "gpt-4.1", "v1.0"))
+              "gpt-4.1", "v1.0",
+              parent_cluster_id, hierarchy_level, coherence))
     
     # Insert relations
     for i, relation in enumerate(ontology["relations"]):
