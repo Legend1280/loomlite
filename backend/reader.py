@@ -123,9 +123,29 @@ def read_docx(file_path: str, checksum: str, file_bytes: int) -> Dict:
         current_section = None
         
         for para in doc.paragraphs:
-            text = para.text.strip()
-            if not text:
+            # CRITICAL: Don't strip() to preserve character offsets for span provenance
+            text = para.text
+            
+            # Skip truly empty paragraphs (but keep whitespace-only for offset accuracy)
+            if not text or text.isspace():
                 continue
+            
+            # Detect list items (bullets or numbered)
+            is_list_item = False
+            list_marker = ''
+            if text.lstrip().startswith(('• ', '- ', '* ', '○ ', '■ ')):
+                is_list_item = True
+                # Preserve bullet but normalize to Markdown style
+                stripped = text.lstrip()
+                list_marker = '- '
+                text = list_marker + stripped[2:]  # Replace bullet with '- '
+            elif text.lstrip()[:3].rstrip('.').isdigit():  # Numbered list (1., 2., etc.)
+                is_list_item = True
+                stripped = text.lstrip()
+                num_part = stripped.split('.', 1)[0]
+                rest = stripped.split('.', 1)[1] if '.' in stripped else stripped
+                list_marker = f"{num_part}. "
+                text = list_marker + rest.lstrip()
             
             # Detect headings as sections
             if para.style.name.startswith('Heading'):
@@ -148,7 +168,12 @@ def read_docx(file_path: str, checksum: str, file_bytes: int) -> Dict:
                     "content": []
                 }
             else:
-                paragraphs.append(text)
+                # Preserve structure: add list items or regular paragraphs
+                if is_list_item:
+                    paragraphs.append(text)  # Keep list marker
+                else:
+                    paragraphs.append(text)  # Keep as-is
+                
                 if current_section:
                     current_section["content"].append(text)
         

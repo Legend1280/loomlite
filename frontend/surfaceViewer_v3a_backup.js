@@ -1,11 +1,12 @@
 /**
- * Surface Viewer Module for Loom Lite v3.0b
- * Enhanced with List Rendering + Selective Concept Highlighting
+ * Surface Viewer Module for Loom Lite v3.0
+ * Enhanced Document Viewer with Paragraph Formatting & Concept Highlighting
  * 
- * v3-t02b-c: Paragraph Formatting + Selective Highlighting Fix
- * - List and table structure preservation
- * - Selective highlighting (only selected concept + descendants)
- * - Semantic heatmap (opacity based on hierarchy depth)
+ * v3-t02a: Surface Viewer Formatting & Document Viewer Upgrade
+ * - Paragraph-based rendering
+ * - Inline concept span mapping with provenance
+ * - Bidirectional event synchronization
+ * - Perplexity-style dark theme
  */
 
 import { bus, setCurrentConceptId } from './eventBus.js';
@@ -17,13 +18,12 @@ let currentDocId = null;
 let documentText = null;
 let documentSpans = [];
 let selectedConceptId = null;
-let allConcepts = []; // Store all concepts for hierarchy queries
 
 /**
  * Initialize surface viewer
  */
 export function initSurfaceViewer() {
-  console.log('🔄 Initializing Enhanced Surface Viewer v3.0b...');
+  console.log('🔄 Initializing Enhanced Surface Viewer v3.0...');
   
   const surfaceViewer = document.getElementById('surface-viewer');
   if (!surfaceViewer) {
@@ -61,7 +61,7 @@ export function initSurfaceViewer() {
     await renderDocumentMode(docId);
   });
   
-  console.log('✅ Enhanced Surface Viewer v3.0b initialized');
+  console.log('✅ Enhanced Surface Viewer v3.0 initialized');
 }
 
 /**
@@ -232,8 +232,8 @@ async function handleConceptSelection(concept) {
     renderOntologyMode(concept);
   } else if (currentMode === 'document') {
     await renderDocumentMode(currentDocId);
-    // Highlight only this concept and its descendants
-    await highlightConceptWithDescendants(concept.id);
+    // Highlight and scroll to concept mentions
+    highlightConceptInDocument(concept.id);
   }
 }
 
@@ -334,7 +334,7 @@ function renderOntologyMode(concept) {
 }
 
 /**
- * Render document mode with paragraph and list formatting
+ * Render document mode with paragraph formatting
  */
 async function renderDocumentMode(docId) {
   const content = document.getElementById('surface-viewer-content');
@@ -348,30 +348,24 @@ async function renderDocumentMode(docId) {
   `;
   
   try {
-    // Fetch document text, spans, and ontology
-    const [textResponse, ontologyResponse] = await Promise.all([
-      fetch(`https://loomlite-production.up.railway.app/doc/${docId}/text`),
-      fetch(`https://loomlite-production.up.railway.app/doc/${docId}/ontology`)
-    ]);
+    // Fetch document text and spans from backend
+    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${docId}/text`);
     
-    if (!textResponse.ok || !ontologyResponse.ok) {
-      throw new Error('Failed to fetch document data');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch document text: ${response.statusText}`);
     }
     
-    const textData = await textResponse.json();
-    const ontologyData = await ontologyResponse.json();
+    const data = await response.json();
+    documentText = data.text;
+    documentSpans = data.spans || [];
     
-    documentText = textData.text;
-    documentSpans = textData.spans || [];
-    allConcepts = ontologyData.concepts || [];
+    console.log(`📄 Loaded document text (${documentText?.length || 0} characters, ${documentSpans.length} spans)`);
     
-    console.log(`📄 Loaded document (${documentText?.length || 0} chars, ${documentSpans.length} spans, ${allConcepts.length} concepts)`);
-    
-    // Render text with structure preservation
-    renderStructuredTextWithHighlighting(documentText, documentSpans);
+    // Render text with paragraph formatting and highlighting
+    renderParagraphsWithHighlighting(documentText, documentSpans);
     
   } catch (error) {
-    console.error('❌ Error loading document:', error);
+    console.error('❌ Error loading document text:', error);
     
     content.innerHTML = `
       <div style="padding: 24px; background: #0f172a;">
@@ -380,6 +374,9 @@ async function renderDocumentMode(docId) {
           <div style="font-size: 13px; color: #fca5a5; line-height: 1.6;">
             ${error.message}
           </div>
+          <div style="margin-top: 16px; font-size: 12px; color: #94a3b8; line-height: 1.6;">
+            The document text may not be stored in the database. This feature requires the original document text to be preserved during upload.
+          </div>
         </div>
       </div>
     `;
@@ -387,9 +384,9 @@ async function renderDocumentMode(docId) {
 }
 
 /**
- * Parse text into structured elements (paragraphs, lists, tables) and render with highlighting
+ * Parse text into paragraphs and render with concept highlighting
  */
-function renderStructuredTextWithHighlighting(text, spans) {
+function renderParagraphsWithHighlighting(text, spans) {
   const content = document.getElementById('surface-viewer-content');
   if (!content) return;
   
@@ -405,65 +402,69 @@ function renderStructuredTextWithHighlighting(text, spans) {
   // Parse text into paragraphs (split by double newline)
   const paragraphs = text.split(/\n\n+/);
   
-  // Sort spans by start position
+  // Sort spans by start position for efficient processing
   const sortedSpans = [...spans].sort((a, b) => a.start - b.start);
   
-  // Build structured HTML
+  // Build paragraph HTML with inline concept spans
   let currentOffset = 0;
-  const elementsHTML = paragraphs.map((para, paraIndex) => {
+  const paragraphsHTML = paragraphs.map((para, paraIndex) => {
     const paraStart = currentOffset;
     const paraEnd = paraStart + para.length;
     
-    // Detect if this is a list
-    const lines = para.split('\n');
-    const isListBlock = lines.length > 1 && lines.every(line => 
-      line.trim().startsWith('-') || line.trim().match(/^\d+\./)
+    // Find spans that overlap with this paragraph
+    const paraSpans = sortedSpans.filter(span => 
+      span.start < paraEnd && span.end > paraStart
     );
     
-    if (isListBlock) {
-      // Render as list
-      const listItems = lines.map(line => {
-        const lineStart = paraStart + para.indexOf(line);
-        const lineEnd = lineStart + line.length;
-        
-        // Find spans in this line
-        const lineSpans = sortedSpans.filter(span => 
-          span.start >= lineStart && span.end <= lineEnd
-        );
-        
-        // Build highlighted line HTML
-        let lineHTML = buildHighlightedHTML(line, lineSpans, lineStart);
-        
-        // Remove list marker from HTML (already in <li>)
-        lineHTML = lineHTML.replace(/^-\s*/, '').replace(/^\d+\.\s*/, '');
-        
-        return `<li style="margin-bottom: 0.5em; color: #cbd5e1;">${lineHTML}</li>`;
-      }).join('');
+    // Build highlighted paragraph HTML
+    let paraHTML = '';
+    let lastIndex = paraStart;
+    
+    paraSpans.forEach(span => {
+      // Add text before span
+      if (span.start > lastIndex) {
+        const beforeText = text.substring(lastIndex, span.start);
+        paraHTML += escapeHtml(beforeText);
+      }
       
-      currentOffset = paraEnd + 2; // Account for \n\n
+      // Add highlighted span with Perplexity-style yellow highlight
+      const spanText = text.substring(span.start, span.end);
+      const isSelected = selectedConceptId && span.concept_id === selectedConceptId;
       
-      return `<ul style="
-        margin-bottom: 1.5em;
-        padding-left: 1.5em;
-        list-style-type: disc;
-      ">${listItems}</ul>`;
-    } else {
-      // Render as paragraph
-      const paraSpans = sortedSpans.filter(span => 
-        span.start < paraEnd && span.end > paraStart
-      );
+      paraHTML += `<span 
+        class="concept-span" 
+        data-concept-id="${span.concept_id}"
+        data-span-index="${span.span_index || ''}"
+        style="
+          background: ${isSelected ? 'rgba(251, 191, 36, 0.3)' : 'rgba(251, 191, 36, 0.15)'};
+          color: #fbbf24;
+          padding: 2px 4px;
+          border-radius: 3px;
+          cursor: pointer;
+          border-bottom: 2px solid ${isSelected ? 'rgba(251, 191, 36, 0.8)' : 'rgba(251, 191, 36, 0.4)'};
+          transition: all 0.2s;
+          font-weight: ${isSelected ? '600' : '500'};
+        ">${escapeHtml(spanText)}</span>`;
       
-      const paraHTML = buildHighlightedHTML(para, paraSpans, paraStart);
-      
-      currentOffset = paraEnd + 2; // Account for \n\n
-      
-      return `<p style="
-        margin-bottom: 1.5em;
-        line-height: 1.8;
-        color: #cbd5e1;
-        font-size: 15px;
-      " data-para-index="${paraIndex}">${paraHTML}</p>`;
+      lastIndex = span.end;
+    });
+    
+    // Add remaining text in paragraph
+    if (lastIndex < paraEnd) {
+      const remainingText = text.substring(lastIndex, paraEnd);
+      paraHTML += escapeHtml(remainingText);
     }
+    
+    // Update offset for next paragraph (add paragraph length + newlines)
+    currentOffset = paraEnd + 2; // Account for \n\n
+    
+    // Return formatted paragraph
+    return `<p style="
+      margin-bottom: 1.5em;
+      line-height: 1.8;
+      color: #cbd5e1;
+      font-size: 15px;
+    " data-para-index="${paraIndex}">${paraHTML}</p>`;
   }).join('');
   
   // Render with Perplexity-style container
@@ -475,7 +476,7 @@ function renderStructuredTextWithHighlighting(text, spans) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: #0f172a;
     ">
-      ${elementsHTML}
+      ${paragraphsHTML}
     </article>
   `;
   
@@ -488,68 +489,24 @@ function renderStructuredTextWithHighlighting(text, spans) {
     });
     
     span.addEventListener('mouseenter', () => {
-      if (!span.classList.contains('selected')) {
+      if (span.dataset.conceptId !== selectedConceptId) {
         span.style.background = 'rgba(251, 191, 36, 0.25)';
         span.style.borderBottom = '2px solid rgba(251, 191, 36, 0.6)';
       }
     });
     
     span.addEventListener('mouseleave', () => {
-      if (!span.classList.contains('selected')) {
-        const opacity = parseFloat(span.dataset.opacity || '0.15');
-        span.style.background = `rgba(251, 191, 36, ${opacity})`;
-        span.style.borderBottom = `2px solid rgba(251, 191, 36, ${opacity * 2})`;
+      if (span.dataset.conceptId !== selectedConceptId) {
+        span.style.background = 'rgba(251, 191, 36, 0.15)';
+        span.style.borderBottom = '2px solid rgba(251, 191, 36, 0.4)';
       }
     });
   });
   
-  // If a concept is already selected, highlight it and descendants
+  // If a concept is already selected, scroll to it
   if (selectedConceptId) {
-    highlightConceptWithDescendants(selectedConceptId);
+    highlightConceptInDocument(selectedConceptId);
   }
-}
-
-/**
- * Build highlighted HTML for a text segment
- */
-function buildHighlightedHTML(text, spans, textOffset) {
-  let html = '';
-  let lastIndex = 0;
-  
-  spans.forEach(span => {
-    // Adjust span positions relative to text segment
-    const relStart = span.start - textOffset;
-    const relEnd = span.end - textOffset;
-    
-    // Add text before span
-    if (relStart > lastIndex) {
-      html += escapeHtml(text.substring(lastIndex, relStart));
-    }
-    
-    // Add highlighted span (default: no highlight, will be set by selective highlighting)
-    const spanText = text.substring(relStart, relEnd);
-    html += `<span 
-      class="concept-span" 
-      data-concept-id="${span.concept_id}"
-      data-opacity="0"
-      style="
-        background: transparent;
-        color: #cbd5e1;
-        padding: 0;
-        border-bottom: none;
-        cursor: pointer;
-        transition: all 0.2s;
-      ">${escapeHtml(spanText)}</span>`;
-    
-    lastIndex = relEnd;
-  });
-  
-  // Add remaining text
-  if (lastIndex < text.length) {
-    html += escapeHtml(text.substring(lastIndex));
-  }
-  
-  return html;
 }
 
 /**
@@ -565,98 +522,39 @@ function handleConceptSpanClick(conceptId) {
   bus.emit('conceptSelected', { conceptId, docId: currentDocId });
   setCurrentConceptId(conceptId, currentDocId);
   
-  // Highlight this concept and its descendants
-  highlightConceptWithDescendants(conceptId);
+  // Highlight all spans of this concept
+  highlightConceptInDocument(conceptId);
 }
 
 /**
- * Highlight selected concept and its descendants with semantic heatmap
+ * Highlight all spans of a concept and scroll to first occurrence
  */
-async function highlightConceptWithDescendants(conceptId) {
+function highlightConceptInDocument(conceptId) {
   const content = document.getElementById('surface-viewer-content');
   if (!content) return;
   
-  // Find the selected concept
-  const selectedConcept = allConcepts.find(c => c.id === conceptId);
-  if (!selectedConcept) {
-    console.warn(`⚠️ Concept ${conceptId} not found`);
-    return;
-  }
-  
-  // Find descendants based on hierarchy
-  const descendants = findDescendants(conceptId, allConcepts);
-  const descendantIds = new Set(descendants.map(c => c.id));
-  descendantIds.add(conceptId); // Include selected concept
-  
-  console.log(`🎨 Highlighting concept ${conceptId} + ${descendants.length} descendants`);
-  
-  // Reset all spans to transparent
+  // Reset all spans
   content.querySelectorAll('.concept-span').forEach(span => {
-    span.classList.remove('selected');
-    span.style.background = 'transparent';
-    span.style.borderBottom = 'none';
-    span.style.fontWeight = '400';
-    span.style.color = '#cbd5e1';
-    span.dataset.opacity = '0';
+    span.style.background = 'rgba(251, 191, 36, 0.15)';
+    span.style.borderBottom = '2px solid rgba(251, 191, 36, 0.4)';
+    span.style.fontWeight = '500';
   });
   
-  // Highlight selected and descendants with semantic heatmap
-  descendantIds.forEach(id => {
-    const concept = allConcepts.find(c => c.id === id);
-    if (!concept) return;
-    
-    // Calculate opacity based on hierarchy level (deeper = more prominent)
-    let opacity = 0.15;
-    if (id === conceptId) {
-      opacity = 0.3; // Selected concept: most prominent
-    } else if (concept.hierarchy_level === 3) {
-      opacity = 0.25; // Atomic concepts: prominent
-    } else if (concept.hierarchy_level === 2) {
-      opacity = 0.2; // Refinements: medium
-    } else if (concept.hierarchy_level === 1) {
-      opacity = 0.1; // Clusters: subtle
-    }
-    
-    const spans = content.querySelectorAll(`.concept-span[data-concept-id="${id}"]`);
-    spans.forEach(span => {
-      if (id === conceptId) {
-        span.classList.add('selected');
-      }
-      span.style.background = `rgba(251, 191, 36, ${opacity})`;
-      span.style.borderBottom = `2px solid rgba(251, 191, 36, ${opacity * 2})`;
-      span.style.fontWeight = id === conceptId ? '600' : '500';
-      span.style.color = '#fbbf24';
-      span.dataset.opacity = opacity.toString();
+  // Highlight selected concept spans
+  const selectedSpans = content.querySelectorAll(`.concept-span[data-concept-id="${conceptId}"]`);
+  selectedSpans.forEach(span => {
+    span.style.background = 'rgba(251, 191, 36, 0.3)';
+    span.style.borderBottom = '2px solid rgba(251, 191, 36, 0.8)';
+    span.style.fontWeight = '600';
+  });
+  
+  // Scroll to first occurrence
+  if (selectedSpans.length > 0) {
+    selectedSpans[0].scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
     });
-  });
-  
-  // Scroll to first occurrence of selected concept
-  const firstSpan = content.querySelector(`.concept-span[data-concept-id="${conceptId}"]`);
-  if (firstSpan) {
-    firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-}
-
-/**
- * Find all descendants of a concept in the hierarchy
- */
-function findDescendants(conceptId, concepts) {
-  const descendants = [];
-  
-  // Find direct children
-  const children = concepts.filter(c => 
-    c.parent_cluster_id === conceptId || c.parent_concept_id === conceptId
-  );
-  
-  descendants.push(...children);
-  
-  // Recursively find descendants of children
-  children.forEach(child => {
-    const childDescendants = findDescendants(child.id, concepts);
-    descendants.push(...childDescendants);
-  });
-  
-  return descendants;
 }
 
 /**
@@ -667,9 +565,7 @@ async function fetchAndDisplayConcept(conceptId) {
     const response = await fetch(`https://loomlite-production.up.railway.app/doc/${currentDocId}/ontology`);
     const data = await response.json();
     
-    allConcepts = data.concepts || [];
-    const concept = allConcepts.find(c => c.id === conceptId);
-    
+    const concept = data.concepts.find(c => c.id === conceptId);
     if (concept) {
       handleConceptSelection(concept);
     }
@@ -691,5 +587,5 @@ function escapeHtml(text) {
 window.initSurfaceViewer = initSurfaceViewer;
 window.handleConceptSelection = handleConceptSelection;
 
-console.log('✅ Surface Viewer v3.0b module loaded');
+console.log('✅ Surface Viewer v3.0 module loaded');
 
