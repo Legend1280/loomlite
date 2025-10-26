@@ -348,38 +348,23 @@ def assign_hierarchy_levels(
     Assign hierarchy levels and parent_cluster_id to all concepts.
     
     Args:
-        concepts: Original concepts
+        concepts: Refined concepts (already have parent_cluster_id and parent_concept_id set)
         cluster_concepts: Cluster concepts
         relation_graph: Relation graph
         
     Returns:
         All concepts with hierarchy assigned
     """
-    # Create concept ID to cluster mapping
-    concept_to_cluster = {}
+    # The concepts parameter already has parent_cluster_id and hierarchy_level set
+    # by build_intra_cluster_hierarchy(). We just need to combine them with cluster concepts.
     
-    for cluster_concept in cluster_concepts:
-        # Find concepts that belong to this cluster
-        # (In real implementation, use the cluster sets from identify_clusters)
-        # For now, we'll use a simple heuristic based on relations
-        pass
-    
-    # Assign levels
     all_concepts = []
     
     # Add cluster concepts (level 2)
     all_concepts.extend(cluster_concepts)
     
-    # Add original concepts (level 3)
-    for concept in concepts:
-        if concept.hierarchy_level is None:
-            concept.hierarchy_level = 3  # Default to concept level
-        
-        # Assign parent cluster if available
-        if concept.concept_id in concept_to_cluster:
-            concept.parent_cluster_id = concept_to_cluster[concept.concept_id]
-        
-        all_concepts.append(concept)
+    # Add refined concepts (levels 3 and 4, already have parent assignments)
+    all_concepts.extend(concepts)
     
     return all_concepts
 
