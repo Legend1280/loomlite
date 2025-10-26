@@ -164,8 +164,8 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
     """
     cursor = db_conn.cursor()
     
-    # 1. Identify clusters (hierarchy_level = 2)
-    clusters = [c for c in concepts if c.get('hierarchy_level') == 2]
+    # 1. Identify clusters (hierarchy_level = 1)
+    clusters = [c for c in concepts if c.get('hierarchy_level') == 1]
     
     # 2. Generate cluster summaries
     for cluster in clusters:
@@ -175,7 +175,7 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
         # Get concepts in this cluster
         cluster_concepts = [
             c for c in concepts 
-            if c.get('parent_cluster_id') == cluster_id and c.get('hierarchy_level') == 4
+            if c.get('parent_cluster_id') == cluster_id and c.get('hierarchy_level') == 3
         ]
         
         # Get relations within this cluster
@@ -197,8 +197,8 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
         # Store summary in cluster object for document summary generation
         cluster['summary'] = cluster_summary
     
-    # 3. Identify refinement nodes (hierarchy_level = 3)
-    refinements = [c for c in concepts if c.get('hierarchy_level') == 3]
+    # 3. Identify refinement nodes (hierarchy_level = 2)
+    refinements = [c for c in concepts if c.get('hierarchy_level') == 2]
     
     for refinement in refinements:
         refinement_id = refinement['id']
@@ -212,7 +212,7 @@ def summarize_document_hierarchy(doc_id: str, doc_text: str, doc_title: str, con
         # Get concepts under this refinement
         refinement_concepts = [
             c for c in concepts 
-            if c.get('parent_concept_id') == refinement_id and c.get('hierarchy_level') == 4
+            if c.get('parent_concept_id') == refinement_id and c.get('hierarchy_level') == 3
         ]
         
         # Generate summary
