@@ -199,11 +199,29 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
         try:
             from summarizer_unified import summarize_document_hierarchy_unified
             conn = get_db()
+            
+            # Fetch concepts WITH database IDs (needed for summary updates)
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, label, hierarchy_level, parent_concept_id, parent_cluster_id FROM concepts WHERE doc_id = ?",
+                (doc_id,)
+            )
+            concepts_with_ids = [
+                {
+                    "id": row[0],
+                    "label": row[1],
+                    "hierarchy_level": row[2],
+                    "parent_concept_id": row[3],
+                    "parent_cluster_id": row[4]
+                }
+                for row in cursor.fetchall()
+            ]
+            
             result = summarize_document_hierarchy_unified(
                 doc_id=doc_id,
                 doc_text=doc_data["text"],
                 doc_title=title,
-                concepts=ontology["concepts"],
+                concepts=concepts_with_ids,
                 db_conn=conn
             )
             conn.close()
