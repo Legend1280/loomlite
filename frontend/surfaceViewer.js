@@ -134,7 +134,7 @@ function createModeButton(label, mode, active) {
   btn.addEventListener('mouseenter', () => {
     if (currentMode !== mode) {
       btn.style.background = '#334155';
-      btn.style.color = #cbd5e1';
+      btn.style.color = '#cbd5e1';
     }
   });
   
