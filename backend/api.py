@@ -744,3 +744,4 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=port)
 
 # Trigger redeploy
+# Railway rebuild trigger - Sun Oct 26 14:54:36 EDT 2025
