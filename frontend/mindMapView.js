@@ -86,6 +86,7 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
       type: 'cluster',
       hierarchyLevel: 2,
       concept: cluster,
+      summary: cluster.summary || null,  // Include cluster summary
       children: [],
       _children: null,
       expanded: false  // Start collapsed
@@ -105,6 +106,7 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
           type: 'refinement',
           hierarchyLevel: 3,
           concept: refinement,
+          summary: refinement.summary || null,  // Include refinement summary
           children: [],
           _children: null,
           expanded: false  // Start collapsed
