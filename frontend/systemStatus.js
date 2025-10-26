@@ -14,6 +14,7 @@ const componentStatus = {
   eventBus: false,
   
   // Modules
+  galaxyView: false,
   dualVisualizer: false,
   sidebar: false,
   surfaceViewer: false,
@@ -74,9 +75,13 @@ function createStatusPanel() {
       
       <div class="status-section">
         <div class="status-section-title">Modules</div>
+        <div class="status-item" data-component="galaxyView">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">Galaxy View</span>
+        </div>
         <div class="status-item" data-component="dualVisualizer">
           <span class="status-icon">⏳</span>
-          <span class="status-label">Dual Visualizer</span>
+          <span class="status-label">Solar System</span>
         </div>
         <div class="status-item" data-component="sidebar">
           <span class="status-icon">⏳</span>
@@ -157,11 +162,12 @@ async function checkAllComponents() {
   componentStatus.eventBus = typeof window.bus !== 'undefined';
   
   // Modules (check if functions exist)
+  componentStatus.galaxyView = document.getElementById('galaxyContainer') !== null;
   componentStatus.dualVisualizer = typeof window.drawDualVisualizer === 'function';
   componentStatus.sidebar = document.getElementById('sidebar') !== null;
   componentStatus.surfaceViewer = document.getElementById('surface-viewer') !== null;
   componentStatus.searchBar = document.getElementById('search-container') !== null;
-  componentStatus.mindMap = document.getElementById('mindMapContainer') !== null;
+  componentStatus.mindMap = document.getElementById('visualizer-bottom') !== null;
   
   // UI Elements
   componentStatus.toolbar = document.getElementById('toolbar') !== null;

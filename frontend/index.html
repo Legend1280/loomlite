@@ -317,9 +317,9 @@
     </div>
     
     <div id="viewModeButtons">
-      <button class="view-mode-btn active" data-mode="split">Split</button>
-      <button class="view-mode-btn" data-mode="solar-only">Solar Only</button>
-      <button class="view-mode-btn" data-mode="mind-only">Mind Only</button>
+      <button class="view-mode-btn active" data-mode="galaxy">🌌 Galaxy</button>
+      <button class="view-mode-btn" data-mode="solar">☀️ Solar</button>
+      <button class="view-mode-btn" data-mode="split">Split</button>
     </div>
     
     <button class="upload-btn">📤 Upload</button>
@@ -330,14 +330,22 @@
     <!-- LEFT SIDEBAR -->
     <aside id="sidebar"></aside>
     
-    <!-- CENTER PANEL - DUAL VISUALIZER -->
+    <!-- CENTER PANEL - MULTI-LEVEL VISUALIZER -->
     <main id="center">
-      <div id="visualizer-top" class="visualizer-container">
-        <div class="visualizer-label">GALAXY / SOLAR VIEW</div>
+      <!-- Galaxy View (Level 1: All Documents) -->
+      <div id="galaxyContainer" class="visualizer-container" style="display: block;">
+        <div class="visualizer-label">🌌 GALAXY VIEW - All Documents</div>
+      </div>
+      
+      <!-- Solar System View (Level 2: One Document) -->
+      <div id="visualizer-top" class="visualizer-container" style="display: none;">
+        <div class="visualizer-label">☀️ SOLAR SYSTEM VIEW</div>
         <svg></svg>
       </div>
-      <div id="visualizer-bottom" class="visualizer-container">
-        <div class="visualizer-label">MIND MAP</div>
+      
+      <!-- Mind Map View (Hierarchical) -->
+      <div id="visualizer-bottom" class="visualizer-container" style="display: none;">
+        <div class="visualizer-label">🌳 MIND MAP</div>
         <svg></svg>
       </div>
     </main>
@@ -352,6 +360,7 @@
     import { bus, setCurrentDocId } from './eventBus.js';
     
     // Import core modules
+    import { initGalaxyView } from './galaxyView.js';
     import { drawDualVisualizer } from './dualVisualizer.js';
     import { drawMindMap } from './mindMap.js';
     import { initSidebar } from './sidebar.js';
@@ -436,6 +445,9 @@
       // Set up view mode buttons
       const viewModeButtons = document.querySelectorAll('.view-mode-btn');
       const app = document.getElementById('app');
+      const galaxyContainer = document.getElementById('galaxyContainer');
+      const solarContainer = document.getElementById('visualizer-top');
+      const mindContainer = document.getElementById('visualizer-bottom');
       
       viewModeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -445,6 +457,21 @@
           viewModeButtons.forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           
+          // Show/hide appropriate containers
+          if (mode === 'galaxy') {
+            galaxyContainer.style.display = 'block';
+            solarContainer.style.display = 'none';
+            mindContainer.style.display = 'none';
+          } else if (mode === 'solar') {
+            galaxyContainer.style.display = 'none';
+            solarContainer.style.display = 'block';
+            mindContainer.style.display = 'none';
+          } else if (mode === 'split') {
+            galaxyContainer.style.display = 'none';
+            solarContainer.style.display = 'block';
+            mindContainer.style.display = 'block';
+          }
+          
           // Update app class
           app.className = mode;
           
@@ -452,38 +479,26 @@
         });
       });
       
-      // Test with sample document (if available)
+      // Initialize Galaxy View (default view)
       try {
-        const response = await fetch('https://loomlite-production.up.railway.app/tree');
-        const docs = await response.json();
-        
-        if (docs && docs.length > 0) {
-          console.log(`📚 Found ${docs.length} documents`);
-          
-          // Load first document as demo
-          const firstDoc = docs[0];
-          console.log(`🔍 Loading demo document: ${firstDoc.title}`);
-          
-          // Set current doc via event bus
-          setCurrentDocId(firstDoc.id);
-          bus.emit('documentLoaded', { docId: firstDoc.id, title: firstDoc.title });
-          
-          await drawDualVisualizer(firstDoc.id);
-        } else {
-          console.log('ℹ️ No documents found - upload a document to get started');
-        }
+        await initGalaxyView();
+        console.log('✅ Galaxy View initialized');
       } catch (error) {
-        console.error('❌ Error loading documents:', error);
+        console.error('❌ Galaxy View init failed:', error);
       }
       
-      // Initialize System Status Dashboard
-      try {
-        initSystemStatus();
-        console.log('✅ System Status Dashboard initialized');
-      } catch (e) {
-        console.error('❌ System Status init failed:', e);
-      }
-
+      // Listen for document focus events to switch to Solar view
+      bus.on('documentFocus', async (event) => {
+        const { docId } = event.detail;
+        console.log(`🔭 Switching to Solar System view for: ${docId}`);
+        
+        // Switch to solar view
+        document.querySelector('[data-mode="solar"]').click();
+        
+        // Load the solar system visualization
+        await drawDualVisualizer(docId);
+      });
+      
       // Initialize System Status Dashboard
       try {
         initSystemStatus();
