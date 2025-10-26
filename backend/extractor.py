@@ -260,8 +260,10 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-4.1") -
                 "aliases": c.aliases or [],
                 "tags": c.tags or [],
                 "parent_cluster_id": c.parent_cluster_id,
+                "parent_concept_id": c.parent_concept_id,
                 "hierarchy_level": c.hierarchy_level,
-                "coherence": c.coherence
+                "coherence": c.coherence,
+                "temp_id": c.concept_id  # Store original ID for remapping
             }
             for c in hierarchical_ontology.concepts
         ]
@@ -338,15 +340,27 @@ def store_ontology(doc_id: str, title: str, source_uri: str, mime: str,
     
     # Insert concepts
     concept_map = {}  # label -> concept_id
+    temp_id_map = {}  # temporary_id (cluster_xxx) -> final_id (c_xxx)
+    
     for i, concept in enumerate(ontology["concepts"]):
         concept_id = f"c_{doc_id}_{i}"
         concept_map[concept["label"]] = concept_id
+        
+        # Map temporary cluster/refinement IDs to final database IDs
+        if "temp_id" in concept:
+            temp_id_map[concept["temp_id"]] = concept_id
         
         # Store hierarchy fields (v2.3)
         parent_cluster_id = concept.get("parent_cluster_id")
         parent_concept_id = concept.get("parent_concept_id")  # NEW: Intra-cluster hierarchy
         hierarchy_level = concept.get("hierarchy_level")
         coherence = concept.get("coherence")
+        
+        # Remap parent IDs if they're temporary cluster/refinement IDs
+        if parent_cluster_id and parent_cluster_id in temp_id_map:
+            parent_cluster_id = temp_id_map[parent_cluster_id]
+        if parent_concept_id and parent_concept_id in temp_id_map:
+            parent_concept_id = temp_id_map[parent_concept_id]
         
         cur.execute("""
             INSERT INTO concepts (id, doc_id, label, type, confidence, aliases, tags, model_name, prompt_ver, parent_cluster_id, parent_concept_id, hierarchy_level, coherence)
