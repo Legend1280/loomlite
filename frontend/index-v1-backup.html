@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loom Lite - Ontology Navigator</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a202c;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+    
+    /* TOP BAR */
+    #topBar {
+      background: #2d3748;
+      border-bottom: 1px solid #4a5568;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      height: 60px;
+    }
+    
+    #searchInput {
+      flex: 1;
+      max-width: 600px;
+      padding: 10px 15px;
+      background: #1a202c;
+      border: 1px solid #4a5568;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    #searchInput:focus {
+      outline: none;
+      border-color: #63b3ed;
+    }
+    
+    #viewModes {
+      display: flex;
+      gap: 10px;
+    }
+    
+    #viewModes button {
+      padding: 8px 16px;
+      background: #4a5568;
+      border: none;
+      border-radius: 6px;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    
+    #viewModes button:hover {
+      background: #5a6678;
+      transform: translateY(-1px);
+    }
+    
+    #viewModes button.active {
+      background: #3182ce;
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+    }
+    
+    /* Upload Button */
+    .upload-btn {
+      padding: 8px 16px;
+      background: #10b981;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .upload-btn:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+    
+    /* Upload Modal */
+    #uploadModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #uploadModal.active {
+      display: flex;
+    }
+    
+    .upload-container {
+      background: #2d3748;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    .upload-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .upload-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    
+    .close-btn:hover {
+      background: #374151;
+      color: #e2e8f0;
+    }
+    
+    .upload-dropzone {
+      border: 3px dashed #4a5568;
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+    
+    .upload-dropzone:hover,
+    .upload-dropzone.dragover {
+      border-color: #3182ce;
+      background: rgba(49, 130, 206, 0.1);
+    }
+    
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #64748b;
+    }
+    
+    .upload-text {
+      font-size: 16px;
+      color: #cbd5e0;
+      margin-bottom: 8px;
+    }
+    
+    .upload-hint {
+      font-size: 13px;
+      color: #718096;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .upload-list {
+      margin-top: 24px;
+    }
+    
+    .upload-item {
+      background: #1a202c;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .upload-item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .upload-item-name {
+      font-size: 14px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+    
+    .upload-item-size {
+      font-size: 12px;
+      color: #718096;
+    }
+    
+    .upload-item-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .upload-item-status.pending {
+      background: #4a5568;
+      color: #cbd5e0;
+    }
+    
+    .upload-item-status.uploading {
+      background: #3182ce;
+      color: white;
+    }
+    
+    .upload-item-status.success {
+      background: #10b981;
+      color: white;
+    }
+    
+    .upload-item-status.error {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .upload-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .upload-submit-btn {
+      flex: 1;
+      padding: 12px 24px;
+      background: #3182ce;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-submit-btn:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    .upload-submit-btn:disabled {
+      background: #4a5568;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .upload-cancel-btn {
+      padding: 12px 24px;
+      background: #4a5568;
+      border: none;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .upload-cancel-btn:hover {
+      background: #5a6678;
+    }
+    
+    /* MAIN CONTAINER - THREE PANEL GRID */
+    #mainContainer {
+      display: grid;
+      grid-template-columns: 20% 55% 25%;
+      height: calc(100vh - 60px);
+      gap: 0;
+    }
+    
+    .panel {
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    
+    /* LEFT PANEL - Ontology Navigator */
+    #ontologyNavigator {
+      background: #1a202c;
+      border-right: 1px solid #2d3748;
+      padding: 20px;
+    }
+    
+    #ontologyNavigator h3 {
+      color: #63b3ed;
+      margin-bottom: 15px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #ontologyNavigator .placeholder {
+      color: #718096;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    /* CENTER PANEL - Visualization */
+    #ontologyPanel {
+      background: #1a202c;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #ontologySvg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    #centerStatus {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(45, 55, 72, 0.95);
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 1px solid #4a5568;
+      font-size: 14px;
+      font-weight: 600;
+      color: #63b3ed;
+      z-index: 100;
+    }
+    
+    #searchResults {
+      display: none;
+      padding: 20px;
+      overflow-y: auto;
+      height: 100%;
+      width: 100%;
+    }
+    
+    /* NAVIGATION UI */
+    #backButton {
+      display: none;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(59, 130, 246, 0.9);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 200;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    #backButton:hover {
+      background: rgba(59, 130, 246, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    
+    #breadcrumbs {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(45, 55, 72, 0.95);
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: 1px solid #4a5568;
+      font-size: 13px;
+      color: #94a3b8;
+      z-index: 150;
+      display: none;
+    }
+    
+    #breadcrumbs .crumb {
+      color: #63b3ed;
+      font-weight: 600;
+    }
+    
+    #breadcrumbs .separator {
+      margin: 0 8px;
+      color: #4a5568;
+    }
+    
+    /* RIGHT PANEL - Context Viewer */
+    #contextPanel {
+      background: #1a202c;
+      border-left: 1px solid #2d3748;
+      padding: 20px;
+    }
+    
+    #contextPanel h3 {
+      color: #63b3ed;
+      margin-bottom: 15px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    #contextPanel .placeholder {
+      color: #718096;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    /* DIAGNOSTIC OVERLAY */
+    #diagnostic {
+      position: fixed;
+      top: 70px;
+      right: 10px;
+      background: rgba(45, 55, 72, 0.98);
+      border: 2px solid #4a5568;
+      border-radius: 6px;
+      padding: 15px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      max-width: 300px;
+      z-index: 10000;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    #diagnostic h4 {
+      color: #63b3ed;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    
+    #diagnostic .status {
+      margin: 5px 0;
+      padding: 5px;
+      background: #1a202c;
+      border-radius: 3px;
+    }
+    
+    #diagnostic .pass { color: #48bb78; }
+    #diagnostic .fail { color: #f56565; }
+    
+    #diagnostic .event-log {
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px solid #4a5568;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    
+    #diagnostic .event-log h5 {
+      color: #a0aec0;
+      font-size: 10px;
+      margin-bottom: 5px;
+    }
+    
+    #diagnostic .event {
+      font-size: 10px;
+      color: #cbd5e0;
+      margin: 2px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOP BAR -->
+  <div id="topBar">
+    <input type="text" id="searchInput" placeholder="Search concepts, documents, topics...">
+    <div id="viewModes">
+      <button id="categoriesBtn" data-mode="categories" class="active">Categories</button>
+      <button id="conceptsBtn" data-mode="concepts">Concepts</button>
+      <button id="galaxyBtn" data-mode="galaxy">Galaxy</button>
+    </div>
+    <button class="upload-btn" id="uploadBtn">
+      <span>📤</span>
+      <span>Upload</span>
+    </button>
+  </div>
+
+  <!-- UPLOAD MODAL -->
+  <div id="uploadModal">
+    <div class="upload-container">
+      <div class="upload-header">
+        <h2 class="upload-title">Upload Documents</h2>
+        <button class="close-btn" id="closeUploadBtn">&times;</button>
+      </div>
+      
+      <div class="upload-dropzone" id="dropzone">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Drag & drop files here or click to browse</div>
+        <div class="upload-hint">Supports PDF, TXT, DOCX, MD, and ZIP files</div>
+      </div>
+      
+      <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.txt,.docx,.md,.zip">
+      
+      <div id="uploadList" class="upload-list"></div>
+      
+      <div class="upload-actions">
+        <button class="upload-cancel-btn" id="cancelUploadBtn">Cancel</button>
+        <button class="upload-submit-btn" id="submitUploadBtn" disabled>Upload Files</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER - THREE PANELS -->
+  <div id="mainContainer">
+    <!-- LEFT PANEL - Ontology Navigator -->
+    <div id="ontologyNavigator" class="panel">
+      <h3>📚 Ontology Navigator</h3>
+      <div class="placeholder">
+        <p><strong>Future Development:</strong></p>
+        <p>• Mind-map style hierarchical navigation</p>
+        <p>• Expandable/collapsible nodes</p>
+        <p>• Document grouping by ontology</p>
+        <p>• Quick jump to concepts</p>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL - Visualization -->
+    <div id="ontologyPanel" class="panel">
+      <button id="backButton">← Back</button>
+      <div id="breadcrumbs"></div>
+      <div id="centerStatus">Active Mode: Categories</div>
+      <svg id="ontologySvg"></svg>
+      <div id="searchResults"></div>
+    </div>
+
+    <!-- RIGHT PANEL - Context Viewer -->
+    <div id="contextPanel" class="panel">
+      <h3>📄 Context Viewer</h3>
+      <div class="placeholder">
+        <p><strong>Dual-Mode Display:</strong></p>
+        <p>• <strong>Document Mode:</strong> View source text with highlighted evidence spans</p>
+        <p>• <strong>Ontology Data:</strong> View concept metadata, relations, and provenance</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIAGNOSTIC OVERLAY -->
+  <div id="diagnostic">
+    <h4>🔍 System Status</h4>
+    <div id="diagnosticContent">Initializing...</div>
+    <div class="event-log">
+      <h5>Event Log:</h5>
+      <div id="eventLog"></div>
+    </div>
+  </div>
+
+  <script>
+    // API Configuration
+    const API_BASE = 'https://loomlite-production.up.railway.app';
+    const N8N_WEBHOOK = 'https://sovfound.app.n8n.cloud/webhook/loom-lite-ingest';
+    
+    let currentMode = 'categories';
+    let eventLogEntries = [];
+    let galaxyData = null; // Store loaded galaxy data for search
+    let currentNodes = []; // Store D3 nodes for highlighting
+    
+    // View hierarchy state
+    let viewStack = ['galaxy']; // Track navigation history: ['galaxy'] or ['galaxy', 'solar', 'planet']
+    let currentView = 'galaxy'; // Current view level
+    let currentDocument = null; // Currently viewed document (in solar/planet view)
+    let currentConcept = null; // Currently viewed concept (in planet view)
+    let cachedSimulations = {}; // Cache D3 simulations for smooth transitions
+    
+    // ============================================================================
+    // FUTURE DEVELOPMENT HOOKS (Not Implemented Yet)
+    // ============================================================================
+    
+    /**
+     * Load all ontology data from backend
+     * Fetches: /tree (document list), /doc/{id}/ontology (per-document concepts)
+     */
+    async function loadAllData() {
+      console.log('🧭 Loading all documents from backend...');
+      
+      try {
+        // Fetch document list
+        console.log('🔍 Fetching /tree...');
+        const treeResponse = await fetch(`${API_BASE}/tree`);
+        if (!treeResponse.ok) {
+          throw new Error(`Failed to fetch /tree: ${treeResponse.status}`);
+        }
+        
+        const documents = await treeResponse.json();
+        console.log('🔍 /tree response:', documents);
+        console.log(`✅ Documents retrieved: ${documents.length}`);
+        
+        if (!documents || documents.length === 0) {
+          console.warn('⚠️  No data returned from backend');
+          logEvent('No documents found');
+          return { documents: [], totalConcepts: 0, totalRelations: 0 };
+        }
+        
+        // Fetch ontology for each document
+        const galaxy = {
+          documents: []
+        };
+        
+        let totalConcepts = 0;
+        let totalRelations = 0;
+        
+        console.log('🧠 Parsing ontologies...');
+        
+        for (const doc of documents) {
+          console.log(`🔍 Fetching ontology for: ${doc.title || doc.name}`);
+          
+          try {
+            const ontologyResponse = await fetch(`${API_BASE}/doc/${doc.id}/ontology`);
+            if (!ontologyResponse.ok) {
+              console.warn(`⚠️  Failed to fetch ontology for ${doc.title}: ${ontologyResponse.status}`);
+              continue;
+            }
+            
+            const ontology = await ontologyResponse.json();
+            console.log(`📄 /doc response for ${doc.title}:`, ontology);
+            
+            if (!ontology || !ontology.concepts) {
+              console.warn(`⚠️  No ontology data in response for ${doc.title}`);
+              continue;
+            }
+            
+            // Normalize concept field names (backend uses 'label', we use 'name')
+            const normalizedConcepts = (ontology.concepts || []).map(c => ({
+              id: c.id,
+              name: c.label || c.name,
+              type: c.type,
+              confidence: c.confidence,
+              ...c
+            }));
+            
+            galaxy.documents.push({
+              id: doc.id,
+              name: doc.title || doc.name,
+              concepts: normalizedConcepts,
+              relations: ontology.relations || []
+            });
+            
+            totalConcepts += normalizedConcepts.length;
+            totalRelations += (ontology.relations || []).length;
+            
+            console.log(`  ✅ Parsed ${normalizedConcepts.length} concepts, ${(ontology.relations || []).length} relations`);
+          } catch (err) {
+            console.error(`❌ Error fetching ontology for ${doc.title}:`, err);
+          }
+        }
+        
+        console.log('\n✅ Ontology Parsing Complete:');
+        console.log(`📄 ${galaxy.documents.length} documents parsed`);
+        console.log(`🧠 ${totalConcepts} total concepts extracted`);
+        console.log(`🔗 ${totalRelations} total relations identified\n`);
+        
+        logEvent(`Loaded ${galaxy.documents.length} documents, ${totalConcepts} concepts`);
+        
+        // Store globally for search
+        galaxyData = { ...galaxy, totalConcepts, totalRelations };
+        
+        return galaxyData;
+        
+      } catch (error) {
+        console.error('❌ Error loading data:', error);
+        logEvent('Error loading documents');
+        return { documents: [], totalConcepts: 0, totalRelations: 0 };
+      }
+    }
+    
+    /**
+     * Render the Galaxy View - multi-document ontology visualization
+     * Each document = color-coded cluster, concepts = nodes, relations = edges
+     */
+    function renderGalaxy(galaxyData) {
+      try {
+        console.log('🌌 Rendering Galaxy View...');
+        console.log('Galaxy data received:', galaxyData);
+        logEvent('Rendering Galaxy visualization...');
+        
+        // Reset view hierarchy state
+        currentView = 'galaxy';
+        currentDocument = null;
+        currentConcept = null;
+        viewStack = ['galaxy'];
+        updateBreadcrumbs();
+      
+      if (!galaxyData || !galaxyData.documents || galaxyData.documents.length === 0) {
+        console.warn('⚠️  No ontology data found — check parsing.');
+        logEvent('No data to visualize');
+        
+        // Show placeholder message
+        const svg = d3.select('#ontologySvg');
+        const width = document.getElementById('ontologyPanel').clientWidth;
+        const height = document.getElementById('ontologyPanel').clientHeight;
+        svg.attr('width', width).attr('height', height);
+        svg.selectAll('*').remove();
+        
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#e2e8f0')
+          .attr('font-size', '18px')
+          .text('⚠️  No ontology data found — check parsing.');
+        
+        return;
+      }
+      
+      const svg = d3.select('#ontologySvg');
+      const width = document.getElementById('ontologyPanel').clientWidth;
+      const height = document.getElementById('ontologyPanel').clientHeight;
+      
+      svg.attr('width', width).attr('height', height);
+      svg.selectAll('*').remove();
+      
+      // Create container for zoom/pan
+      const g = svg.append('g');
+      
+      // Color scale for documents
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+      
+      // Prepare nodes and links
+      const nodes = [];
+      const links = [];
+      
+      galaxyData.documents.forEach((doc, docIndex) => {
+        const docColor = colorScale(docIndex);
+        
+        console.log(`🪐  Document cluster: ${doc.name} (${doc.concepts.length} concepts)`);
+        
+        // Add document center node
+        nodes.push({
+          id: `doc_${doc.id}`,
+          label: doc.name,
+          type: 'document',
+          color: docColor,
+          size: 15,
+          docId: doc.id
+        });
+        
+        // Add concept nodes
+        doc.concepts.forEach(concept => {
+          nodes.push({
+            id: concept.id,  // API returns full IDs like "c_doc_12388be05cac_0"
+            label: concept.label,  // API uses 'label' not 'name'
+            type: concept.type || 'concept',
+            color: docColor,
+            size: 8,
+            docId: doc.id,
+            docName: doc.name,
+            conceptData: concept
+          });
+          
+          // Link concept to document center
+          links.push({
+            source: `doc_${doc.id}`,
+            target: concept.id,  // Use full concept ID from API
+            type: 'contains'
+          });
+        });
+        
+        // Add relation links
+        doc.relations.forEach(rel => {
+          links.push({
+            source: rel.src,  // API returns full concept IDs in src/dst
+            target: rel.dst,
+            type: rel.rel || 'relates',  // API uses 'rel' not 'type'
+            label: rel.rel
+          });
+        });
+      });
+      
+      console.log(`🔵 ${nodes.length} nodes, 🔗 ${links.length} links`);
+      
+      // Debug: If no nodes, show placeholder
+      if (nodes.length === 0) {
+        console.warn('⚠️  No nodes to render - concepts array might be empty');
+        svg.append('circle')
+          .attr('cx', width / 2)
+          .attr('cy', height / 2)
+          .attr('r', 30)
+          .attr('fill', '#3b82f6');
+        svg.append('text')
+          .attr('x', width / 2)
+          .attr('y', height / 2 + 50)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#e2e8f0')
+          .text(`Debug: ${galaxyData.documents.length} documents loaded but no concepts`);
+        return;
+      }
+      
+      // Create force simulation
+      const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links)
+          .id(d => d.id)
+          .distance(d => d.type === 'contains' ? 50 : 30))  // Shorter relation links
+        .force('charge', d3.forceManyBody().strength(-100))  // Less repulsion = closer clusters
+        .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1))  // Stronger centering
+        .force('collision', d3.forceCollide().radius(d => d.size + 5));
+      
+      // Draw links
+      const link = g.append('g')
+        .selectAll('line')
+        .data(links)
+        .join('line')
+        .attr('stroke', d => d.type === 'contains' ? '#4a5568' : '#718096')
+        .attr('stroke-opacity', d => d.type === 'contains' ? 0.3 : 0.6)
+        .attr('stroke-width', d => d.type === 'contains' ? 1 : 2);
+      
+      // Draw nodes
+      const node = g.append('g')
+        .selectAll('circle')
+        .data(nodes)
+        .join('circle')
+        .attr('r', d => d.size)
+        .attr('fill', d => d.color)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5)
+        .attr('class', 'galaxy-node')
+        .style('cursor', 'pointer')
+        .call(d3.drag()
+          .on('start', dragstarted)
+          .on('drag', dragged)
+          .on('end', dragended));
+      
+      // Store nodes globally for search highlighting
+      currentNodes = nodes;
+      
+      // Add labels
+      const label = g.append('g')
+        .selectAll('text')
+        .data(nodes.filter(d => d.type === 'document'))
+        .join('text')
+        .text(d => d.label)
+        .attr('font-size', 12)
+        .attr('font-weight', 'bold')
+        .attr('fill', '#e2e8f0')
+        .attr('text-anchor', 'middle')
+        .attr('dy', -20)
+        .style('pointer-events', 'none');
+      
+      // Tooltips and interactions
+      node.on('mouseover', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', d.size * 1.5)
+          .attr('stroke-width', 3);
+        
+        // Show tooltip
+        const tooltip = g.append('text')
+          .attr('class', 'tooltip')
+          .attr('x', d.x)
+          .attr('y', d.y - 25)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#fff')
+          .attr('font-size', 11)
+          .attr('font-weight', 'bold')
+          .style('pointer-events', 'none')
+          .text(d.label);
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', d.size)
+          .attr('stroke-width', d.type === 'document' ? 3 : 1.5);
+        
+        g.selectAll('.tooltip').remove();
+      })
+      .on('click', function(event, d) {
+        console.log('👆 Clicked:', d.label);
+        console.log('  Type:', d.type);
+        console.log('  Source document:', d.docName || d.label);
+        
+        if (d.type === 'document') {
+          // Transition to Solar View (single document)
+          const doc = galaxyData.documents.find(doc => doc.id === d.docId);
+          if (doc) {
+            transitionToSolarView(doc);
+          }
+        } else if (d.type === 'concept') {
+          // In Galaxy view, clicking concept goes to its document's Solar View
+          const doc = galaxyData.documents.find(doc => doc.id === d.docId);
+          if (doc) {
+            transitionToSolarView(doc);
+          }
+        }
+        
+        logEvent(`Clicked: ${d.label}`);
+      });
+      
+      // Update positions on simulation tick
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y);
+        
+        node
+          .attr('cx', d => d.x)
+          .attr('cy', d => d.y);
+        
+        label
+          .attr('x', d => d.x)
+          .attr('y', d => d.y);
+      });
+      
+      // Drag functions
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+      
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+      
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+      
+      // Add zoom behavior
+      const zoom = d3.zoom()
+        .scaleExtent([0.1, 4])
+        .on('zoom', (event) => {
+          g.attr('transform', event.transform);
+        });
+      
+      svg.call(zoom);
+      
+      console.log('✅ Galaxy View rendered successfully');
+      logEvent('Galaxy View rendered');
+      
+      } catch (error) {
+        console.error('❌ GALAXY RENDER ERROR:', error);
+        console.error('Error stack:', error.stack);
+        logEvent(`Galaxy render failed: ${error.message}`);
+        
+        // Show error message in visualization
+        const svg = d3.select('#ontologySvg');
+        const panel = document.getElementById('ontologyPanel');
+        svg.attr('width', panel.clientWidth).attr('height', panel.clientHeight);
+        svg.selectAll('*').remove();
+        
+        svg.append('text')
+          .attr('x', panel.clientWidth / 2)
+          .attr('y', panel.clientHeight / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#ef4444')
+          .attr('font-size', '16px')
+          .text('❌ Render Error: ' + error.message);
+        
+        svg.append('text')
+          .attr('x', panel.clientWidth / 2)
+          .attr('y', panel.clientHeight / 2 + 30)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#94a3b8')
+          .attr('font-size', '12px')
+          .text('Check console for details');
+      }
+    }
+    
+    /**
+     * Load and display document content in right panel
+     * Will fetch document text and highlight evidence spans
+     */
+    function loadDocumentContent(docId) {
+      // TODO: Implement document viewer
+      console.log('[FUTURE] loadDocumentContent() - will show document:', docId);
+    }
+    
+    /**
+     * Highlight evidence for a specific concept
+     * Will scroll to and highlight text spans in document
+     */
+    function highlightEvidence(conceptId) {
+      // TODO: Implement evidence highlighting
+      console.log('[FUTURE] highlightEvidence() - will highlight:', conceptId);
+    }
+    
+    
+    /**
+     * Update breadcrumbs display based on current view stack
+     */
+    function updateBreadcrumbs() {
+      const breadcrumbs = document.getElementById('breadcrumbs');
+      const backButton = document.getElementById('backButton');
+      
+      if (currentView === 'galaxy') {
+        breadcrumbs.style.display = 'none';
+        backButton.style.display = 'none';
+      } else {
+        breadcrumbs.style.display = 'block';
+        backButton.style.display = 'block';
+        
+        let crumbHTML = '<span class="crumb">Galaxy</span>';
+        
+        if (currentDocument) {
+          crumbHTML += '<span class="separator">/</span>';
+          crumbHTML += `<span class="crumb">${currentDocument.name || currentDocument.title}</span>`;
+        }
+        
+        if (currentConcept) {
+          crumbHTML += '<span class="separator">/</span>';
+          crumbHTML += `<span class="crumb">${currentConcept.label}</span>`;
+        }
+        
+        breadcrumbs.innerHTML = crumbHTML;
+      }
+    }
+    
+    /**
+     * Navigate back one level in the hierarchy
+     */
+    function navigateBack() {
+      if (viewStack.length <= 1) return; // Already at top level
+      
+      viewStack.pop(); // Remove current view
+      const previousView = viewStack[viewStack.length - 1];
+      
+      console.log(`⬅️  Navigating back to: ${previousView}`);
+      logEvent(`Back to ${previousView} view`);
+      
+      if (previousView === 'galaxy') {
+        currentView = 'galaxy';
+        currentDocument = null;
+        currentConcept = null;
+        renderGalaxy(galaxyData);
+      } else if (previousView === 'solar') {
+        currentView = 'solar';
+        currentConcept = null;
+        renderSolarView(currentDocument);
+      }
+      
+      updateBreadcrumbs();
+    }
+    
+    /**
+     * Transition to Solar View (single document's ontology)
+     * @param {Object} doc - Document object with id, name, etc.
+     */
+    async function transitionToSolarView(doc) {
+      console.log(`🌟 Transitioning to Solar View: ${doc.name || doc.title}`);
+      logEvent(`Entering Solar View: ${doc.name || doc.title}`);
+      
+      currentView = 'solar';
+      currentDocument = doc;
+      viewStack.push('solar');
+      
+      updateBreadcrumbs();
+      
+      // Fetch full ontology if not already loaded
+      if (!doc.concepts || doc.concepts.length === 0) {
+        try {
+          const response = await fetch(`${API_BASE}/doc/${doc.id}/ontology`);
+          if (!response.ok) throw new Error(`Failed to fetch ontology: ${response.status}`);
+          
+          const ontology = await response.json();
+          doc.concepts = ontology.concepts || [];
+          doc.relations = ontology.relations || [];
+          
+          console.log(`✅ Loaded ${doc.concepts.length} concepts, ${doc.relations.length} relations`);
+        } catch (error) {
+          console.error('❌ Failed to load document ontology:', error);
+          logEvent(`Failed to load ${doc.name}: ${error.message}`);
+          return;
+        }
+      }
+      
+      renderSolarView(doc);
+    }
+    
+    /**
+     * Render Solar View - single document's ontology
+     * @param {Object} doc - Document with concepts and relations
+     */
+    function renderSolarView(doc) {
+      try {
+        console.log(`🌟 Rendering Solar View: ${doc.name || doc.title}`);
+        logEvent(`Rendering Solar View...`);
+        
+        const svg = d3.select('#ontologySvg');
+        const width = document.getElementById('ontologyPanel').clientWidth;
+        const height = document.getElementById('ontologyPanel').clientHeight;
+        
+        svg.attr('width', width).attr('height', height);
+        svg.selectAll('*').remove();
+        
+        const g = svg.append('g');
+        
+        // Prepare nodes and links for single document
+        const nodes = [];
+        const links = [];
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+        const docColor = colorScale(0);
+        
+        // Add document center node
+        nodes.push({
+          id: `doc_${doc.id}`,
+          label: doc.name || doc.title,
+          type: 'document',
+          color: docColor,
+          size: 20,
+          docId: doc.id
+        });
+        
+        // Add concept nodes
+        doc.concepts.forEach(concept => {
+          nodes.push({
+            id: concept.id,
+            label: concept.label,
+            type: concept.type || 'concept',
+            color: docColor,
+            size: 10,
+            docId: doc.id,
+            docName: doc.name || doc.title,
+            conceptData: concept
+          });
+          
+          // Link to document center
+          links.push({
+            source: `doc_${doc.id}`,
+            target: concept.id,
+            type: 'contains'
+          });
+        });
+        
+        // Add relation links
+        doc.relations.forEach(rel => {
+          links.push({
+            source: rel.src,
+            target: rel.dst,
+            type: rel.rel || 'relates',
+            label: rel.rel
+          });
+        });
+        
+        console.log(`🔵 Solar View: ${nodes.length} nodes, ${links.length} links`);
+        
+        // Create force simulation (tighter for single document)
+        const simulation = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(links)
+            .id(d => d.id)
+            .distance(d => d.type === 'contains' ? 80 : 60))
+          .force('charge', d3.forceManyBody().strength(-150))
+          .force('center', d3.forceCenter(width / 2, height / 2).strength(0.2))
+          .force('collision', d3.forceCollide().radius(d => d.size + 5));
+        
+        // Draw links
+        const link = g.append('g')
+          .selectAll('line')
+          .data(links)
+          .join('line')
+          .attr('stroke', d => d.type === 'contains' ? '#4a5568' : '#718096')
+          .attr('stroke-opacity', d => d.type === 'contains' ? 0.3 : 0.6)
+          .attr('stroke-width', d => d.type === 'contains' ? 1 : 2);
+        
+        // Draw nodes
+        const node = g.append('g')
+          .selectAll('circle')
+          .data(nodes)
+          .join('circle')
+          .attr('r', d => d.size)
+          .attr('fill', d => d.color)
+          .attr('stroke', '#fff')
+          .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5)
+          .style('cursor', 'pointer')
+          .call(d3.drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended));
+        
+        // Add labels for all nodes
+        const label = g.append('g')
+          .selectAll('text')
+          .data(nodes)
+          .join('text')
+          .text(d => d.label)
+          .attr('font-size', d => d.type === 'document' ? 14 : 11)
+          .attr('font-weight', d => d.type === 'document' ? 'bold' : 'normal')
+          .attr('fill', '#e2e8f0')
+          .attr('text-anchor', 'middle')
+          .attr('dy', d => d.type === 'document' ? -25 : -15)
+          .style('pointer-events', 'none');
+        
+        // Node interactions
+        node.on('click', function(event, d) {
+          if (d.type !== 'document') {
+            // Any node that's not a document is a concept
+            transitionToPlanetView(d);
+          }
+        });
+        
+        // Update positions
+        simulation.on('tick', () => {
+          link
+            .attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+          
+          node
+            .attr('cx', d => d.x)
+            .attr('cy', d => d.y);
+          
+          label
+            .attr('x', d => d.x)
+            .attr('y', d => d.y);
+        });
+        
+        // Drag functions
+        function dragstarted(event, d) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+          d.fx = event.x;
+          d.fy = event.y;
+        }
+        
+        function dragended(event, d) {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+        }
+        
+        // Add zoom
+        const zoom = d3.zoom()
+          .scaleExtent([0.1, 4])
+          .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+          });
+        
+        svg.call(zoom);
+        
+        console.log('✅ Solar View rendered');
+        logEvent('Solar View rendered');
+        
+      } catch (error) {
+        console.error('❌ Solar View render error:', error);
+        logEvent(`Solar View failed: ${error.message}`);
+      }
+    }
+    
+    /**
+     * Transition to Planet View (concept details)
+     * @param {Object} conceptNode - D3 node data with concept info
+     */
+    function transitionToPlanetView(conceptNode) {
+      console.log(`🪐 Transitioning to Planet View: ${conceptNode.label}`);
+      logEvent(`Entering Planet View: ${conceptNode.label}`);
+      
+      currentView = 'planet';
+      currentConcept = conceptNode.conceptData;
+      viewStack.push('planet');
+      
+      updateBreadcrumbs();
+      
+      // Highlight the concept in visualization
+      d3.selectAll('circle')
+        .attr('stroke', d => d.id === conceptNode.id ? '#fbbf24' : '#fff')
+        .attr('stroke-width', d => d.id === conceptNode.id ? 4 : (d.type === 'document' ? 3 : 1.5));
+      
+      // Display concept details in right panel
+      renderPlanetView(conceptNode);
+    }
+    
+    /**
+     * Render Planet View - concept details in right panel
+     * @param {Object} conceptNode - Concept node with full data
+     */
+    function renderPlanetView(conceptNode) {
+      const contextPanel = document.getElementById('contextPanel');
+      const concept = conceptNode.conceptData;
+      
+      let html = `
+        <h3>🪐 Concept Details</h3>
+        <div style="margin-top: 20px;">
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">LABEL</div>
+            <div style="color: #e2e8f0; font-size: 18px; font-weight: 600;">${concept.label}</div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">TYPE</div>
+            <div style="color: #63b3ed; font-size: 14px;">${concept.type}</div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">CONFIDENCE</div>
+            <div style="color: #10b981; font-size: 14px;">${(concept.confidence * 100).toFixed(0)}%</div>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">SOURCE DOCUMENT</div>
+            <div style="color: #e2e8f0; font-size: 14px;">${conceptNode.docName}</div>
+          </div>
+      `;
+      
+      if (concept.aliases && concept.aliases !== '[]') {
+        try {
+          const aliases = JSON.parse(concept.aliases);
+          if (aliases.length > 0) {
+            html += `
+              <div style="margin-bottom: 20px;">
+                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">ALIASES</div>
+                <div style="color: #e2e8f0; font-size: 14px;">${aliases.join(', ')}</div>
+              </div>
+            `;
+          }
+        } catch (e) {}
+      }
+      
+      if (concept.tags && concept.tags !== '[]') {
+        try {
+          const tags = JSON.parse(concept.tags);
+          if (tags.length > 0) {
+            html += `
+              <div style="margin-bottom: 20px;">
+                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">TAGS</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+            `;
+            tags.forEach(tag => {
+              html += `<span style="background: #2d3748; padding: 4px 12px; border-radius: 12px; font-size: 12px; color: #94a3b8;">${tag}</span>`;
+            });
+            html += `</div></div>`;
+          }
+        } catch (e) {}
+      }
+      
+      html += `
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #2d3748;">
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">METADATA</div>
+            <div style="color: #64748b; font-size: 12px;">
+              Model: ${concept.model_name || 'N/A'}<br>
+              ID: ${concept.id}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      contextPanel.innerHTML = html;
+      
+      console.log('✅ Planet View rendered');
+      logEvent('Planet View rendered');
+    }
+
+    
+    // ============================================================================
+    // HIERARCHICAL NAVIGATION (Galaxy → Solar → Planet)
+    // ============================================================================
+    // ============================================================================
+    // MVP FUNCTIONALITY (Active)
+    // ============================================================================
+    
+    /**
+     * Set the active view mode (Categories / Concepts / Galaxy)
+     */
+    function setViewMode(mode) {
+      currentMode = mode;
+      logEvent(`View mode changed to: ${mode}`);
+      console.log('✓ View mode set to:', mode);
+      
+      // Update status display
+      const statusEl = document.getElementById('centerStatus');
+      statusEl.textContent = `Active Mode: ${mode.charAt(0).toUpperCase() + mode.slice(1)}`;
+      
+      // Update button states
+      document.querySelectorAll('#viewModes button').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.mode === mode) {
+          btn.classList.add('active');
+        }
+      });
+      
+      // Trigger visualization based on mode
+      if (mode === 'galaxy' && galaxyData && galaxyData.documents.length > 0) {
+        renderGalaxy(galaxyData);
+      }
+      // TODO: Add handlers for 'categories' and 'concepts' modes in future
+    }
+    
+    /**
+     * Handle search input
+     */
+    function handleSearchInput(query) {
+      if (query.length === 0) {
+        // Clear search highlights and results
+        clearSearchHighlights();
+        document.getElementById('contextPanel').innerHTML = '<p style="color: #94a3b8; padding: 20px;">Context Viewer / Evidence Preview</p>';
+        return;
+      }
+      
+      logEvent(`Search: "${query}"`);
+      console.log('🔍 Search query:', query);
+      
+      if (!galaxyData || !galaxyData.documents) {
+        console.warn('⚠️  No data loaded for search');
+        return;
+      }
+      
+      // Search across all concepts
+      const matches = [];
+      const queryLower = query.toLowerCase();
+      
+      galaxyData.documents.forEach(doc => {
+        doc.concepts.forEach(concept => {
+          // Check both name and label fields
+          const text = (concept.name || concept.label || '').toLowerCase();
+          if (text.includes(queryLower)) {
+            matches.push({
+              concept: concept,
+              docName: doc.name,
+              docId: doc.id
+            });
+          }
+        });
+      });
+      
+      console.log(`🔍 Search '${query}' → ${matches.length} matches`);
+      
+      // Display results in context panel
+      displaySearchResults(matches, query);
+      
+      // Highlight matching nodes in Galaxy view
+      highlightSearchMatches(matches);
+    }
+    
+    /**
+     * Display search results in the right panel
+     */
+    function displaySearchResults(matches, query) {
+      const contextPanel = document.getElementById('contextPanel');
+      
+      if (matches.length === 0) {
+        contextPanel.innerHTML = `
+          <div style="padding: 20px; color: #94a3b8;">
+            <h3 style="color: #e2e8f0; margin-bottom: 10px;">🔍 Search Results</h3>
+            <p>No results found for "${query}"</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <div style="padding: 20px;">
+          <h3 style="color: #e2e8f0; margin-bottom: 15px;">🔍 Search Results (${matches.length})</h3>
+          <div style="max-height: calc(100vh - 150px); overflow-y: auto;">
+      `;
+      
+      matches.forEach((match, index) => {
+        html += `
+          <div style="
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+          " onmouseover="this.style.background='#334155'" onmouseout="this.style.background='#1e293b'">
+            <div style="color: #60a5fa; font-weight: 600; margin-bottom: 4px;">
+              ${match.concept.name || match.concept.label}
+            </div>
+            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 4px;">
+              Type: ${match.concept.type || 'Unknown'}
+            </div>
+            <div style="color: #64748b; font-size: 11px;">
+              📄 ${match.docName}
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div></div>';
+      contextPanel.innerHTML = html;
+      
+      console.log(`✅ Displayed ${matches.length} search results in context panel`);
+    }
+    
+    /**
+     * Highlight matching nodes in the Galaxy visualization
+     */
+    function highlightSearchMatches(matches) {
+      if (matches.length === 0) {
+        clearSearchHighlights();
+        return;
+      }
+      
+      // Get matching concept IDs
+      const matchIds = new Set(matches.map(m => m.concept.id));
+      
+      // Update node styles
+      d3.selectAll('.galaxy-node')
+        .transition()
+        .duration(300)
+        .attr('fill', function(d) {
+          if (d.type === 'document') return d.color; // Don't highlight document nodes
+          return matchIds.has(d.conceptData?.id) ? '#fbbf24' : d.color; // Yellow for matches
+        })
+        .attr('r', function(d) {
+          if (d.type === 'document') return d.size;
+          return matchIds.has(d.conceptData?.id) ? d.size * 1.8 : d.size;
+        })
+        .attr('stroke-width', function(d) {
+          return matchIds.has(d.conceptData?.id) ? 3 : (d.type === 'document' ? 3 : 1.5);
+        });
+      
+      console.log(`✅ Highlighted ${matches.length} nodes in Galaxy`);
+    }
+    
+    /**
+     * Clear search highlights from Galaxy visualization
+     */
+    function clearSearchHighlights() {
+      d3.selectAll('.galaxy-node')
+        .transition()
+        .duration(300)
+        .attr('fill', d => d.color)
+        .attr('r', d => d.size)
+        .attr('stroke-width', d => d.type === 'document' ? 3 : 1.5);
+    }
+    
+    /**
+     * Log an event to the diagnostic panel
+     */
+    function logEvent(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      eventLogEntries.unshift(`${timestamp} - ${message}`);
+      if (eventLogEntries.length > 10) eventLogEntries.pop();
+      
+      const eventLog = document.getElementById('eventLog');
+      if (eventLog) {
+        eventLog.innerHTML = eventLogEntries.map(e => `<div class="event">${e}</div>`).join('');
+      }
+    }
+    
+    /**
+     * Run diagnostic checks
+     */
+    function runDiagnostic() {
+      const diagnosticContent = document.getElementById('diagnosticContent');
+      const checks = {
+        'd3': typeof d3 !== 'undefined',
+        'ontologyPanel': !!document.getElementById('ontologyPanel'),
+        'ontologySvg': !!document.getElementById('ontologySvg'),
+        'searchInput': !!document.getElementById('searchInput'),
+        'ontologyNavigator': !!document.getElementById('ontologyNavigator'),
+        'contextPanel': !!document.getElementById('contextPanel'),
+        'searchResults': !!document.getElementById('searchResults')
+      };
+      
+      let html = '';
+      for (const [key, value] of Object.entries(checks)) {
+        html += `<div class="status ${value ? 'pass' : 'fail'}">${value ? '✅' : '❌'} ${key}</div>`;
+      }
+      
+      diagnosticContent.innerHTML = html;
+      
+      console.log('=== DIAGNOSTIC RESULTS ===');
+      console.log('Containers:', checks);
+      console.log('D3 version:', d3.version);
+      
+      logEvent('System initialized');
+      
+      return checks;
+    }
+    
+    /**
+     * Render test D3 visualization
+     */
+    function renderTestVisualization() {
+      console.log('=== RENDERING TEST VISUALIZATION ===');
+      
+      const svg = d3.select('#ontologySvg');
+      const width = document.getElementById('ontologyPanel').clientWidth;
+      const height = document.getElementById('ontologyPanel').clientHeight;
+      
+      console.log('SVG dimensions:', width, 'x', height);
+      
+      svg.attr('width', width)
+         .attr('height', height);
+      
+      // Clear any existing content
+      svg.selectAll('*').remove();
+      
+      // Draw test circle
+      svg.append('circle')
+         .attr('cx', width / 2)
+         .attr('cy', height / 2)
+         .attr('r', 80)
+         .attr('fill', '#3182ce')
+         .attr('stroke', '#63b3ed')
+         .attr('stroke-width', 3)
+         .style('opacity', 0)
+         .transition()
+         .duration(800)
+         .style('opacity', 1);
+      
+      // Add text
+      svg.append('text')
+         .attr('x', width / 2)
+         .attr('y', height / 2)
+         .attr('text-anchor', 'middle')
+         .attr('dominant-baseline', 'middle')
+         .attr('fill', '#e2e8f0')
+         .attr('font-size', '18px')
+         .attr('font-weight', 'bold')
+         .style('opacity', 0)
+         .text('MVP Ready')
+         .transition()
+         .duration(800)
+         .delay(200)
+         .style('opacity', 1);
+      
+      // Add subtitle
+      svg.append('text')
+         .attr('x', width / 2)
+         .attr('y', height / 2 + 30)
+         .attr('text-anchor', 'middle')
+         .attr('fill', '#a0aec0')
+         .attr('font-size', '14px')
+         .style('opacity', 0)
+         .text('D3 Rendering Active')
+         .transition()
+         .duration(800)
+         .delay(400)
+         .style('opacity', 1);
+      
+      console.log('✅ Test visualization rendered successfully');
+      logEvent('D3 visualization rendered');
+    }
+    
+    /**
+     * Setup event listeners
+     */
+    function setupEventListeners() {
+      // Search input
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          handleSearchInput(e.target.value.trim());
+        });
+        console.log('✓ Search input listener attached');
+      }
+      
+      // View mode buttons
+      document.querySelectorAll('#viewModes button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.mode;
+          setViewMode(mode);
+        });
+      });
+      console.log('✓ View mode button listeners attached');
+      
+      // Back button
+      const backButton = document.getElementById('backButton');
+      if (backButton) {
+        backButton.addEventListener('click', navigateBack);
+        console.log('✓ Back button listener attached');
+      }
+      
+      logEvent('Event listeners attached');
+    }
+    
+    /**
+     * Initialize the application
+     */
+    async function init() {
+      console.log('=== INITIALIZING MVP ===');
+      
+      // Run diagnostic
+      const checks = runDiagnostic();
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      // Load and render data
+      if (checks.ontologyPanel && checks.ontologySvg) {
+        // Load all documents and ontologies (assign to global variable)
+        galaxyData = await loadAllData();
+        
+        if (galaxyData.documents.length > 0) {
+          // Render Galaxy View
+          renderGalaxy(galaxyData);
+        } else {
+          // No documents yet, show welcome message
+          renderTestVisualization();
+        }
+      } else {
+        console.error('❌ Required containers not found!');
+      }
+      
+      console.log('=== INITIALIZATION COMPLETE ===');
+      console.log('Current mode:', currentMode);
+      console.log('Ready for development!');
+    }
+    
+    // ============================================================================
+    // UPLOAD FUNCTIONALITY
+    // ============================================================================
+    
+    const uploadModal = document.getElementById('uploadModal');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const closeUploadBtn = document.getElementById('closeUploadBtn');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadList = document.getElementById('uploadList');
+    const submitUploadBtn = document.getElementById('submitUploadBtn');
+    
+    let selectedFiles = [];
+    
+    // Open modal
+    uploadBtn.addEventListener('click', () => {
+      uploadModal.classList.add('active');
+      logEvent('Upload modal opened');
+    });
+    
+    // Close modal
+    closeUploadBtn.addEventListener('click', closeUploadModal);
+    cancelUploadBtn.addEventListener('click', closeUploadModal);
+    uploadModal.addEventListener('click', (e) => {
+      if (e.target === uploadModal) closeUploadModal();
+    });
+    
+    function closeUploadModal() {
+      uploadModal.classList.remove('active');
+      selectedFiles = [];
+      uploadList.innerHTML = '';
+      submitUploadBtn.disabled = true;
+      logEvent('Upload modal closed');
+    }
+    
+    // Dropzone click
+    dropzone.addEventListener('click', () => {
+      fileInput.click();
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+    });
+    
+    // Drag and drop
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    
+    function handleFiles(files) {
+      for (let file of files) {
+        // Check if already added
+        if (selectedFiles.find(f => f.name === file.name)) continue;
+        
+        // Validate file type
+        const validTypes = ['.pdf', '.txt', '.docx', '.md', '.zip'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!validTypes.includes(ext)) {
+          alert(`File type not supported: ${file.name}`);
+          continue;
+        }
+        
+        selectedFiles.push({
+          file: file,
+          name: file.name,
+          size: file.size,
+          status: 'pending'
+        });
+      }
+      
+      renderUploadList();
+      submitUploadBtn.disabled = selectedFiles.length === 0;
+      logEvent(`${selectedFiles.length} file(s) selected`);
+    }
+    
+    function renderUploadList() {
+      uploadList.innerHTML = '';
+      
+      selectedFiles.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'upload-item';
+        div.innerHTML = `
+          <div class="upload-item-info">
+            <div>
+              <div class="upload-item-name">${escapeHtml(item.name)}</div>
+              <div class="upload-item-size">${formatFileSize(item.size)}</div>
+            </div>
+          </div>
+          <span class="upload-item-status ${item.status}">${getStatusText(item.status)}</span>
+        `;
+        uploadList.appendChild(div);
+      });
+    }
+    
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    function getStatusText(status) {
+      const texts = {
+        pending: 'Pending',
+        uploading: 'Uploading...',
+        success: 'Success',
+        error: 'Error'
+      };
+      return texts[status] || status;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // Submit upload
+    submitUploadBtn.addEventListener('click', async () => {
+      submitUploadBtn.disabled = true;
+      logEvent(`Uploading ${selectedFiles.length} file(s)`);
+      
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const item = selectedFiles[i];
+        
+        // Update status to uploading
+        item.status = 'uploading';
+        renderUploadList();
+        
+        try {
+          // Read file as base64
+          const base64 = await fileToBase64(item.file);
+          
+          // Send to N8N webhook
+          logEvent(`Uploading ${item.name} to N8N...`);
+          const response = await fetch(N8N_WEBHOOK, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              file: base64,
+              filename: item.name,
+              title: item.name.replace(/\.[^/.]+$/, '') // Remove extension
+            })
+          });
+          
+          if (response.ok) {
+            item.status = 'success';
+            const result = await response.json();
+            console.log('Upload successful:', result);
+            logEvent(`✓ ${item.name} uploaded`);
+          } else {
+            item.status = 'error';
+            console.error('Upload failed:', response.statusText);
+            logEvent(`✗ ${item.name} failed`);
+          }
+        } catch (error) {
+          item.status = 'error';
+          console.error('Upload error:', error);
+          logEvent(`✗ ${item.name} error`);
+        }
+        
+        renderUploadList();
+      }
+      
+      // Check if all succeeded
+      const allSuccess = selectedFiles.every(f => f.status === 'success');
+      
+      if (allSuccess) {
+        logEvent('All uploads successful!');
+        setTimeout(async () => {
+          closeUploadModal();
+          // Reload and re-render Galaxy View
+          const galaxyData = await loadAllData();
+          if (galaxyData.documents.length > 0) {
+            renderGalaxy(galaxyData);
+          }
+        }, 1500);
+      } else {
+        submitUploadBtn.disabled = false;
+        submitUploadBtn.textContent = 'Retry Failed';
+      }
+    });
+    
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Remove data:*/*;base64, prefix
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // Run on load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
+
