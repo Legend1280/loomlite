@@ -150,11 +150,12 @@ function buildSemanticHierarchy(rootNode, concepts, relations) {
       });
     });
     
-    // Collapse clusters with children initially
-    if (clusterNode.children.length > 0) {
-      clusterNode._children = clusterNode.children;
-      clusterNode.children = null;
-    }
+    // DEBUG: Keep clusters expanded initially for verification
+    // if (clusterNode.children.length > 0) {
+    //   clusterNode._children = clusterNode.children;
+    //   clusterNode.children = null;
+    // }
+    console.log(`✅ Cluster "${clusterNode.name}" has ${clusterNode.children.length} children`);
     
     rootNode.children.push(clusterNode);
   });
@@ -216,7 +217,9 @@ function buildHierarchy() {
   // Build hierarchy using parent_cluster_id
   if (concepts.some(c => c.parent_cluster_id || c.hierarchy_level !== undefined)) {
     // New hierarchical structure (v2.3)
-    return buildSemanticHierarchy(rootNode, concepts, relations);
+    const hierarchyTree = buildSemanticHierarchy(rootNode, concepts, relations);
+    console.log('🌳 Hierarchy build output:', hierarchyTree);
+    return hierarchyTree;
   }
   
   // Fallback: Group concepts by type (legacy flat structure)
@@ -328,8 +331,13 @@ function createMindMapVisualization(container) {
   const hierarchyData = buildHierarchy();
   root = d3.hierarchy(hierarchyData);
   
-  // Collapse all nodes except root
-  root.children?.forEach(collapse);
+  // DEBUG: Keep all nodes expanded for verification
+  // root.children?.forEach(collapse);
+  console.log('📊 Initial hierarchy:', {
+    total_nodes: root.descendants().length,
+    root_children: root.children?.length,
+    visible_concepts: root.children?.flatMap(c => c.children || []).length
+  });
   
   // Initial render
   update(root);
@@ -372,6 +380,8 @@ function update(source) {
   const treeData = tree(root);
   const nodes = treeData.descendants();
   const links = treeData.links();
+  
+  console.log('🔄 Update called - Rendered nodes:', nodes.length, 'links:', links.length);
   
   // Update nodes
   const node = g.selectAll('g.node')
