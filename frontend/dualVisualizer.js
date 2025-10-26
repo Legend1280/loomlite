@@ -52,7 +52,15 @@ function renderForceGraph(svg, data) {
   
   // Prepare data
   const concepts = data.concepts || [];
-  const relations = data.relations || [];
+  
+  // Transform relations: map 'src' -> 'source' and 'dst' -> 'target' for D3
+  const relations = (data.relations || []).map(r => ({
+    ...r,
+    source: r.src,
+    target: r.dst
+  }));
+  
+  console.log(`📊 Rendering ${concepts.length} concepts and ${relations.length} relations`);
   
   // Create force simulation
   const simulation = d3.forceSimulation(concepts)
