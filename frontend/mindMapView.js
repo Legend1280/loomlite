@@ -541,13 +541,20 @@ function diagonal(s, d) {
 function handleNodeClick(d) {
   // Node clicked
   
-  // If it's a concept node (not category), emit concept selected
-  if (d.data.concept) {
-    // Concept selected
+  // Emit selection event with nodeType for proper Surface Viewer handling
+  if (d.data.concept || d.data.type === 'document') {
+    const nodeType = d.data.type || 'concept';  // 'document', 'cluster', 'refinement', or 'concept'
+    const hierarchyLevel = d.data.hierarchyLevel;
+    
+    console.log(`🎯 Mind Map node clicked: ${d.data.name} (type: ${nodeType}, level: ${hierarchyLevel})`);
+    
     bus.emit('conceptSelected', {
       conceptId: d.data.id,
       docId: currentDocId,
-      concept: d.data.concept
+      concept: d.data.concept,
+      nodeType: nodeType,
+      hierarchyLevel: hierarchyLevel,
+      summary: d.data.summary || null
     });
   }
   

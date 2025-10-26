@@ -39,8 +39,22 @@ export function initSurfaceViewer() {
   
   // Listen for conceptSelected events via event bus
   bus.on('conceptSelected', (event) => {
-    const { concept, conceptId } = event.detail;
-    if (concept) {
+    const { concept, conceptId, nodeType, hierarchyLevel, summary } = event.detail;
+    
+    console.log(`📡 Surface Viewer received selection:`, { conceptId, nodeType, hierarchyLevel });
+    
+    // Handle different node types
+    if (nodeType === 'document') {
+      // Document root clicked - show document summary
+      handleDocumentSelection(event.detail);
+    } else if (nodeType === 'cluster' || hierarchyLevel === 1) {
+      // Cluster clicked - show cluster summary + highlight all concepts in cluster
+      handleClusterSelection(event.detail);
+    } else if (nodeType === 'refinement' || hierarchyLevel === 2) {
+      // Refinement clicked - show refinement summary + highlight concepts
+      handleRefinementSelection(event.detail);
+    } else if (concept) {
+      // Regular concept clicked
       handleConceptSelection(concept);
     } else if (conceptId) {
       // Fetch concept details if only ID provided
@@ -215,6 +229,79 @@ function switchMode(mode) {
         content.style.opacity = '1';
       }, 50);
     }, 200);
+  }
+}
+
+/**
+ * Handle document root selection
+ */
+async function handleDocumentSelection(eventDetail) {
+  const { docId, concept, summary } = eventDetail;
+  console.log(`📝 Document root selected: ${concept?.title || docId}`);
+  
+  currentDocId = docId;
+  currentConcept = concept;
+  selectedConceptId = null;
+  
+  if (currentMode === 'ontology') {
+    // Show document summary in ontology mode
+    const content = document.getElementById('surface-viewer-content');
+    if (content && summary) {
+      content.innerHTML = `
+        <div style="padding: 24px; background: #0f172a;">
+          <h3 style="font-size: 18px; margin-bottom: 16px; color: #818cf8; font-weight: 600;">${concept?.title || 'Document'}</h3>
+          <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #4f46e5;">
+            <div style="color: #818cf8; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 DOCUMENT SUMMARY</div>
+            <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">${summary}</div>
+          </div>
+        </div>
+      `;
+    }
+  } else if (currentMode === 'document') {
+    // In document mode, just load the text without highlighting
+    await renderDocumentMode(docId);
+  }
+}
+
+/**
+ * Handle cluster selection
+ */
+async function handleClusterSelection(eventDetail) {
+  const { conceptId, concept, summary, docId } = eventDetail;
+  console.log(`📦 Cluster selected: ${concept?.label || conceptId}`);
+  
+  currentConcept = concept;
+  currentDocId = docId || currentDocId;
+  selectedConceptId = conceptId;
+  
+  if (currentMode === 'ontology') {
+    // Show cluster summary
+    renderOntologyMode(concept || { id: conceptId, label: concept?.label || 'Cluster', summary, hierarchy_level: 1 });
+  } else if (currentMode === 'document') {
+    await renderDocumentMode(currentDocId);
+    // Highlight all concepts in this cluster
+    await highlightCluster(conceptId);
+  }
+}
+
+/**
+ * Handle refinement selection
+ */
+async function handleRefinementSelection(eventDetail) {
+  const { conceptId, concept, summary, docId } = eventDetail;
+  console.log(`🔹 Refinement selected: ${concept?.label || conceptId}`);
+  
+  currentConcept = concept;
+  currentDocId = docId || currentDocId;
+  selectedConceptId = conceptId;
+  
+  if (currentMode === 'ontology') {
+    // Show refinement summary
+    renderOntologyMode(concept || { id: conceptId, label: concept?.label || 'Refinement', summary, hierarchy_level: 2 });
+  } else if (currentMode === 'document') {
+    await renderDocumentMode(currentDocId);
+    // Highlight all concepts under this refinement
+    await highlightRefinement(conceptId);
   }
 }
 
@@ -632,6 +719,96 @@ async function highlightConceptWithDescendants(conceptId) {
   
   // Scroll to first occurrence of selected concept
   const firstSpan = content.querySelector(`.concept-span[data-concept-id="${conceptId}"]`);
+  if (firstSpan) {
+    firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+/**
+ * Highlight all concepts in a cluster (for cluster selection)
+ */
+async function highlightCluster(clusterId) {
+  const content = document.getElementById('surface-viewer-content');
+  if (!content) return;
+  
+  // Find all concepts that belong to this cluster
+  const clusterConcepts = allConcepts.filter(c => 
+    c.parent_cluster_id === clusterId || c.id === clusterId
+  );
+  
+  const clusterConceptIds = new Set(clusterConcepts.map(c => c.id));
+  
+  console.log(`🎨 Highlighting cluster ${clusterId} with ${clusterConcepts.length} concepts`);
+  
+  // Reset all spans
+  content.querySelectorAll('.concept-span').forEach(span => {
+    span.classList.remove('selected');
+    span.style.background = 'transparent';
+    span.style.borderBottom = 'none';
+    span.style.fontWeight = '400';
+    span.style.color = '#cbd5e1';
+    span.dataset.opacity = '0';
+  });
+  
+  // Highlight cluster concepts with soft glow (25% opacity)
+  clusterConceptIds.forEach(id => {
+    const spans = content.querySelectorAll(`.concept-span[data-concept-id="${id}"]`);
+    spans.forEach(span => {
+      span.style.background = `rgba(251, 191, 36, 0.25)`;
+      span.style.borderBottom = `2px solid rgba(251, 191, 36, 0.5)`;
+      span.style.fontWeight = '500';
+      span.style.color = '#fbbf24';
+      span.dataset.opacity = '0.25';
+    });
+  });
+  
+  // Scroll to first occurrence
+  const firstSpan = content.querySelector(`.concept-span[data-concept-id]`);
+  if (firstSpan) {
+    firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+/**
+ * Highlight all concepts under a refinement (for refinement selection)
+ */
+async function highlightRefinement(refinementId) {
+  const content = document.getElementById('surface-viewer-content');
+  if (!content) return;
+  
+  // Find all concepts that belong to this refinement
+  const refinementConcepts = allConcepts.filter(c => 
+    c.parent_concept_id === refinementId || c.id === refinementId
+  );
+  
+  const refinementConceptIds = new Set(refinementConcepts.map(c => c.id));
+  
+  console.log(`🎨 Highlighting refinement ${refinementId} with ${refinementConcepts.length} concepts`);
+  
+  // Reset all spans
+  content.querySelectorAll('.concept-span').forEach(span => {
+    span.classList.remove('selected');
+    span.style.background = 'transparent';
+    span.style.borderBottom = 'none';
+    span.style.fontWeight = '400';
+    span.style.color = '#cbd5e1';
+    span.dataset.opacity = '0';
+  });
+  
+  // Highlight refinement concepts with medium glow (30% opacity)
+  refinementConceptIds.forEach(id => {
+    const spans = content.querySelectorAll(`.concept-span[data-concept-id="${id}"]`);
+    spans.forEach(span => {
+      span.style.background = `rgba(251, 191, 36, 0.3)`;
+      span.style.borderBottom = `2px solid rgba(251, 191, 36, 0.6)`;
+      span.style.fontWeight = '500';
+      span.style.color = '#fbbf24';
+      span.dataset.opacity = '0.3';
+    });
+  });
+  
+  // Scroll to first occurrence
+  const firstSpan = content.querySelector(`.concept-span[data-concept-id]`);
   if (firstSpan) {
     firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
