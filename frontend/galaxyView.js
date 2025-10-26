@@ -310,9 +310,11 @@ function truncateTitle(title, maxLength) {
 function drillDownToSolarSystem(node) {
   console.log(`🔭 Drilling down to Solar System: ${node.title}`);
   
-  // Emit event to switch to Solar System view
+  // Auto-switch to Split mode (Solar + Document)
+  bus.emit('viewModeChanged', { mode: 'split' });
+  
+  // Emit event to load document
   bus.emit('documentFocus', { docId: node.id });
-  bus.emit('viewModeChanged', { mode: 'solar' });
 }
 
 /**

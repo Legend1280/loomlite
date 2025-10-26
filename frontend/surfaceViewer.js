@@ -8,7 +8,7 @@
 import { bus, setCurrentConceptId } from './eventBus.js';
 
 // Global state
-let currentMode = 'ontology'; // 'ontology' or 'document'
+let currentMode = 'document'; // 'ontology' or 'document' - default to document (Reader Mode)
 let currentConcept = null;
 let currentDocId = null;
 let documentText = null;
@@ -41,6 +41,19 @@ export function initSurfaceViewer() {
       // Fetch concept details if only ID provided
       fetchAndDisplayConcept(conceptId);
     }
+  });
+  
+  // Listen for documentFocus events to load document in Reader Mode
+  bus.on('documentFocus', async (event) => {
+    const { docId } = event.detail;
+    currentDocId = docId;
+    
+    // Always start in Document Mode when loading a new document
+    currentMode = 'document';
+    updateModeButtons();
+    
+    // Load document text
+    await renderDocumentMode(docId);
   });
   
   console.log('✅ Enhanced Surface Viewer initialized');
@@ -80,8 +93,8 @@ function renderHeader(container) {
     gap: 4px;
   `;
   
-  const ontologyBtn = createModeButton('Ontology', 'ontology', true);
-  const documentBtn = createModeButton('Document', 'document', false);
+  const ontologyBtn = createModeButton('Ontology', 'ontology', false);
+  const documentBtn = createModeButton('Document', 'document', true);
   
   modeToggle.appendChild(ontologyBtn);
   modeToggle.appendChild(documentBtn);
@@ -182,11 +195,25 @@ function switchMode(mode) {
     }
   });
   
-  // Re-render content based on mode
-  if (mode === 'ontology' && currentConcept) {
-    renderOntologyMode(currentConcept);
-  } else if (mode === 'document' && currentDocId) {
-    renderDocumentMode(currentDocId);
+  // Smooth fade transition (200ms)
+  const content = document.getElementById('surface-viewer-content');
+  if (content) {
+    content.style.opacity = '0';
+    content.style.transition = 'opacity 0.2s';
+    
+    setTimeout(() => {
+      // Re-render content based on mode
+      if (mode === 'ontology' && currentConcept) {
+        renderOntologyMode(currentConcept);
+      } else if (mode === 'document' && currentDocId) {
+        renderDocumentMode(currentDocId);
+      }
+      
+      // Fade in
+      setTimeout(() => {
+        content.style.opacity = '1';
+      }, 50);
+    }, 200);
   }
   
   const endTime = performance.now();
@@ -352,9 +379,9 @@ function renderHighlightedText(text, spans) {
       highlightedHTML += escapeHtml(text.substring(lastIndex, span.start));
     }
     
-    // Add highlighted span
+    // Add highlighted span with subtle Reader Mode styling
     const spanText = text.substring(span.start, span.end);
-    highlightedHTML += `<mark class="evidence-span" data-concept-id="${span.concept_id}" style="background: #fbbf24; color: #1e293b; padding: 2px 4px; border-radius: 2px; cursor: pointer; text-decoration: underline;">${escapeHtml(spanText)}</mark>`;
+    highlightedHTML += `<mark class="evidence-span" data-concept-id="${span.concept_id}" style="background: rgba(59,130,246,0.15); color: #e2e8f0; padding: 2px 4px; border-radius: 3px; cursor: pointer; border-bottom: 1px solid rgba(59,130,246,0.4); transition: all 0.2s;">${escapeHtml(spanText)}</mark>`;
     
     lastIndex = span.end;
   });
@@ -364,11 +391,21 @@ function renderHighlightedText(text, spans) {
     highlightedHTML += escapeHtml(text.substring(lastIndex));
   }
   
-  // Render
+  // Render with Reader Mode styling
   content.innerHTML = `
-    <div style="white-space: pre-wrap; word-wrap: break-word; font-size: 13px; line-height: 1.8;">
+    <article style="
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 17px;
+      line-height: 1.7;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    ">
       ${highlightedHTML}
-    </div>
+    </article>
   `;
   
   // Add click handlers to highlighted spans
@@ -379,11 +416,13 @@ function renderHighlightedText(text, spans) {
     });
     
     span.addEventListener('mouseenter', () => {
-      span.style.background = '#f59e0b';
+      span.style.background = 'rgba(59,130,246,0.3)';
+      span.style.borderBottom = '1px solid rgba(59,130,246,0.7)';
     });
     
     span.addEventListener('mouseleave', () => {
-      span.style.background = '#fbbf24';
+      span.style.background = 'rgba(59,130,246,0.15)';
+      span.style.borderBottom = '1px solid rgba(59,130,246,0.4)';
     });
   });
 }

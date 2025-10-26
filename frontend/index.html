@@ -504,13 +504,25 @@
         console.error('❌ Galaxy View init failed:', error);
       }
       
-      // Listen for document focus events to switch to Solar view
+      // Listen for view mode change events (programmatic)
+      bus.on('viewModeChanged', (event) => {
+        const { mode } = event.detail;
+        console.log(`🔄 Programmatic view mode change to: ${mode}`);
+        
+        // Trigger the button click to switch mode
+        const btn = document.querySelector(`[data-mode="${mode}"]`);
+        if (btn) {
+          btn.click();
+        }
+      });
+      
+      // Listen for document focus events
       bus.on('documentFocus', async (event) => {
         const { docId } = event.detail;
-        console.log(`🔭 Switching to Solar System view for: ${docId}`);
+        console.log(`📝 Loading document: ${docId}`);
         
-        // Switch to solar view
-        document.querySelector('[data-mode="solar"]').click();
+        // Store current doc ID globally
+        window.getCurrentDocId = () => docId;
         
         // Load the solar system visualization
         await drawDualVisualizer(docId);
@@ -520,6 +532,9 @@
         if (currentMode === 'split') {
           await initMindMapView(docId);
         }
+        
+        // Load document in Surface Viewer (Document Mode by default)
+        // The surfaceViewer will handle this via its own event listener
       });
       
       // Initialize System Status Dashboard
