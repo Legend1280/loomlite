@@ -13,6 +13,7 @@ from openai import OpenAI
 
 from reader import read_document, chunk_text
 from semantic_cluster import build_semantic_hierarchy
+from summarizer import summarize_document_hierarchy
 from models import Concept, Relation, MicroOntology, DocumentMetadata, OntologyVersion
 
 # Initialize OpenAI client (API key from environment)
@@ -423,12 +424,32 @@ def extract_and_store(file_path: str, title: str = None) -> Tuple[str, Dict]:
         ontology=ontology
     )
     
+    # Generate summaries for document hierarchy
+    print(f"📝 Generating summaries...")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        summary_stats = summarize_document_hierarchy(
+            doc_id=doc_id,
+            doc_text=doc_data["text"],
+            doc_title=title,
+            concepts=ontology["concepts"],
+            relations=ontology["relations"],
+            db_conn=conn
+        )
+        conn.close()
+    except Exception as e:
+        print(f"⚠️  Summarization failed: {e}")
+        import traceback
+        traceback.print_exc()
+        summary_stats = {}
+    
     stats = {
         "doc_id": doc_id,
         "version_id": version_id,
         "concepts": len(ontology["concepts"]),
         "relations": len(ontology["relations"]),
-        "spans": len(ontology["spans"])
+        "spans": len(ontology["spans"]),
+        "summaries": summary_stats
     }
     
     print(f"✅ Extraction complete!")

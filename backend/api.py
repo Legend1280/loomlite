@@ -192,6 +192,26 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
             ontology=ontology
         )
         
+        jobs[job_id]["progress"] = "Generating summaries..."
+        
+        # Generate summaries for document hierarchy
+        try:
+            from summarizer import summarize_document_hierarchy
+            conn = get_db()
+            summarize_document_hierarchy(
+                doc_id=doc_id,
+                doc_text=doc_data["text"],
+                doc_title=title,
+                concepts=ontology["concepts"],
+                relations=ontology["relations"],
+                db_conn=conn
+            )
+            conn.close()
+        except Exception as e:
+            print(f"⚠️  Summarization failed: {e}")
+            import traceback
+            traceback.print_exc()
+        
         # Clean up temp file
         os.unlink(tmp_path)
         
@@ -602,6 +622,61 @@ async def migrate_parent_concept_id():
             "message": "Migration completed successfully! Intra-cluster hierarchy enabled.",
             "changes": results,
             "next_steps": "Upload a document to test refinement node creation"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+@app.get("/admin/migrate-summary")
+async def migrate_summary():
+    """
+    Run database migration to add summary columns for v1.2 (ONTOLOGY_STANDARD v1.2)
+    Safe to run multiple times - will skip if columns already exist
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if migration already done
+        cursor.execute("PRAGMA table_info(documents)")
+        doc_columns = [col[1] for col in cursor.fetchall()]
+        
+        cursor.execute("PRAGMA table_info(concepts)")
+        concept_columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'summary' in doc_columns and 'summary' in concept_columns:
+            conn.close()
+            return {
+                "status": "already_migrated",
+                "message": "summary columns already exist, no migration needed"
+            }
+        
+        # Run migration
+        results = []
+        
+        # Add summary to documents table
+        if 'summary' not in doc_columns:
+            cursor.execute("ALTER TABLE documents ADD COLUMN summary TEXT")
+            results.append("✅ Added summary column to documents table")
+        
+        # Add summary to concepts table
+        if 'summary' not in concept_columns:
+            cursor.execute("ALTER TABLE concepts ADD COLUMN summary TEXT")
+            results.append("✅ Added summary column to concepts table")
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "Migration completed successfully! Document summarization enabled.",
+            "changes": results,
+            "next_steps": "Upload a new document to test summary generation"
         }
         
     except Exception as e:
