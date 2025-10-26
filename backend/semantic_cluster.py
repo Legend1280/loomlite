@@ -198,7 +198,7 @@ def create_cluster_concepts(clusters: List[Set[str]], doc_id: str, all_concepts:
             label=cluster_label,
             type="Topic",  # Clusters are topics/themes
             confidence=1.0,
-            hierarchy_level=2,  # Clusters are level 2
+            hierarchy_level=1,  # Clusters are level 1 (per ONTOLOGY_STANDARD v1.3)
             coherence=1.0,
         )
         
@@ -237,7 +237,7 @@ def build_intra_cluster_hierarchy(
             # Too small to refine, keep flat
             for concept in cluster_members:
                 concept.parent_cluster_id = cluster_concept.concept_id
-                concept.hierarchy_level = 4  # Direct children of cluster
+                concept.hierarchy_level = 3  # Direct children of cluster (level 3 per ONTOLOGY_STANDARD v1.3)
             all_refined_concepts.extend(cluster_members)
             continue
         
@@ -250,7 +250,7 @@ def build_intra_cluster_hierarchy(
                 # Single concept, attach directly to cluster
                 concept = group[0]
                 concept.parent_cluster_id = cluster_concept.concept_id
-                concept.hierarchy_level = 4
+                concept.hierarchy_level = 3  # Atomic concept (level 3 per ONTOLOGY_STANDARD v1.3)
                 all_refined_concepts.append(concept)
             else:
                 # Create refinement node
@@ -267,7 +267,7 @@ def build_intra_cluster_hierarchy(
                     type="Topic",
                     confidence=0.9,
                     parent_cluster_id=cluster_concept.concept_id,  # Parent is cluster
-                    hierarchy_level=3,  # Refinement level
+                    hierarchy_level=2,  # Refinement level (level 2 per ONTOLOGY_STANDARD v1.3)
                     coherence=0.9,
                 )
                 
@@ -277,7 +277,7 @@ def build_intra_cluster_hierarchy(
                 for concept in group:
                     concept.parent_cluster_id = cluster_concept.concept_id
                     concept.parent_concept_id = refinement_id  # NEW: Parent refinement
-                    concept.hierarchy_level = 4  # Atomic concept level
+                    concept.hierarchy_level = 3  # Atomic concept level (level 3 per ONTOLOGY_STANDARD v1.3)
                     all_refined_concepts.append(concept)
     
     return all_refined_concepts
