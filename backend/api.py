@@ -903,6 +903,58 @@ def get_semantic_folders_by_view(view_id: str):
 # ADMIN ENDPOINTS
 # ============================================================================
 
+@app.post("/admin/run-migration")
+def run_migration():
+    """
+    Run database migrations
+    Creates the saved_views table if it doesn't exist
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        # Check if saved_views table exists
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='saved_views'")
+        if cur.fetchone():
+            conn.close()
+            return {
+                "status": "success",
+                "message": "saved_views table already exists",
+                "action": "none"
+            }
+        
+        # Create saved_views table
+        cur.execute("""
+            CREATE TABLE saved_views (
+                id TEXT PRIMARY KEY,
+                view_name TEXT NOT NULL,
+                query TEXT NOT NULL,
+                sort_mode TEXT DEFAULT 'auto',
+                created_at TEXT NOT NULL,
+                user_id TEXT
+            )
+        """)
+        
+        cur.execute("CREATE INDEX idx_saved_views_user ON saved_views(user_id)")
+        
+        conn.commit()
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "saved_views table created successfully",
+            "action": "created_table"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+
 @app.post("/admin/clear-all")
 def clear_all_data():
     """
