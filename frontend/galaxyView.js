@@ -168,17 +168,12 @@ function createGalaxyVisualization(container) {
   
   console.log(`Galaxy: ${nodes.length} documents, ${links.length} connections`);
   
-  // Create force simulation with moderate clustering
+  // Create force simulation
   simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links)
-      .id(d => d.id)
-      .distance(120)       // Moderate spacing
-      .strength(0.3))      // Moderate bond strength
-    .force('charge', d3.forceManyBody()
-      .strength(-200))     // Moderate repulsion
+    .force('link', d3.forceLink(links).id(d => d.id).distance(200))
+    .force('charge', d3.forceManyBody().strength(-800))
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide()
-      .radius(12));        // Moderate collision radius
+    .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 20));
   
   // Draw links
   const link = g.append('g')
@@ -186,7 +181,7 @@ function createGalaxyVisualization(container) {
     .data(links)
     .join('line')
     .attr('stroke', '#3b82f6')
-    .attr('stroke-opacity', 0.5)  // Increased for visibility through auras
+    .attr('stroke-opacity', 0.3)
     .attr('stroke-width', d => Math.sqrt(d.strength));
   
   // Draw nodes (solar systems)
@@ -201,10 +196,18 @@ function createGalaxyVisualization(container) {
       drillDownToSolarSystem(d);
     });
   
-  // Draw each node as a galaxy sprite
-  node.each(function(d) {
-    drawGalaxySpriteNode(d, d3.select(this));
-  });
+  // Add glow effect for each solar system
+  node.append('circle')
+    .attr('r', d => getNodeRadius(d) + 10)
+    .attr('fill', 'url(#solar-glow)')
+    .attr('opacity', 0.3);
+  
+  // Add main solar system circle
+  node.append('circle')
+    .attr('r', d => getNodeRadius(d))
+    .attr('fill', '#fbbf24')
+    .attr('stroke', '#f59e0b')
+    .attr('stroke-width', 2);
   
   // Add document title
   node.append('text')
@@ -260,54 +263,24 @@ function createStarfield(svg, width, height) {
 }
 
 /**
- * Add SVG gradients, filters, and sprite symbol for galaxy nodes
+ * Add SVG gradients
  */
 function addGradients(svg) {
   const defs = svg.append('defs');
   
-  // Simple gradient for nodes
-  const nodeGradient = defs.append('radialGradient')
-    .attr('id', 'node-glow');
+  // Solar glow gradient
+  const solarGlow = defs.append('radialGradient')
+    .attr('id', 'solar-glow');
   
-  nodeGradient.append('stop')
+  solarGlow.append('stop')
     .attr('offset', '0%')
     .attr('stop-color', '#fbbf24')
-    .attr('stop-opacity', 1);
-  
-  nodeGradient.append('stop')
-    .attr('offset', '100%')
-    .attr('stop-color', '#f59e0b')
     .attr('stop-opacity', 0.8);
   
-  // Minimal blur filter
-  const glowFilter = defs.append('filter')
-    .attr('id', 'node-blur')
-    .attr('x', '-50%')
-    .attr('y', '-50%')
-    .attr('width', '200%')
-    .attr('height', '200%');
-  
-  glowFilter.append('feGaussianBlur')
-    .attr('stdDeviation', '2');
-  
-  // Simple node sprite (small, clean)
-  const sprite = defs.append('symbol')
-    .attr('id', 'star-sprite')
-    .attr('viewBox', '-10 -10 20 20');
-  
-  // Subtle glow layer
-  sprite.append('circle')
-    .attr('r', 6)
-    .attr('fill', 'url(#node-glow)')
-    .attr('opacity', 0.4)
-    .attr('filter', 'url(#node-blur)')
-    .attr('class', 'node-glow');
-  
-  // Core circle
-  sprite.append('circle')
-    .attr('r', 3)
-    .attr('fill', 'url(#node-glow)')
-    .attr('class', 'node-core');
+  solarGlow.append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', '#f59e0b')
+    .attr('stop-opacity', 0);
 }
 
 /**
@@ -322,26 +295,6 @@ function getNodeRadius(node) {
   
   return minRadius + (node.conceptCount / maxConcepts) * (maxRadius - minRadius);
 }
-
-/**
- * Draw a stardust star sprite node (tiny, subtle, breathing)
- * @param {Object} d - Node data
- * @param {d3.Selection} g - D3 selection of the node group
- */
-function drawGalaxySpriteNode(d, g) {
-  // Calculate semantic brightness (0.65 to 1.0 range for subtle effect)
-  const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
-  const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
-  const brightness = 0.65 + coherence * 0.35;
-  
-  // Add sprite instance at native size (no transform scaling)
-  g.append('use')
-    .attr('href', '#star-sprite')
-    .attr('class', 'star-node')
-    .style('--brightness', brightness);
-}
-
-
 
 /**
  * Truncate title to max length
@@ -421,61 +374,39 @@ function highlightSearchResults(results) {
   
   console.log(`Highlighting ${matchedDocIds.size} documents in Galaxy View`);
   
-  // Update node styles (only document node groups, not nested groups)
+  // Update node styles
   g.selectAll('g')
-    .filter(function() {
-      // Only select top-level node groups that have data bound
-      return this.parentNode === g.node() && this.__data__;
-    })
     .transition()
     .duration(300)
     .style('opacity', d => {
-      // Defensive check for data
-      if (!d || !d.id) return 1;
       return matchedDocIds.has(d.id) ? 1 : 0.3;
     });
   
-  // Update star sprite nodes (highlight matched documents)
-  g.selectAll('.star-node')
+  // Update node circles
+  g.selectAll('circle')
+    .filter(function() {
+      return this.parentNode.tagName === 'g'; // Only main circles, not glow
+    })
     .transition()
     .duration(300)
-    .style('filter', function() {
-      // Get parent node data
-      const parentNode = d3.select(this.parentNode);
-      const d = parentNode.datum();
-      
-      if (!d || !d.id) return 'brightness(1)';
-      
-      // Boost brightness for matched documents
-      const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
-      const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
-      const baseBrightness = 0.8 + coherence * 0.4;
-      const matchBoost = matchedDocIds.has(d.id) ? 0.4 : 0; // Higher boost for visibility
-      
-      return `brightness(${baseBrightness + matchBoost})`;
+    .attr('stroke', d => {
+      return matchedDocIds.has(d.id) ? '#10b981' : '#f59e0b';
     })
-    .style('--match-color', function() {
-      const parentNode = d3.select(this.parentNode);
-      const d = parentNode.datum();
-      
-      if (!d || !d.id) return '#fad643';
-      return matchedDocIds.has(d.id) ? '#10b981' : '#fad643';
+    .attr('stroke-width', d => {
+      return matchedDocIds.has(d.id) ? 4 : 2;
     });
   
-  // Pulse effect for matched documents (opacity pulse instead of scale)
+  // Pulse effect for matched documents
   if (matchedDocIds.size > 0) {
-    g.selectAll('.star-node')
-      .filter(function() {
-        const parentNode = d3.select(this.parentNode);
-        const d = parentNode.datum();
-        return d && d.id && matchedDocIds.has(d.id);
-      })
+    g.selectAll('g')
+      .filter(d => matchedDocIds.has(d.id))
+      .selectAll('circle')
       .transition()
       .duration(500)
-      .style('opacity', 1)
+      .attr('r', d => getNodeRadius(d) + 5)
       .transition()
       .duration(500)
-      .style('opacity', 0.8);
+      .attr('r', d => getNodeRadius(d));
   }
 }
 
@@ -485,33 +416,19 @@ function highlightSearchResults(results) {
 function clearSearchHighlights() {
   if (!g) return;
   
-  // Restore all node opacity
   g.selectAll('g')
-    .filter(function() {
-      return this.parentNode === g.node() && this.__data__;
-    })
     .transition()
     .duration(300)
     .style('opacity', 1);
   
-  // Restore star sprite default styling
-  g.selectAll('.star-node')
+  g.selectAll('circle')
+    .filter(function() {
+      return this.parentNode.tagName === 'g';
+    })
     .transition()
     .duration(300)
-    .style('filter', function() {
-      const parentNode = d3.select(this.parentNode);
-      const d = parentNode.datum();
-      
-      if (!d) return 'brightness(1)';
-      
-      // Restore semantic brightness (subtle range)
-      const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
-      const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
-      const brightness = 0.65 + coherence * 0.35;
-      
-      return `brightness(${brightness})`;
-    })
-    .style('--match-color', '#fad643');
+    .attr('stroke', '#f59e0b')
+    .attr('stroke-width', 2);
 }
 
 // Export for global access
