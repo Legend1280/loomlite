@@ -108,7 +108,7 @@ def build_semantic_folders(
     
     # Build SQL query
     if query:
-        # Search for documents with matching concepts
+        # Search for documents with matching concepts, summaries, or parent clusters
         sql = """
             SELECT DISTINCT
                 d.id as doc_id,
@@ -123,9 +123,16 @@ def build_semantic_folders(
                  WHERE r.src = c.id OR r.dst = c.id) as relation_count
             FROM documents d
             JOIN concepts c ON d.id = c.doc_id
-            WHERE c.label LIKE ? OR c.summary LIKE ? OR d.title LIKE ?
+            LEFT JOIN concepts parent ON c.parent_cluster_id = parent.id
+            WHERE 
+                c.label LIKE ? OR 
+                c.summary LIKE ? OR 
+                d.title LIKE ? OR
+                d.summary LIKE ? OR
+                parent.label LIKE ? OR
+                parent.summary LIKE ?
         """
-        params = (f"%{query}%", f"%{query}%", f"%{query}%")
+        params = (f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%")
     else:
         # Return all documents grouped by clusters
         sql = """
