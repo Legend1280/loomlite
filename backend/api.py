@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
 from reader import read_document
 from extractor import extract_ontology_from_text, store_ontology
+from semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -743,8 +744,167 @@ async def migrate_summary():
             "traceback": traceback.format_exc()
         }
 
+# ============================================================================
+# SEMANTIC FOLDERS ENDPOINTS (v3.2)
+# ============================================================================
+
+@app.get("/semantic-folders")
+def get_semantic_folders(
+    query: Optional[str] = None,
+    sort: str = "auto"
+):
+    """
+    Generate virtual folders based on query and sort mode
+    
+    Args:
+        query: Search term to filter concepts/documents
+        sort: Sort mode - "auto" (default), "alphabetical", or "recency"
+    
+    Returns:
+        Folder structure with items sorted by the specified mode
+    """
+    try:
+        conn = get_db()
+        result = build_semantic_folders(conn, query=query, sort_mode=sort)
+        conn.close()
+        return result
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail={
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
+
+@app.get("/saved-views")
+def list_saved_views(user_id: Optional[str] = None):
+    """
+    Get all saved views for a user
+    
+    Args:
+        user_id: Optional user ID to filter views
+    
+    Returns:
+        List of saved views
+    """
+    try:
+        conn = get_db()
+        views = get_saved_views(conn, user_id=user_id)
+        conn.close()
+        return {"views": views}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CreateSavedViewRequest(BaseModel):
+    view_name: str
+    query: str
+    sort_mode: str = "auto"
+    user_id: Optional[str] = None
+
+
+@app.post("/saved-views")
+def create_new_saved_view(request: CreateSavedViewRequest):
+    """
+    Create a new saved view
+    
+    Args:
+        request: View creation request with name, query, and sort mode
+    
+    Returns:
+        Created view with ID and timestamp
+    """
+    try:
+        conn = get_db()
+        view = create_saved_view(
+            conn,
+            view_name=request.view_name,
+            query=request.query,
+            sort_mode=request.sort_mode,
+            user_id=request.user_id
+        )
+        conn.close()
+        return view
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/saved-views/{view_id}")
+def remove_saved_view(view_id: str):
+    """
+    Delete a saved view
+    
+    Args:
+        view_id: ID of the view to delete
+    
+    Returns:
+        Success status
+    """
+    try:
+        conn = get_db()
+        success = delete_saved_view(conn, view_id)
+        conn.close()
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="View not found")
+        
+        return {"status": "success", "message": "View deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/semantic-folders/{view_id}")
+def get_semantic_folders_by_view(view_id: str):
+    """
+    Get semantic folders for a saved view
+    
+    Args:
+        view_id: ID of the saved view
+    
+    Returns:
+        Folder structure based on the saved view's query and sort mode
+    """
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Get the saved view
+        cur.execute(
+            "SELECT query, sort_mode FROM saved_views WHERE id = ?",
+            (view_id,)
+        )
+        row = cur.fetchone()
+        
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=404, detail="View not found")
+        
+        query, sort_mode = row
+        
+        # Build folders using the saved view's parameters
+        result = build_semantic_folders(conn, query=query, sort_mode=sort_mode)
+        result["view_id"] = view_id
+        
+        conn.close()
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=500, detail={
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
+
+
+# ============================================================================
+# ADMIN ENDPOINTS
+# ============================================================================
+
 @app.post("/admin/clear-all")
-async def clear_all_documents():
+def clear_all_data():ocuments():
     """
     Clear all documents, concepts, relations, and spans from the database.
     WARNING: This is destructive and cannot be undone!
