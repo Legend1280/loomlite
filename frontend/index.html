@@ -423,7 +423,7 @@
     import { initGalaxyView } from './galaxyView.js';
     import { drawDualVisualizer } from './dualVisualizer.js';
     import { initMindMapView } from './mindMapView.js';
-    import { initSidebar } from './sidebar.js';
+    import { initFileSystemSidebar } from './fileSystemSidebar.js';
     import { initSurfaceViewer } from './surfaceViewer.js';
     import { initSearchBar } from './searchBar.js';
     import { initSystemStatus } from './systemStatus.js';
@@ -548,10 +548,15 @@
       // Initialize modules
       console.log('📦 Initializing modules...');
       try {
-        initSidebar();
-        console.log('✅ Sidebar initialized');
+        // Create file system sidebar container
+        const sidebarEl = document.getElementById('sidebar');
+        if (sidebarEl) {
+          sidebarEl.id = 'file-system-sidebar';
+        }
+        initFileSystemSidebar();
+        console.log('✅ File System Sidebar initialized');
       } catch (e) {
-        console.error('❌ Sidebar init failed:', e);
+        console.error('❌ File System Sidebar init failed:', e);
       }
       
       try {
