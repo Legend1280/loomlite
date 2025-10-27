@@ -8,17 +8,58 @@ from datetime import datetime
 import json
 
 
+def get_adaptive_weights(conn: sqlite3.Connection) -> Dict[str, float]:
+    """
+    Get current adaptive weights from database
+    Returns base weights + learned adjustments
+    """
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT weight_confidence, weight_relation, weight_recency, weight_hierarchy
+        FROM sort_weights
+        WHERE id = 'default'
+    """)
+    row = cur.fetchone()
+    
+    if row:
+        w1, w2, w3, w4 = row
+        return {
+            'confidence': 0.5 + (w1 or 0.0),
+            'relation': 0.2 + (w2 or 0.0),
+            'recency': 0.2 + (w3 or 0.0),
+            'hierarchy': 0.1 + (w4 or 0.0)
+        }
+    else:
+        # Fallback to base weights if table doesn't exist or no default row
+        return {
+            'confidence': 0.5,
+            'relation': 0.2,
+            'recency': 0.2,
+            'hierarchy': 0.1
+        }
+
+
 def calculate_auto_sort_score(
     confidence_weight: float,
     relation_count: int,
     created_at: str,
-    hierarchy_level: int
+    hierarchy_level: int,
+    weights: Optional[Dict[str, float]] = None
 ) -> float:
     """
-    Calculate composite auto-sort score
+    Calculate composite auto-sort score with adaptive weights
     
-    Formula: 0.5 × confidence_weight + 0.2 × relation_count + 0.2 × recency_score + 0.1 × hierarchy_bonus
+    Formula: (0.5 + w1) × confidence_weight + (0.2 + w2) × relation_count + (0.2 + w3) × recency_score + (0.1 + w4) × hierarchy_bonus
     """
+    # Use provided weights or fallback to base weights
+    if weights is None:
+        weights = {
+            'confidence': 0.5,
+            'relation': 0.2,
+            'recency': 0.2,
+            'hierarchy': 0.1
+        }
+    
     # Normalize relation count (cap at 20 for scoring)
     relation_score = min(relation_count / 20.0, 1.0)
     
@@ -36,12 +77,12 @@ def calculate_auto_sort_score(
     # Level 1 (clusters) get highest bonus, level 3+ (concepts) get lower
     hierarchy_bonus = max(0, 1.0 - (hierarchy_level / 4.0))
     
-    # Weighted sum
+    # Adaptive weighted sum
     score = (
-        0.5 * (confidence_weight or 0.5) +
-        0.2 * relation_score +
-        0.2 * recency_score +
-        0.1 * hierarchy_bonus
+        weights['confidence'] * (confidence_weight or 0.5) +
+        weights['relation'] * relation_score +
+        weights['recency'] * recency_score +
+        weights['hierarchy'] * hierarchy_bonus
     )
     
     return round(score, 3)
@@ -108,6 +149,15 @@ def build_semantic_folders(
     cur.execute(sql, params)
     rows = cur.fetchall()
     
+    # Get adaptive weights for auto-sort mode
+    weights = None
+    if sort_mode == "auto":
+        try:
+            weights = get_adaptive_weights(conn)
+        except:
+            # Fallback to base weights if sort_weights table doesn't exist
+            weights = None
+    
     # Group documents by cluster
     folders = {}
     doc_scores = {}
@@ -115,12 +165,13 @@ def build_semantic_folders(
     for row in rows:
         doc_id, title, created_at, concept_label, concept_type, confidence, hierarchy_level, parent_cluster_id, relation_count = row
         
-        # Calculate auto-sort score
+        # Calculate auto-sort score with adaptive weights
         score = calculate_auto_sort_score(
             confidence_weight=confidence,
             relation_count=relation_count,
             created_at=created_at,
-            hierarchy_level=hierarchy_level or 3
+            hierarchy_level=hierarchy_level or 3,
+            weights=weights
         )
         
         # Determine folder name

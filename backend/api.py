@@ -980,6 +980,115 @@ def trending_documents(limit: int = 10):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/admin/sort-weights")
+def get_sort_weights():
+    """
+    Get current adaptive sort weights
+    """
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT weight_confidence, weight_relation, weight_recency, weight_hierarchy, updated_at, notes
+            FROM sort_weights
+            WHERE id = 'default'
+        """)
+        row = cur.fetchone()
+        
+        if row:
+            w1, w2, w3, w4, updated_at, notes = row
+            return {
+                "weights": {
+                    "confidence": 0.5 + (w1 or 0.0),
+                    "relation": 0.2 + (w2 or 0.0),
+                    "recency": 0.2 + (w3 or 0.0),
+                    "hierarchy": 0.1 + (w4 or 0.0)
+                },
+                "adjustments": {
+                    "weight_confidence": w1 or 0.0,
+                    "weight_relation": w2 or 0.0,
+                    "weight_recency": w3 or 0.0,
+                    "weight_hierarchy": w4 or 0.0
+                },
+                "base_weights": {
+                    "confidence": 0.5,
+                    "relation": 0.2,
+                    "recency": 0.2,
+                    "hierarchy": 0.1
+                },
+                "updated_at": updated_at,
+                "notes": notes
+            }
+        else:
+            return {
+                "weights": {
+                    "confidence": 0.5,
+                    "relation": 0.2,
+                    "recency": 0.2,
+                    "hierarchy": 0.1
+                },
+                "message": "Using default weights (sort_weights table not initialized)"
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/admin/sort-weights")
+def update_sort_weights(
+    weight_confidence: float = 0.0,
+    weight_relation: float = 0.0,
+    weight_recency: float = 0.0,
+    weight_hierarchy: float = 0.0,
+    notes: Optional[str] = None
+):
+    """
+    Update adaptive sort weights
+    These are adjustments added to base weights (0.5, 0.2, 0.2, 0.1)
+    """
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        now = datetime.now().isoformat()
+        
+        # Check if default weights exist
+        cur.execute("SELECT COUNT(*) FROM sort_weights WHERE id = 'default'")
+        exists = cur.fetchone()[0] > 0
+        
+        if exists:
+            # Update existing
+            cur.execute("""
+                UPDATE sort_weights
+                SET weight_confidence = ?,
+                    weight_relation = ?,
+                    weight_recency = ?,
+                    weight_hierarchy = ?,
+                    updated_at = ?,
+                    notes = ?
+                WHERE id = 'default'
+            """, (weight_confidence, weight_relation, weight_recency, weight_hierarchy, now, notes))
+        else:
+            # Insert new
+            cur.execute("""
+                INSERT INTO sort_weights (
+                    id, weight_confidence, weight_relation, weight_recency, weight_hierarchy, updated_at, notes
+                ) VALUES ('default', ?, ?, ?, ?, ?, ?)
+            """, (weight_confidence, weight_relation, weight_recency, weight_hierarchy, now, notes))
+        
+        conn.commit()
+        
+        return {
+            "status": "success",
+            "message": "Sort weights updated",
+            "weights": {
+                "confidence": 0.5 + weight_confidence,
+                "relation": 0.2 + weight_relation,
+                "recency": 0.2 + weight_recency,
+                "hierarchy": 0.1 + weight_hierarchy
+            },
+            "updated_at": now
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============================================================================
 # Admin Endpoints
 # ============================================================================
@@ -1032,6 +1141,31 @@ def run_migration():
             cur.execute("CREATE INDEX idx_folder_stats_doc ON folder_stats(doc_id)")
             cur.execute("CREATE INDEX idx_folder_stats_updated ON folder_stats(updated_at DESC)")
             tables_created.append("folder_stats")
+        
+        # Check and create sort_weights table
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='sort_weights'")
+        if not cur.fetchone():
+            cur.execute("""
+                CREATE TABLE sort_weights (
+                    id TEXT PRIMARY KEY,
+                    weight_confidence REAL DEFAULT 0.0,
+                    weight_relation REAL DEFAULT 0.0,
+                    weight_recency REAL DEFAULT 0.0,
+                    weight_hierarchy REAL DEFAULT 0.0,
+                    updated_at TEXT NOT NULL,
+                    notes TEXT
+                )
+            """)
+            # Insert default weights
+            now = datetime.now().isoformat()
+            cur.execute("""
+                INSERT INTO sort_weights (
+                    id, weight_confidence, weight_relation, weight_recency, weight_hierarchy, updated_at, notes
+                ) VALUES (
+                    'default', 0.0, 0.0, 0.0, 0.0, ?, 'Initial default weights'
+                )
+            """, (now,))
+            tables_created.append("sort_weights")
         
         conn.commit()
         conn.close()
