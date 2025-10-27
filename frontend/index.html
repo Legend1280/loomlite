@@ -350,6 +350,20 @@
       font-weight: 500;
       font-size: 11px;
     }
+    
+    /* Pulsing glowing threads animation */
+    @keyframes thread-pulse {
+      0%, 100% { 
+        stroke-opacity: 0.3;
+      }
+      50% { 
+        stroke-opacity: 0.7;
+      }
+    }
+    
+    .thread {
+      animation: thread-pulse 3s ease-in-out infinite;
+    }
   </style>
 </head>
 <body>

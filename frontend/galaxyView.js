@@ -175,14 +175,16 @@ function createGalaxyVisualization(container) {
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 20));
   
-  // Draw links
+  // Draw links (glowing threads)
   const link = g.append('g')
     .selectAll('line')
     .data(links)
     .join('line')
-    .attr('stroke', '#3b82f6')
-    .attr('stroke-opacity', 0.3)
-    .attr('stroke-width', d => Math.sqrt(d.strength));
+    .attr('class', 'thread')
+    .attr('stroke', '#60a5fa')
+    .attr('stroke-opacity', 0.5)
+    .attr('stroke-width', d => Math.sqrt(d.strength))
+    .attr('filter', 'url(#thread-glow)');
   
   // Draw nodes (solar systems)
   const node = g.append('g')
@@ -298,6 +300,24 @@ function addGradients(svg) {
     .attr('offset', '100%')
     .attr('stop-color', '#fbbf24')
     .attr('stop-opacity', 0);
+  
+  // Thread glow filter (for glowing connections)
+  const threadGlow = defs.append('filter')
+    .attr('id', 'thread-glow')
+    .attr('x', '-50%')
+    .attr('y', '-50%')
+    .attr('width', '200%')
+    .attr('height', '200%');
+  
+  threadGlow.append('feGaussianBlur')
+    .attr('stdDeviation', '2')
+    .attr('result', 'blur');
+  
+  threadGlow.append('feMerge')
+    .call(merge => {
+      merge.append('feMergeNode').attr('in', 'blur');
+      merge.append('feMergeNode').attr('in', 'SourceGraphic');
+    });
 }
 
 /**
