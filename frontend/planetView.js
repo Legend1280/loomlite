@@ -24,7 +24,7 @@ const ANIMATION_DURATION = 400;
 /**
  * Initialize Planet View
  */
-export async function initMindMapView(docId) {
+export async function initPlanetView(docId) {
   
   currentDocId = docId;
   
@@ -776,7 +776,7 @@ function setupEventListeners() {
   bus.on('documentFocus', async (event) => {
     const { docId } = event.detail;
     if (docId !== currentDocId) {
-      await initMindMapView(docId);
+      await initPlanetView(docId);
     }
   });
   
@@ -819,7 +819,7 @@ function centerOnRoot() {
 /**
  * Resize handler
  */
-export function resizeMindMapView() {
+export function resizePlanetView() {
   if (!svg) return;
   
   const container = document.getElementById('visualizer-bottom');
@@ -832,6 +832,6 @@ export function resizeMindMapView() {
 }
 
 // Export for global access
-window.initMindMapView = initMindMapView;
-window.resizeMindMapView = resizeMindMapView;
+window.initPlanetView = initPlanetView;
+window.resizePlanetView = resizePlanetView;
 

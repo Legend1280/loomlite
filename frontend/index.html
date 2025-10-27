@@ -450,7 +450,7 @@
     // Import core modules
     import { initGalaxyView } from './galaxyView.js';
     import { drawDualVisualizer } from './dualVisualizer.js';
-    import { initMindMapView } from './mindMapView.js';
+    import { initPlanetView } from './planetView.js';
     import { initFileSystemSidebar } from './navigator.js';
     import { initSurfaceViewer } from './surfaceViewer.js';
     import { initSearchBar } from './searchBar.js';
@@ -723,7 +723,7 @@
             // Initialize mind map for current document
             const currentDoc = window.getCurrentDocId ? window.getCurrentDocId() : null;
             if (currentDoc) {
-              initMindMapView(currentDoc).catch(e => console.error('Mind map init failed:', e));
+              initPlanetView(currentDoc).catch(e => console.error('Planet view init failed:', e));
             }
           } else if (mode === 'mind') {
             galaxyContainer.style.display = 'none';
@@ -734,7 +734,7 @@
             // Initialize mind map for current document
             const currentDoc = window.getCurrentDocId ? window.getCurrentDocId() : null;
             if (currentDoc) {
-              initMindMapView(currentDoc).catch(e => console.error('Mind map init failed:', e));
+              initPlanetView(currentDoc).catch(e => console.error('Planet view init failed:', e));
             }
           }
           
@@ -779,7 +779,7 @@
         // Also load mind map if in split mode
         const currentMode = document.querySelector('.view-mode-btn.active')?.dataset.mode;
         if (currentMode === 'split') {
-          await initMindMapView(docId);
+          await initPlanetView(docId);
         }
         
         // Load document in Surface Viewer (Document Mode by default)
