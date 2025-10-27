@@ -434,13 +434,7 @@ function update(source) {
         .attr('stroke-width', 2)
         .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))');  // Subtle shadow only
       
-      // Add tooltip for planet node (title + summary merged)
-      const tooltipText = d.data.summary 
-        ? `${d.data.name}\n\n${d.data.summary}`  // Title + blank line + summary
-        : d.data.name;  // Just title if no summary
-      
-      planetCircle.append('title')
-        .text(tooltipText);
+      // Tooltip will be handled by custom D3 tooltip on hover
       
       // Add planet text ABOVE the sphere
       node.append('text')
@@ -499,8 +493,8 @@ function update(source) {
     })
     .style('pointer-events', 'none');
   
-  // Add hover effects (only for concept nodes, not planet)
-  nodeEnter.filter(d => d.data.type !== 'document')
+  // Add hover effects for all nodes
+  nodeEnter
     .on('mouseenter', function(event, d) {
       d3.select(this).select('rect')
         .transition()
@@ -688,16 +682,22 @@ function showTooltip(event, d) {
     .style('color', '#e6e6e6')
     .style('padding', '10px 14px')
     .style('border-radius', '8px')
-    .style('border', '1px solid rgba(42, 42, 42, 0.5)')
     .style('font-size', '12px')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
     .style('pointer-events', 'none')
-    .style('z-index', '1000')
+    .style('z-index', '10000')
     .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.3)')
+    .style('max-width', '400px')  // Limit width for readability
     .style('left', `${event.pageX + 15}px`)
     .style('top', `${event.pageY + 15}px`);
   
   let content = `<strong style="font-size: 13px;">${d.data.name}</strong><br>`;
   content += `<span style="color: #94a3b8;">Type: ${d.data.type}</span>`;
+  
+  // Add document summary for planet nodes
+  if (d.data.type === 'document' && d.data.summary) {
+    content += `<br><br><span style="color: #cbd5e1; line-height: 1.5;">${d.data.summary}</span>`;
+  }
   
   if (d.data.confidence) {
     content += `<br><span style="color: #94a3b8;">Confidence: ${Math.round(d.data.confidence * 100)}%</span>`;
