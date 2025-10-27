@@ -114,144 +114,145 @@ function renderHeader(container) {
   const header = document.createElement('div');
   header.id = 'surface-viewer-header';
   header.style.cssText = `
-    background: #0f172a;
-    border-bottom: 1px solid #1e293b;
-    padding: 16px;
+    background: #0c0c0c;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+    height: 48px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
+    gap: 0;
   `;
   
-  const title = document.createElement('div');
-  title.style.cssText = `
-    font-size: 14px;
-    font-weight: 600;
-    color: #818cf8;
-  `;
-  title.textContent = '📄 Surface Viewer';
+  // Create three tabs: Ontology | Document | Analytics
+  const tabs = [
+    { id: 'ontology', label: 'Ontology', icon: createShareIcon(), mode: 'ontology' },
+    { id: 'document', label: 'Document', icon: createBookIcon(), mode: 'document' },
+    { id: 'analytics', label: 'Analytics', icon: createChartIcon(), mode: 'analytics' }
+  ];
   
-  // Right side controls container
-  const rightControls = document.createElement('div');
-  rightControls.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  `;
-  
-  // Analytics button
-  const analyticsBtn = document.createElement('button');
-  analyticsBtn.id = 'analytics-toggle-btn';
-  analyticsBtn.style.cssText = `
-    background: transparent;
-    border: 1px solid #334155;
-    color: #64748b;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  `;
-  analyticsBtn.textContent = '📊 Analytics';
-  analyticsBtn.onmouseover = () => {
-    analyticsBtn.style.borderColor = '#3b82f6';
-    analyticsBtn.style.color = '#3b82f6';
-  };
-  analyticsBtn.onmouseout = () => {
-    analyticsBtn.style.borderColor = '#334155';
-    analyticsBtn.style.color = '#64748b';
-  };
-  analyticsBtn.onclick = () => {
-    if (currentDocId) {
-      if (analyticsVisible) {
-        const overlay = document.getElementById('analytics-overlay');
-        if (overlay) {
-          overlay.style.transform = 'translateX(100%)';
-          analyticsVisible = false;
+  tabs.forEach(tab => {
+    const tabBtn = document.createElement('button');
+    tabBtn.className = `surface-tab surface-tab-${tab.id}`;
+    tabBtn.dataset.mode = tab.mode;
+    
+    const isActive = (tab.mode === currentMode) || (tab.mode === 'analytics' && analyticsVisible);
+    
+    tabBtn.style.cssText = `
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: ${isActive ? '#181818' : '#0c0c0c'};
+      border: none;
+      border-bottom: ${isActive ? '2px solid #fad643' : '1px solid rgba(42, 42, 42, 0.4)'};
+      color: ${isActive ? '#fad643' : '#9a9a9a'};
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.25s ease-in-out;
+      padding: 0 16px;
+    `;
+    
+    // Add icon
+    tab.icon.style.cssText = `
+      width: 16px;
+      height: 16px;
+      stroke: ${isActive ? '#fad643' : '#e6e6e6'};
+      stroke-width: 2;
+      fill: none;
+    `;
+    
+    tabBtn.appendChild(tab.icon);
+    tabBtn.appendChild(document.createTextNode(tab.label));
+    
+    // Hover effect
+    tabBtn.addEventListener('mouseenter', () => {
+      if (!isActive) {
+        tabBtn.style.background = '#181818';
+        tabBtn.style.color = '#e6e6e6';
+        tabBtn.style.borderBottom = '1px solid rgba(42, 42, 42, 0.4)';
+      }
+    });
+    
+    tabBtn.addEventListener('mouseleave', () => {
+      if (!isActive) {
+        tabBtn.style.background = '#0c0c0c';
+        tabBtn.style.color = '#9a9a9a';
+      }
+    });
+    
+    // Click handler
+    tabBtn.addEventListener('click', () => {
+      if (tab.mode === 'analytics') {
+        // Toggle analytics overlay
+        if (currentDocId) {
+          if (analyticsVisible) {
+            const overlay = document.getElementById('analytics-overlay');
+            if (overlay) {
+              overlay.style.transform = 'translateX(100%)';
+              analyticsVisible = false;
+            }
+          } else {
+            loadAnalytics(currentDocId);
+          }
         }
       } else {
-        loadAnalytics(currentDocId);
+        // Switch mode
+        switchMode(tab.mode);
       }
-    }
-  };
+      
+      // Update all tabs
+      renderHeader(container.parentElement);
+      container.remove();
+    });
+    
+    header.appendChild(tabBtn);
+  });
   
-  // Mode toggle buttons
-  const modeToggle = document.createElement('div');
-  modeToggle.style.cssText = `
-    background: #1e293b;
-    padding: 3px;
-    border-radius: 6px;
-    display: flex;
-    gap: 4px;
-  `;
-  
-  const ontologyBtn = createModeButton('Ontology', 'ontology', false);
-  const documentBtn = createModeButton('Paragraph', 'document', true);
-  
-  modeToggle.appendChild(ontologyBtn);
-  modeToggle.appendChild(documentBtn);
-  
-  rightControls.appendChild(analyticsBtn);
-  rightControls.appendChild(modeToggle);
-  
-  header.appendChild(title);
-  header.appendChild(rightControls);
   container.appendChild(header);
 }
 
 /**
- * Create mode toggle button
+ * Create SVG icons (Lucide-style)
  */
-function createModeButton(label, mode, active) {
-  const btn = document.createElement('button');
-  btn.className = `mode-btn mode-btn-${mode}`;
-  btn.dataset.mode = mode;
-  btn.textContent = label;
-  btn.style.cssText = `
-    padding: 6px 12px;
-    font-size: 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 500;
-    ${active ? 'background: #4f46e5; color: white;' : 'background: transparent; color: #64748b;'}
-  `;
-  
-  btn.addEventListener('click', () => {
-    switchMode(mode);
-  });
-  
-  btn.addEventListener('mouseenter', () => {
-    if (currentMode !== mode) {
-      btn.style.background = '#334155';
-      btn.style.color = '#cbd5e1';
-    }
-  });
-  
-  btn.addEventListener('mouseleave', () => {
-    if (currentMode !== mode) {
-      btn.style.background = 'transparent';
-      btn.style.color = '#64748b';
-    }
-  });
-  
-  return btn;
+function createShareIcon() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13');
+  svg.appendChild(path);
+  return svg;
 }
 
-/**
- * Update mode button states
- */
-function updateModeButtons() {
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    if (btn.dataset.mode === currentMode) {
-      btn.style.background = '#4f46e5';
-      btn.style.color = 'white';
-    } else {
-      btn.style.background = 'transparent';
-      btn.style.color = '#64748b';
-    }
-  });
+function createBookIcon() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z');
+  const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path2.setAttribute('d', 'M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z');
+  svg.appendChild(path1);
+  svg.appendChild(path2);
+  return svg;
 }
+
+function createChartIcon() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M18 20V10');
+  const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path2.setAttribute('d', 'M12 20V4');
+  const path3 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path3.setAttribute('d', 'M6 20v-6');
+  svg.appendChild(path1);
+  svg.appendChild(path2);
+  svg.appendChild(path3);
+  return svg;
+}
+
+// Deprecated: createModeButton and updateModeButtons removed in v2.3
+// Tabs are now rendered directly in renderHeader()
 
 /**
  * Render content area
@@ -262,15 +263,15 @@ function renderContentArea(container) {
   content.style.cssText = `
     padding: 0;
     overflow-y: auto;
-    height: calc(100% - 60px);
-    background: #0f172a;
+    height: calc(100% - 48px);
+    background: linear-gradient(180deg, #0c0c0c 0%, #111111 100%);
   `;
   
   // Default message
   content.innerHTML = `
-    <div style="color: #475569; text-align: center; padding: 60px 20px;">
-      <div style="font-size: 16px; margin-bottom: 8px; color: #64748b;">Select a concept to view details</div>
-      <div style="font-size: 13px; color: #475569;">Click on any node in the visualization</div>
+    <div style="color: #9a9a9a; text-align: center; padding: 60px 20px;">
+      <div style="font-size: 14px; margin-bottom: 8px; color: #e6e6e6;">Select a concept to view details</div>
+      <div style="font-size: 12px; color: #9a9a9a;">Click on any node in the visualization</div>
     </div>
   `;
   
@@ -284,7 +285,13 @@ function switchMode(mode) {
   currentMode = mode;
   console.log(`🔄 Switching to ${mode} mode`);
   
-  updateModeButtons();
+  // Update tabs (re-render header)
+  const header = document.getElementById('surface-viewer-header');
+  if (header) {
+    const container = header.parentElement;
+    header.remove();
+    renderHeader(container);
+  }
   
   // Smooth fade transition
   const content = document.getElementById('surface-viewer-content');
