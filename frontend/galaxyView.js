@@ -168,12 +168,19 @@ function createGalaxyVisualization(container) {
   
   console.log(`Galaxy: ${nodes.length} documents, ${links.length} connections`);
   
-  // Create force simulation
+  // Create force simulation with tight clustering
   simulation = d3.forceSimulation(nodes)
-    .force('link', d3.forceLink(links).id(d => d.id).distance(200))
-    .force('charge', d3.forceManyBody().strength(-800))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(6));  // Fixed small radius for dense stars
+    .force('link', d3.forceLink(links)
+      .id(d => d.id)
+      .distance(55)        // Tighter clusters (was 200)
+      .strength(0.45))     // Stronger pull to keep clusters together
+    .force('charge', d3.forceManyBody()
+      .strength(-18))      // Reduced repulsion (was -800)
+    .force('center', d3.forceCenter(width / 2, height / 2))  // Global gravity
+    .force('x', d3.forceX(width / 2).strength(0.12))         // Horizontal gravity
+    .force('y', d3.forceY(height / 2).strength(0.12))        // Vertical gravity
+    .force('collision', d3.forceCollide()
+      .radius(8));         // Small collision radius to prevent overlap
   
   // Draw links
   const link = g.append('g')
@@ -260,56 +267,69 @@ function createStarfield(svg, width, height) {
 function addGradients(svg) {
   const defs = svg.append('defs');
   
-  // Inner glow gradient (subtle)
-  const innerGlow = defs.append('radialGradient')
-    .attr('id', 'star-inner-glow');
+  // Radiant sunburst gradient (bright center fading out)
+  const sunburstGradient = defs.append('radialGradient')
+    .attr('id', 'sunburst-glow');
   
-  innerGlow.append('stop')
+  sunburstGradient.append('stop')
     .attr('offset', '0%')
-    .attr('stop-color', '#ffeaa0')
-    .attr('stop-opacity', 0.8);
+    .attr('stop-color', '#fff9e6')
+    .attr('stop-opacity', 0.9);
   
-  innerGlow.append('stop')
-    .attr('offset', '100%')
+  sunburstGradient.append('stop')
+    .attr('offset', '30%')
     .attr('stop-color', '#ffeaa0')
+    .attr('stop-opacity', 0.7);
+  
+  sunburstGradient.append('stop')
+    .attr('offset', '70%')
+    .attr('stop-color', '#ffb347')
+    .attr('stop-opacity', 0.3);
+  
+  sunburstGradient.append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', '#ff8c00')
     .attr('stop-opacity', 0);
   
-  // Subtle blur filter for aura
-  const blurFilter = defs.append('filter')
-    .attr('id', 'star-blur')
-    .attr('x', '-100%')
-    .attr('y', '-100%')
-    .attr('width', '300%')
-    .attr('height', '300%');
+  // Strong blur filter for radiant effect
+  const radiantBlur = defs.append('filter')
+    .attr('id', 'radiant-blur')
+    .attr('x', '-150%')
+    .attr('y', '-150%')
+    .attr('width', '400%')
+    .attr('height', '400%');
   
-  blurFilter.append('feGaussianBlur')
-    .attr('stdDeviation', '3');
+  radiantBlur.append('feGaussianBlur')
+    .attr('stdDeviation', '6');
   
-  // Star sprite symbol (tiny, subtle)
+  // Radiant sunburst sprite (no visible core, just glow)
   const sprite = defs.append('symbol')
     .attr('id', 'star-sprite')
-    .attr('viewBox', '-16 -16 32 32');
+    .attr('viewBox', '-32 -32 64 64');
   
-  // Aura haze (very subtle, blurred) - BOTTOM LAYER
+  // Outer radiance (large, very subtle)
   sprite.append('circle')
-    .attr('r', 14)
-    .attr('fill', '#ffeaa0')
-    .attr('opacity', 0.08)  // Very subtle so links show through
-    .attr('filter', 'url(#star-blur)')
-    .attr('class', 'star-aura');
+    .attr('r', 28)
+    .attr('fill', 'url(#sunburst-glow)')
+    .attr('opacity', 0.25)
+    .attr('filter', 'url(#radiant-blur)')
+    .attr('class', 'radiant-outer');
   
-  // Inner glow (medium layer)
+  // Middle glow (medium, brighter)
   sprite.append('circle')
-    .attr('r', 7)
-    .attr('fill', 'url(#star-inner-glow)')
-    .attr('opacity', 0.6)
-    .attr('class', 'star-glow');
+    .attr('r', 16)
+    .attr('fill', 'url(#sunburst-glow)')
+    .attr('opacity', 0.5)
+    .attr('filter', 'url(#radiant-blur)')
+    .attr('class', 'radiant-middle');
   
-  // Core spark (bright, tiny) - TOP LAYER
+  // Inner radiance (small, brightest - but NO SOLID CORE)
   sprite.append('circle')
-    .attr('r', 2.5)
-    .attr('fill', '#fff7d1')
-    .attr('class', 'star-core');
+    .attr('r', 8)
+    .attr('fill', 'url(#sunburst-glow)')
+    .attr('opacity', 0.8)
+    .attr('filter', 'url(#radiant-blur)')
+    .attr('class', 'radiant-inner');
 }
 
 /**
