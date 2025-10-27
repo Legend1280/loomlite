@@ -1,9 +1,9 @@
 /**
- * Mind Map View Module for Loom Lite v2.1
+ * Planet View Module for Loom Lite v4.0
  * Hierarchical tree visualization of document ontology
  * 
  * Displays concepts in a clean, expandable tree structure
- * Left-to-right layout with curved Bézier connections
+ * Root node styled as a planet, with left-to-right curved Bézier connections
  */
 
 import { bus } from './eventBus.js';
@@ -22,7 +22,7 @@ const HORIZONTAL_SPACING = 280;
 const ANIMATION_DURATION = 400;
 
 /**
- * Initialize Mind Map View
+ * Initialize Planet View
  */
 export async function initMindMapView(docId) {
   
@@ -30,7 +30,7 @@ export async function initMindMapView(docId) {
   
   const container = document.getElementById('visualizer-bottom');
   if (!container) {
-    console.error('Mind Map container not found');
+    console.error('Planet View container not found');
     return;
   }
   
@@ -43,7 +43,7 @@ export async function initMindMapView(docId) {
   // Listen for events
   setupEventListeners();
   
-  // Mind Map View initialized
+  // Planet View initialized
 }
 
 /**
@@ -293,7 +293,7 @@ function buildHierarchy() {
 }
 
 /**
- * Create Mind Map visualization
+ * Create Planet View visualization
  */
 function createMindMapVisualization(container) {
   const width = container.clientWidth;
@@ -311,6 +311,26 @@ function createMindMapVisualization(container) {
     .attr('width', width)
     .attr('height', height)
     .style('background', 'linear-gradient(135deg, #0c0c0c 0%, #111111 100%)');
+  
+  // Add planet gradient definition
+  const defs = svg.append('defs');
+  const planetGradient = defs.append('radialGradient')
+    .attr('id', 'planet-gradient');
+  
+  planetGradient.append('stop')
+    .attr('offset', '0%')
+    .attr('stop-color', '#fef3c7')
+    .attr('stop-opacity', 1);
+  
+  planetGradient.append('stop')
+    .attr('offset', '50%')
+    .attr('stop-color', '#fbbf24')
+    .attr('stop-opacity', 1);
+  
+  planetGradient.append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', '#f59e0b')
+    .attr('stop-opacity', 1);
   
   // Create zoom group
   g = svg.append('g')
@@ -398,18 +418,42 @@ function update(source) {
       handleNodeClick(d);
     });
   
-  // Add node rectangles
-  nodeEnter.append('rect')
-    .attr('width', NODE_WIDTH)
-    .attr('height', NODE_HEIGHT)
-    .attr('x', -NODE_WIDTH / 2)
-    .attr('y', -NODE_HEIGHT / 2)
-    .attr('rx', 8)
-    .attr('ry', 8)
-    .attr('fill', d => getNodeColor(d.data.type))
-    .attr('stroke', d => getNodeStrokeColor(d.data.type))
-    .attr('stroke-width', 2)
-    .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))');
+  // Add node shapes (planet for document, rect for concepts)
+  nodeEnter.each(function(d) {
+    const node = d3.select(this);
+    
+    if (d.data.type === 'document') {
+      // Planet node (root document)
+      const planetRadius = 30;
+      
+      // Add planet circle with gradient
+      node.append('circle')
+        .attr('r', planetRadius)
+        .attr('fill', 'url(#planet-gradient)')
+        .attr('stroke', '#fbbf24')
+        .attr('stroke-width', 3)
+        .style('filter', 'drop-shadow(0 4px 8px rgba(251, 191, 36, 0.4))');
+      
+      // Add tooltip for planet node (document summary)
+      if (d.data.summary) {
+        node.append('title')
+          .text(d.data.summary);
+      }
+    } else {
+      // Regular concept nodes (rectangles)
+      node.append('rect')
+        .attr('width', NODE_WIDTH)
+        .attr('height', NODE_HEIGHT)
+        .attr('x', -NODE_WIDTH / 2)
+        .attr('y', -NODE_HEIGHT / 2)
+        .attr('rx', 8)
+        .attr('ry', 8)
+        .attr('fill', getNodeColor(d.data.type))
+        .attr('stroke', getNodeStrokeColor(d.data.type))
+        .attr('stroke-width', 2)
+        .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))');
+    }
+  });
   
   // Add node text
   nodeEnter.append('text')
@@ -548,7 +592,7 @@ function handleNodeClick(d) {
     const nodeType = d.data.type || 'concept';  // 'document', 'cluster', 'refinement', or 'concept'
     const hierarchyLevel = d.data.hierarchyLevel;
     
-    console.log(`Mind Map node clicked: ${d.data.name} (type: ${nodeType}, level: ${hierarchyLevel})`);
+    console.log(`Planet View node clicked: ${d.data.name} (type: ${nodeType}, level: ${hierarchyLevel})`);
     
     bus.emit('conceptSelected', {
       conceptId: d.data.id,
@@ -748,7 +792,7 @@ function setupEventListeners() {
 function centerOnRoot() {
   if (!svg || !g) return;
   
-  console.log('Centering Mind Map on root...');
+  console.log('Centering Planet View on root...');
   
   const container = document.getElementById('visualizer-bottom');
   if (!container) return;
