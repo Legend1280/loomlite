@@ -20,6 +20,7 @@ from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Conce
 from reader import read_document
 from extractor import extract_ontology_from_text, store_ontology
 from semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
+from analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -900,51 +901,154 @@ def get_semantic_folders_by_view(view_id: str):
 
 
 # ============================================================================
-# ADMIN ENDPOINTS
+# Analytics Endpoints (v3.3)
+# ============================================================================
+
+@app.post("/analytics/track-view")
+def track_view(folder_name: str, doc_id: str):
+    """
+    Track a folder/document view event
+    Increments view_count and updates last_opened
+    """
+    try:
+        conn = get_db()
+        track_folder_view(conn, folder_name, doc_id)
+        return {"status": "success", "message": "View tracked"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/analytics/track-pin")
+def track_pin(folder_name: str, doc_id: str):
+    """
+    Track a pin event for a folder/document
+    Increments pin_count
+    """
+    try:
+        conn = get_db()
+        track_pin_event(conn, folder_name, doc_id)
+        return {"status": "success", "message": "Pin tracked"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/analytics/track-dwell")
+def track_dwell(folder_name: str, doc_id: str, seconds: int):
+    """
+    Update dwell time for a folder/document
+    Adds to existing dwell_time
+    """
+    try:
+        conn = get_db()
+        update_dwell_time(conn, folder_name, doc_id, seconds)
+        return {"status": "success", "message": "Dwell time updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/folder-stats")
+def folder_stats(folder_name: Optional[str] = None):
+    """
+    Get analytics summary for folders
+    If folder_name is provided, returns stats for that folder only
+    """
+    try:
+        conn = get_db()
+        stats = get_folder_stats(conn, folder_name)
+        return {"stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/document-stats/{doc_id}")
+def document_stats(doc_id: str):
+    """
+    Get analytics for a specific document across all folders
+    """
+    try:
+        conn = get_db()
+        stats = get_document_stats(conn, doc_id)
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/trending-documents")
+def trending_documents(limit: int = 10):
+    """
+    Get trending documents based on recent views and engagement
+    """
+    try:
+        conn = get_db()
+        trending = get_trending_documents(conn, limit)
+        return {"trending": trending}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# Admin Endpoints
 # ============================================================================
 
 @app.post("/admin/run-migration")
 def run_migration():
     """
     Run database migrations
-    Creates the saved_views table if it doesn't exist
+    Creates the saved_views and folder_stats tables if they don't exist
     """
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
-        # Check if saved_views table exists
+        tables_created = []
+        
+        # Check and create saved_views table
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='saved_views'")
-        if cur.fetchone():
-            conn.close()
-            return {
-                "status": "success",
-                "message": "saved_views table already exists",
-                "action": "none"
-            }
+        if not cur.fetchone():
+            cur.execute("""
+                CREATE TABLE saved_views (
+                    id TEXT PRIMARY KEY,
+                    view_name TEXT NOT NULL,
+                    query TEXT NOT NULL,
+                    sort_mode TEXT DEFAULT 'auto',
+                    created_at TEXT NOT NULL,
+                    user_id TEXT
+                )
+            """)
+            cur.execute("CREATE INDEX idx_saved_views_user ON saved_views(user_id)")
+            tables_created.append("saved_views")
         
-        # Create saved_views table
-        cur.execute("""
-            CREATE TABLE saved_views (
-                id TEXT PRIMARY KEY,
-                view_name TEXT NOT NULL,
-                query TEXT NOT NULL,
-                sort_mode TEXT DEFAULT 'auto',
-                created_at TEXT NOT NULL,
-                user_id TEXT
-            )
-        """)
-        
-        cur.execute("CREATE INDEX idx_saved_views_user ON saved_views(user_id)")
+        # Check and create folder_stats table
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='folder_stats'")
+        if not cur.fetchone():
+            cur.execute("""
+                CREATE TABLE folder_stats (
+                    id TEXT PRIMARY KEY,
+                    folder_name TEXT NOT NULL,
+                    doc_id TEXT NOT NULL,
+                    view_count INTEGER DEFAULT 0,
+                    pin_count INTEGER DEFAULT 0,
+                    last_opened TEXT,
+                    dwell_time INTEGER DEFAULT 0,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (doc_id) REFERENCES documents(id) ON DELETE CASCADE
+                )
+            """)
+            cur.execute("CREATE INDEX idx_folder_stats_folder ON folder_stats(folder_name)")
+            cur.execute("CREATE INDEX idx_folder_stats_doc ON folder_stats(doc_id)")
+            cur.execute("CREATE INDEX idx_folder_stats_updated ON folder_stats(updated_at DESC)")
+            tables_created.append("folder_stats")
         
         conn.commit()
         conn.close()
         
-        return {
-            "status": "success",
-            "message": "saved_views table created successfully",
-            "action": "created_table"
-        }
+        if tables_created:
+            return {
+                "status": "success",
+                "message": f"Created tables: {', '.join(tables_created)}",
+                "action": "created_tables",
+                "tables": tables_created
+            }
+        else:
+            return {
+                "status": "success",
+                "message": "All tables already exist",
+                "action": "none"
+            }
         
     except Exception as e:
         import traceback
