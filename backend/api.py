@@ -1,6 +1,8 @@
-"""
+"""  
 Loom Lite Unified API
 Combines ontology query endpoints and N8N ingestion endpoints
+
+Deployment: 2025-10-27 - CORS fix applied
 """
 import os
 import sqlite3
