@@ -904,7 +904,7 @@ def get_semantic_folders_by_view(view_id: str):
 # ============================================================================
 
 @app.post("/admin/clear-all")
-def clear_all_data():ocuments():
+def clear_all_data():
     """
     Clear all documents, concepts, relations, and spans from the database.
     WARNING: This is destructive and cannot be undone!
