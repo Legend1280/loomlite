@@ -6,7 +6,7 @@
 const API_BASE = 'https://loomlite-production.up.railway.app';
 
 let statusPanel = null;
-let isMinimized = false;
+let isMinimized = true;
 
 const componentStatus = {
   // Core Libraries
@@ -132,6 +132,12 @@ function createStatusPanel() {
   
   // Make toggle function global
   window.toggleSystemStatus = toggleSystemStatus;
+  
+  // Start collapsed
+  const content = statusPanel.querySelector('.status-content');
+  const toggle = statusPanel.querySelector('.status-toggle');
+  content.style.display = 'none';
+  toggle.textContent = '+';
 }
 
 /**
