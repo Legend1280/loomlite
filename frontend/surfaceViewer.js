@@ -62,16 +62,29 @@ export function initSurfaceViewer() {
     }
   });
   
+  // Listen for folderSelected events from Dynamic Folders Panel
+  bus.on('folderSelected', (event) => {
+    const { folder, document, doc_id, title, score } = event.detail;
+    
+    console.log(`📁 Folder selection received:`, { folder, title, score });
+    
+    // Load the document in Surface Viewer
+    currentDocId = doc_id;
+    
+    // Show folder context in ontology mode
+    handleFolderSelection(event.detail);
+  });
+  
   // Listen for documentFocus events to load document in Reader Mode
   bus.on('documentFocus', async (event) => {
-    const { docId } = event.detail;
-    currentDocId = docId;
+    const { docId, doc_id } = event.detail;
+    currentDocId = docId || doc_id;
     
     // Keep current mode when loading a new document
     updateModeButtons();
     
     // Load document text
-    await renderDocumentMode(docId);
+    await renderDocumentMode(currentDocId);
   });
   
   console.log('✅ Enhanced Surface Viewer v3.0b initialized');
@@ -259,6 +272,66 @@ async function handleDocumentSelection(eventDetail) {
   } else if (currentMode === 'document') {
     // In document mode, just load the text without highlighting
     await renderDocumentMode(docId);
+  }
+}
+
+/**
+ * Handle folder selection from Dynamic Folders Panel
+ */
+async function handleFolderSelection(eventDetail) {
+  const { folder, document, doc_id, title, score } = eventDetail;
+  console.log(`📁 Folder selection: ${title} from ${folder}`);
+  
+  currentDocId = doc_id;
+  selectedConceptId = null;
+  
+  // Switch to ontology mode to show folder context
+  currentMode = 'ontology';
+  updateModeButtons();
+  
+  // Show document info with folder context
+  const content = document.getElementById('surface-viewer-content');
+  if (content) {
+    content.innerHTML = `
+      <div style="padding: 24px; background: #0f172a;">
+        <div style="margin-bottom: 20px;">
+          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">📁 FOLDER</div>
+          <div style="color: #818cf8; font-size: 16px; font-weight: 600; margin-bottom: 8px;">${folder}</div>
+        </div>
+        
+        <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0; font-weight: 600;">${title}</h3>
+        
+        <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #10b981;">
+          <div style="color: #10b981; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📊 SEMANTIC SCORE</div>
+          <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">This document has a semantic relevance score of <strong>${score}</strong> within the "${folder}" folder.</div>
+          <div style="color: #64748b; font-size: 12px; margin-top: 8px;">Score is calculated based on concept confidence, recency, relations, and hierarchy.</div>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DOCUMENT ID</div>
+          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #94a3b8;">${doc_id}</div>
+        </div>
+        
+        <div style="margin-top: 24px; padding: 16px; background: #1e293b; border-radius: 6px;">
+          <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">💡 Tip</div>
+          <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
+            Switch to <strong>Paragraph</strong> mode to read the full document text, or explore the <strong>Mind Map</strong> to see this document's concepts.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Load the document's ontology to enable Mind Map navigation
+  try {
+    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${doc_id}/ontology`);
+    if (response.ok) {
+      const ontology = await response.json();
+      // Emit event to update Mind Map
+      bus.emit('ontologyLoaded', { docId: doc_id, ontology });
+    }
+  } catch (error) {
+    console.error('❌ Error loading ontology:', error);
   }
 }
 

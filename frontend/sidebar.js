@@ -6,6 +6,7 @@
  */
 
 import { bus, setCurrentDocId } from './eventBus.js';
+import { initDynamicFoldersPanel } from './dynamicFoldersPanel.js';
 
 // Global state
 let documents = [];
@@ -27,8 +28,22 @@ export async function initSidebar() {
   // Render header
   renderHeader(sidebar);
   
-  // Fetch and render documents
-  await fetchAndRenderDocuments(sidebar);
+  // Create container for dynamic folders panel
+  const dynamicFoldersContainer = document.createElement('div');
+  dynamicFoldersContainer.id = 'dynamic-folders-container';
+  dynamicFoldersContainer.style.cssText = `
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  `;
+  sidebar.appendChild(dynamicFoldersContainer);
+  
+  // Initialize dynamic folders panel
+  await initDynamicFoldersPanel(dynamicFoldersContainer);
+  
+  // Note: Original file list is replaced by dynamic folders panel
+  // To show both, we could add a toggle or tabs
   
   console.log('✅ File Navigator Sidebar initialized');
 }
