@@ -495,5 +495,5 @@ function resetSearchHighlight() {
 window.initGalaxyView = initGalaxyView;
 window.resizeGalaxyView = resizeGalaxyView;
 window.highlightSearchResults = highlightSearchResults;
-window.clearSearchHighlights = clearSearchHighlights;
+window.resetSearchHighlight = resetSearchHighlight;
 
