@@ -30,43 +30,6 @@
       gap: 24px;
     }
     
-    /* SEARCH BAR */
-    #searchBar {
-      flex: 0 0 auto;
-      width: 28%;
-      max-width: 400px;
-      background: #181818;
-      border-radius: 6px;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: box-shadow 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
-    }
-    
-    #searchBar:focus-within {
-      box-shadow: 0 0 0 2px rgba(250, 214, 67, 0.2);
-    }
-    
-    .search-icon {
-      font-size: 16px;
-      color: #777777;
-    }
-    
-    #searchInput {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #e6e6e6;
-      font-size: 12px;
-      font-family: inherit;
-    }
-    
-    #searchInput::placeholder {
-      color: #777777;
-    }
-    
     /* VIEW MODE BUTTONS */
     #viewModeButtons {
       flex: 1;
@@ -391,12 +354,6 @@
   <div id="toolbar">
     <!-- Logo -->
     <img src="logo.png" alt="Loom Lite" style="height: 32px; width: 32px; border-radius: 50%;">
-    
-    <!-- Search Bar -->
-    <div id="searchBar">
-      <span class="search-icon">⌕</span>
-      <input type="text" id="searchInput" placeholder="Search">
-    </div>
     
     <!-- View Mode Icons -->
     <div id="viewModeButtons">

@@ -33,10 +33,10 @@ export async function initSearchBar() {
   // Create search container
   const searchContainer = createSearchContainer();
   
-  // Insert after breadcrumbs
-  const breadcrumbs = document.getElementById('breadcrumbs');
-  if (breadcrumbs) {
-    breadcrumbs.parentNode.insertBefore(searchContainer, breadcrumbs.nextSibling);
+  // Insert after logo (first child)
+  const logo = toolbar.querySelector('img');
+  if (logo && logo.nextSibling) {
+    toolbar.insertBefore(searchContainer, logo.nextSibling);
   } else {
     toolbar.insertBefore(searchContainer, toolbar.firstChild);
   }
@@ -59,35 +59,47 @@ function createSearchContainer() {
   container.id = 'search-container';
   container.style.cssText = `
     position: relative;
-    flex: 1;
-    max-width: 500px;
-    margin: 0 16px;
+    flex: 0 0 auto;
+    width: 28%;
+    max-width: 400px;
+    margin: 0;
   `;
   
   // Search input
   const input = document.createElement('input');
   input.id = 'search-input';
   input.type = 'text';
-  input.placeholder = 'Search concepts...';
+  input.placeholder = 'Search';
   input.style.cssText = `
     width: 100%;
-    padding: 8px 12px;
-    background: #0f172a;
-    border: 1px solid #334155;
+    padding: 8px 12px 8px 32px;
+    background: #181818;
+    border: none;
     border-radius: 6px;
-    color: #e2e8f0;
-    font-size: 13px;
-    transition: all 0.2s;
+    color: #e6e6e6;
+    font-size: 12px;
+    transition: box-shadow 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
   `;
+  
+  // Add search icon
+  const icon = document.createElement('span');
+  icon.style.cssText = `
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #777777;
+    pointer-events: none;
+  `;
+  icon.textContent = '⌕'; // Search icon
   
   // Focus styling
   input.addEventListener('focus', () => {
-    input.style.borderColor = '#3b82f6';
-    input.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+    input.style.boxShadow = '0 0 0 2px rgba(250, 214, 67, 0.2)';
   });
   
   input.addEventListener('blur', () => {
-    input.style.borderColor = '#334155';
     input.style.boxShadow = 'none';
     
     // Hide suggestions after a delay to allow click
@@ -144,6 +156,7 @@ function createSearchContainer() {
     display: none;
   `;
   
+  container.appendChild(icon);
   container.appendChild(input);
   container.appendChild(dropdown);
   
