@@ -314,7 +314,9 @@ function createSection(title, iconText, count) {
   `;
   
   header.onclick = () => {
-    const newState = !isCollapsed;
+    // Read current state from collapsedSections (not closure variable)
+    const currentState = collapsedSections[sectionId] || false;
+    const newState = !currentState;
     collapsedSections[sectionId] = newState;
     saveCollapsedState();
     
@@ -536,12 +538,16 @@ function createFolderItem(folder, options = {}) {
   });
   
   header.onclick = () => {
-    const newState = !isExpanded;
-    collapsedSections[`folder-${folderId}`] = !newState;
+    // Read current state from collapsedSections (not closure variable)
+    // Note: folder state is inverted (true = expanded)
+    const currentCollapsed = collapsedSections[`folder-${folderId}`] || false;
+    const newState = !currentCollapsed; // Toggle: if collapsed, expand; if expanded, collapse
+    collapsedSections[`folder-${folderId}`] = newState;
     saveCollapsedState();
     
-    content.style.display = newState ? 'block' : 'none';
-    chevron.textContent = newState ? '⌄' : '›';
+    // newState = true means collapsed, false means expanded
+    content.style.display = newState ? 'none' : 'block';
+    chevron.textContent = newState ? '›' : '⌄';
   };
   
   container.appendChild(header);
