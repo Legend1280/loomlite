@@ -351,14 +351,20 @@
       font-size: 11px;
     }
     
-    /* Galaxy Sprite Node Styling */
-    .galaxy-node {
+    /* Stardust Star Node Styling */
+    @keyframes star-breathe {
+      0%, 100% { opacity: 0.65; }
+      50% { opacity: 1; }
+    }
+    
+    .star-node {
       filter: brightness(var(--brightness, 1));
       transition: filter 0.3s ease;
     }
     
-    .sprite-core {
-      transition: fill 0.3s ease;
+    .star-core {
+      animation: star-breathe 4s ease-in-out infinite;
+      animation-delay: calc(var(--rand) * 2s);
     }
   </style>
 </head>

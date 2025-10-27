@@ -173,7 +173,7 @@ function createGalaxyVisualization(container) {
     .force('link', d3.forceLink(links).id(d => d.id).distance(200))
     .force('charge', d3.forceManyBody().strength(-800))
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 20));
+    .force('collision', d3.forceCollide().radius(6));  // Fixed small radius for dense stars
   
   // Draw links
   const link = g.append('g')
@@ -181,7 +181,7 @@ function createGalaxyVisualization(container) {
     .data(links)
     .join('line')
     .attr('stroke', '#3b82f6')
-    .attr('stroke-opacity', 0.3)
+    .attr('stroke-opacity', 0.5)  // Increased for visibility through auras
     .attr('stroke-width', d => Math.sqrt(d.strength));
   
   // Draw nodes (solar systems)
@@ -260,50 +260,56 @@ function createStarfield(svg, width, height) {
 function addGradients(svg) {
   const defs = svg.append('defs');
   
-  // Galaxy core gradient (radial)
-  const coreGradient = defs.append('radialGradient')
-    .attr('id', 'galaxy-core');
+  // Inner glow gradient (subtle)
+  const innerGlow = defs.append('radialGradient')
+    .attr('id', 'star-inner-glow');
   
-  coreGradient.append('stop')
+  innerGlow.append('stop')
     .attr('offset', '0%')
-    .attr('stop-color', '#fad643');
+    .attr('stop-color', '#ffeaa0')
+    .attr('stop-opacity', 0.8);
   
-  coreGradient.append('stop')
-    .attr('offset', '80%')
-    .attr('stop-color', '#f59e0b');
-  
-  coreGradient.append('stop')
+  innerGlow.append('stop')
     .attr('offset', '100%')
-    .attr('stop-color', 'transparent');
+    .attr('stop-color', '#ffeaa0')
+    .attr('stop-opacity', 0);
   
-  // Blur filter for halo
+  // Subtle blur filter for aura
   const blurFilter = defs.append('filter')
-    .attr('id', 'blur4')
-    .attr('x', '-50%')
-    .attr('y', '-50%')
-    .attr('width', '200%')
-    .attr('height', '200%');
+    .attr('id', 'star-blur')
+    .attr('x', '-100%')
+    .attr('y', '-100%')
+    .attr('width', '300%')
+    .attr('height', '300%');
   
   blurFilter.append('feGaussianBlur')
-    .attr('stdDeviation', '4');
+    .attr('stdDeviation', '3');
   
-  // Galaxy sprite symbol (simplified - just glowing star)
+  // Star sprite symbol (tiny, subtle)
   const sprite = defs.append('symbol')
-    .attr('id', 'galaxy-sprite')
-    .attr('viewBox', '-10 -10 20 20');
+    .attr('id', 'star-sprite')
+    .attr('viewBox', '-16 -16 32 32');
   
-  // Subtle glow halo (smaller, tighter)
+  // Aura haze (very subtle, blurred) - BOTTOM LAYER
   sprite.append('circle')
-    .attr('r', 8)
-    .attr('fill', 'url(#galaxy-core)')
-    .attr('opacity', 0.3)
-    .attr('filter', 'url(#blur4)');
+    .attr('r', 14)
+    .attr('fill', '#ffeaa0')
+    .attr('opacity', 0.08)  // Very subtle so links show through
+    .attr('filter', 'url(#star-blur)')
+    .attr('class', 'star-aura');
   
-  // Core circle (bright star)
+  // Inner glow (medium layer)
   sprite.append('circle')
-    .attr('r', 5)
-    .attr('fill', 'url(#galaxy-core)')
-    .attr('class', 'sprite-core');
+    .attr('r', 7)
+    .attr('fill', 'url(#star-inner-glow)')
+    .attr('opacity', 0.6)
+    .attr('class', 'star-glow');
+  
+  // Core spark (bright, tiny) - TOP LAYER
+  sprite.append('circle')
+    .attr('r', 2.5)
+    .attr('fill', '#fff7d1')
+    .attr('class', 'star-core');
 }
 
 /**
@@ -320,26 +326,24 @@ function getNodeRadius(node) {
 }
 
 /**
- * Draw a galaxy sprite node (GPU-accelerated, no JS animation)
+ * Draw a stardust star sprite node (tiny, subtle, breathing)
  * @param {Object} d - Node data
  * @param {d3.Selection} g - D3 selection of the node group
  */
 function drawGalaxySpriteNode(d, g) {
-  const radius = getNodeRadius(d);
+  // Random scale for variety (0.9 to 1.1)
+  const randomScale = 0.9 + Math.random() * 0.2;
   
-  // Calculate semantic brightness (0.8 to 1.2 range)
+  // Calculate semantic brightness (0.65 to 1.0 range for subtle effect)
   const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
   const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
-  const brightness = 0.8 + coherence * 0.4;
+  const brightness = 0.65 + coherence * 0.35;
   
-  // Calculate scale based on node radius (sprite is designed for ~10px radius)
-  const scale = radius / 10;
-  
-  // Add sprite instance
+  // Add sprite instance (no scaling based on radius - keep stars uniform)
   g.append('use')
-    .attr('href', '#galaxy-sprite')
-    .attr('class', 'galaxy-node')
-    .attr('transform', `scale(${scale})`)
+    .attr('href', '#star-sprite')
+    .attr('class', 'star-node')
+    .attr('transform', `scale(${randomScale})`)
     .style('--rand', Math.random().toFixed(2))
     .style('--brightness', brightness);
 }
@@ -438,8 +442,8 @@ function highlightSearchResults(results) {
       return matchedDocIds.has(d.id) ? 1 : 0.3;
     });
   
-  // Update galaxy sprite nodes (highlight matched documents)
-  g.selectAll('.galaxy-node')
+  // Update star sprite nodes (highlight matched documents)
+  g.selectAll('.star-node')
     .transition()
     .duration(300)
     .style('filter', function() {
@@ -467,7 +471,7 @@ function highlightSearchResults(results) {
   
   // Pulse effect for matched documents (scale sprite)
   if (matchedDocIds.size > 0) {
-    g.selectAll('.galaxy-node')
+    g.selectAll('.star-node')
       .filter(function() {
         const parentNode = d3.select(this.parentNode);
         const d = parentNode.datum();
@@ -476,20 +480,14 @@ function highlightSearchResults(results) {
       .transition()
       .duration(500)
       .attr('transform', function() {
-        const parentNode = d3.select(this.parentNode);
-        const d = parentNode.datum();
-        const radius = getNodeRadius(d);
-        const scale = (radius + 5) / 10; // Slightly larger
-        return `scale(${scale})`;
+        const randomScale = 0.9 + Math.random() * 0.2;
+        return `scale(${randomScale * 1.2})`; // 20% larger
       })
       .transition()
       .duration(500)
       .attr('transform', function() {
-        const parentNode = d3.select(this.parentNode);
-        const d = parentNode.datum();
-        const radius = getNodeRadius(d);
-        const scale = radius / 10; // Back to normal
-        return `scale(${scale})`;
+        const randomScale = 0.9 + Math.random() * 0.2;
+        return `scale(${randomScale})`; // Back to normal
       });
   }
 }
@@ -509,8 +507,8 @@ function clearSearchHighlights() {
     .duration(300)
     .style('opacity', 1);
   
-  // Restore galaxy sprite default styling
-  g.selectAll('.galaxy-node')
+  // Restore star sprite default styling
+  g.selectAll('.star-node')
     .transition()
     .duration(300)
     .style('filter', function() {
@@ -519,10 +517,10 @@ function clearSearchHighlights() {
       
       if (!d) return 'brightness(1)';
       
-      // Restore semantic brightness
+      // Restore semantic brightness (subtle range)
       const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
       const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
-      const brightness = 0.8 + coherence * 0.4;
+      const brightness = 0.65 + coherence * 0.35;
       
       return `brightness(${brightness})`;
     })
