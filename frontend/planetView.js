@@ -215,7 +215,7 @@ function buildHierarchy() {
     concept: docData,  // Include full document data
     children: [],
     _children: null,
-    expanded: true
+    expanded: false  // Start collapsed - user clicks planet to expand
   };
   
   // Build hierarchy using parent_cluster_id
@@ -355,8 +355,8 @@ function createMindMapVisualization(container) {
   const hierarchyData = buildHierarchy();
   root = d3.hierarchy(hierarchyData);
   
-  // NOW collapse cluster nodes (after D3 has processed children)
-  root.children?.forEach(collapse);
+  // NOW collapse root node so planet starts closed (user clicks to expand)
+  collapse(root);
   
   // Initial hierarchy ready
   

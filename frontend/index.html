@@ -387,7 +387,7 @@
           <rect x="9" y="2" width="5" height="12" rx="1"/>
         </svg>
       </button>
-      <button class="view-mode-btn" data-mode="mind" title="Mind Map View">
+      <button class="view-mode-btn" data-mode="mind" title="Planet View">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
           <circle cx="8" cy="8" r="2" fill="currentColor"/>
           <circle cx="3" cy="4" r="1.5"/>
@@ -425,12 +425,12 @@
         <svg></svg>
       </div>
       
-      <!-- RESIZE HANDLE (Solar | Mind Map) -->
+      <!-- RESIZE HANDLE (Solar | Planet View) -->
       <div class="resize-handle resize-handle-horizontal" id="resize-center" style="display: none;"></div>
       
-      <!-- Mind Map View (Hierarchical) -->
+      <!-- Planet View (Hierarchical) -->
       <div id="visualizer-bottom" class="visualizer-container" style="display: none;">
-        <div class="visualizer-label">MIND MAP</div>
+        <div class="visualizer-label">PLANET VIEW</div>
         <svg></svg>
       </div>
     </main>
@@ -523,7 +523,7 @@
         });
       }
       
-      // Center panel resize (Solar | Mind Map)
+      // Center panel resize (Solar | Planet View)
       const resizeCenter = document.getElementById('resize-center');
       const visualizerTop = document.getElementById('visualizer-top');
       const visualizerBottom = document.getElementById('visualizer-bottom');
