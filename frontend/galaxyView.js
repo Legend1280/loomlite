@@ -202,12 +202,10 @@ function createGalaxyVisualization(container) {
     .attr('fill', 'url(#solar-glow)')
     .attr('opacity', 0.3);
   
-  // Add main solar system circle
+  // Add main star circle (gradient fades to transparent = no hard edge)
   node.append('circle')
     .attr('r', d => getNodeRadius(d))
-    .attr('fill', '#fbbf24')
-    .attr('stroke', '#f59e0b')
-    .attr('stroke-width', 2);
+    .attr('fill', 'url(#star-glow)');
   
   // Add document title
   node.append('text')
@@ -268,7 +266,7 @@ function createStarfield(svg, width, height) {
 function addGradients(svg) {
   const defs = svg.append('defs');
   
-  // Solar glow gradient
+  // Solar glow gradient (outer halo)
   const solarGlow = defs.append('radialGradient')
     .attr('id', 'solar-glow');
   
@@ -280,6 +278,25 @@ function addGradients(svg) {
   solarGlow.append('stop')
     .attr('offset', '100%')
     .attr('stop-color', '#f59e0b')
+    .attr('stop-opacity', 0);
+  
+  // Star glow gradient (for main node - fades to transparent)
+  const starGlow = defs.append('radialGradient')
+    .attr('id', 'star-glow');
+  
+  starGlow.append('stop')
+    .attr('offset', '0%')
+    .attr('stop-color', '#ffffff')
+    .attr('stop-opacity', 1);
+  
+  starGlow.append('stop')
+    .attr('offset', '30%')
+    .attr('stop-color', '#fbbf24')
+    .attr('stop-opacity', 0.8);
+  
+  starGlow.append('stop')
+    .attr('offset', '100%')
+    .attr('stop-color', '#fbbf24')
     .attr('stop-opacity', 0);
 }
 
