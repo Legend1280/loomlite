@@ -175,14 +175,14 @@ function createGalaxyVisualization(container) {
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 20));
   
-  // Draw links (glowing threads)
+  // Draw links (glowing threads - static glow, no animation)
   const link = g.append('g')
     .selectAll('line')
     .data(links)
     .join('line')
     .attr('class', 'thread')
     .attr('stroke', '#60a5fa')
-    .attr('stroke-opacity', 0.5)
+    .attr('stroke-opacity', 0.4)
     .attr('stroke-width', d => Math.sqrt(d.strength))
     .attr('filter', 'url(#thread-glow)');
   

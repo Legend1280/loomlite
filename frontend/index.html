@@ -351,18 +351,9 @@
       font-size: 11px;
     }
     
-    /* Pulsing glowing threads animation */
-    @keyframes thread-pulse {
-      0%, 100% { 
-        stroke-opacity: 0.3;
-      }
-      50% { 
-        stroke-opacity: 0.7;
-      }
-    }
-    
+    /* Glowing threads (static, no animation for performance) */
     .thread {
-      animation: thread-pulse 3s ease-in-out infinite;
+      /* No animation - just static glow via SVG filter */
     }
   </style>
 </head>
