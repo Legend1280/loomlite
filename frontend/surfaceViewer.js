@@ -67,8 +67,7 @@ export function initSurfaceViewer() {
     const { docId } = event.detail;
     currentDocId = docId;
     
-    // Always start in Document Mode when loading a new document
-    currentMode = 'document';
+    // Keep current mode when loading a new document
     updateModeButtons();
     
     // Load document text
