@@ -310,7 +310,7 @@ function createMindMapVisualization(container) {
     .append('svg')
     .attr('width', width)
     .attr('height', height)
-    .style('background', 'linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%)');
+    .style('background', 'linear-gradient(135deg, #0c0c0c 0%, #111111 100%)');
   
   // Create zoom group
   g = svg.append('g')
@@ -623,11 +623,11 @@ function showTooltip(event, d) {
     .append('div')
     .attr('class', 'mindmap-tooltip')
     .style('position', 'absolute')
-    .style('background', '#1e293b')
-    .style('color', '#e2e8f0')
+    .style('background', '#181818')
+    .style('color', '#e6e6e6')
     .style('padding', '10px 14px')
     .style('border-radius', '8px')
-    .style('border', '1px solid #334155')
+    .style('border', '1px solid rgba(42, 42, 42, 0.5)')
     .style('font-size', '12px')
     .style('pointer-events', 'none')
     .style('z-index', '1000')
