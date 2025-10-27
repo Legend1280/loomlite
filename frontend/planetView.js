@@ -499,8 +499,8 @@ function update(source) {
     })
     .style('pointer-events', 'none');
   
-  // Add hover effects
-  nodeEnter
+  // Add hover effects (only for concept nodes, not planet)
+  nodeEnter.filter(d => d.data.type !== 'document')
     .on('mouseenter', function(event, d) {
       d3.select(this).select('rect')
         .transition()
