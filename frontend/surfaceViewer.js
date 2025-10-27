@@ -11,7 +11,7 @@
 import { bus, setCurrentConceptId } from './eventBus.js';
 
 // Global state
-let currentMode = 'document'; // 'ontology' or 'document'
+let currentMode = 'ontology'; // 'ontology' or 'document' - default to ontology to show summaries
 let currentConcept = null;
 let currentDocId = null;
 let documentText = null;
