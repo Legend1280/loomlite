@@ -706,9 +706,14 @@ function showTooltip(event, d) {
   let content = `<strong style="font-size: 13px;">${d.data.name}</strong><br>`;
   content += `<span style="color: #94a3b8;">Type: ${d.data.type}</span>`;
   
-  // Add document summary for planet nodes
+  // Add summary for document nodes (planet)
   if (d.data.type === 'document' && d.data.summary) {
     content += `<br><br><span style="color: #cbd5e1; line-height: 1.5;">${d.data.summary}</span>`;
+  }
+  
+  // Add summary for concept nodes (clusters, refinements, etc.)
+  if (d.data.concept && d.data.concept.summary) {
+    content += `<br><br><span style="color: #cbd5e1; line-height: 1.5;">${d.data.concept.summary}</span>`;
   }
   
   if (d.data.confidence) {
