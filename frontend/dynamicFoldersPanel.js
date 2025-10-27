@@ -111,6 +111,43 @@ function renderPanelStructure(container) {
   savedViewsSection.appendChild(savedViewsHeader);
   savedViewsSection.appendChild(savedViewsList);
   
+  // Search Bar Section
+  const searchSection = document.createElement('div');
+  searchSection.id = 'search-section';
+  searchSection.style.cssText = `
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    padding: 12px;
+  `;
+  
+  const searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.id = 'folder-search-input';
+  searchInput.placeholder = '🔍 Search folders and documents...';
+  searchInput.style.cssText = `
+    width: 100%;
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.2s;
+  `;
+  searchInput.onfocus = () => searchInput.style.borderColor = '#3b82f6';
+  searchInput.onblur = () => searchInput.style.borderColor = '#334155';
+  
+  // Debounced search handler
+  let searchTimeout;
+  searchInput.oninput = (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      handleSearch(e.target.value);
+    }, 300); // 300ms debounce
+  };
+  
+  searchSection.appendChild(searchInput);
+  
   // Sort Controls Section
   const sortSection = document.createElement('div');
   sortSection.id = 'sort-controls-section';
@@ -177,6 +214,7 @@ function renderPanelStructure(container) {
   
   // Assemble panel
   panel.appendChild(savedViewsSection);
+  panel.appendChild(searchSection);
   panel.appendChild(sortSection);
   panel.appendChild(foldersSection);
   
@@ -490,6 +528,14 @@ function handleDocumentClick(item, folder) {
     doc_id: item.doc_id,
     title: item.title
   });
+}
+
+/**
+ * Handle search input
+ */
+async function handleSearch(query) {
+  console.log('🔍 Search query:', query);
+  await loadFolders(query, currentSortMode);
 }
 
 /**
