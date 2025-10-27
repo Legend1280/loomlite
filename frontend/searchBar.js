@@ -227,7 +227,7 @@ async function performSearch(query) {
       results,
       documentScores,
       threshold,
-      count: results.length
+      count: data.results ? data.results.length : allConcepts.length
     });
     
     // Show suggestions
