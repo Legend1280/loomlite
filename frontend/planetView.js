@@ -201,7 +201,8 @@ function buildHierarchy() {
   const relations = currentOntology.relations || [];
   
   // Create root node (document) - use title from document object
-  const docData = currentOntology.document || {};
+  // Handle both 'doc' (MicroOntology) and 'document' (fallback) field names
+  const docData = currentOntology.doc || currentOntology.document || {};
   const docTitle = docData.title || currentOntology.doc_id || 'Document';
   const docSummary = docData.summary || null;
   
