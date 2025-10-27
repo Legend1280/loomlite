@@ -287,46 +287,23 @@ function addGradients(svg) {
   blurFilter.append('feGaussianBlur')
     .attr('stdDeviation', '4');
   
-  // Galaxy sprite symbol
+  // Galaxy sprite symbol (simplified - just glowing star)
   const sprite = defs.append('symbol')
     .attr('id', 'galaxy-sprite')
-    .attr('viewBox', '-20 -20 40 40');
+    .attr('viewBox', '-10 -10 20 20');
   
-  // Core circle
+  // Subtle glow halo (smaller, tighter)
   sprite.append('circle')
-    .attr('r', 6)
+    .attr('r', 8)
     .attr('fill', 'url(#galaxy-core)')
-    .attr('class', 'sprite-core');
-  
-  // Halo circle
-  sprite.append('circle')
-    .attr('r', 14)
-    .attr('fill', '#fff')
-    .attr('opacity', 0.2)
+    .attr('opacity', 0.3)
     .attr('filter', 'url(#blur4)');
   
-  // Sparkles group (will rotate)
-  const sparkles = sprite.append('g')
-    .attr('class', 'sparkles');
-  
-  // Add 5 sparkles at different positions
-  const sparklePositions = [
-    { cx: 10, cy: 0 },
-    { cx: -8, cy: 5 },
-    { cx: 3, cy: -9 },
-    { cx: -5, cy: -7 },
-    { cx: 7, cy: 8 }
-  ];
-  
-  sparklePositions.forEach((pos, i) => {
-    sparkles.append('circle')
-      .attr('r', 1)
-      .attr('cx', pos.cx)
-      .attr('cy', pos.cy)
-      .attr('fill', '#fff')
-      .attr('opacity', 0.6)
-      .attr('class', `sparkle sparkle-${i}`);
-  });
+  // Core circle (bright star)
+  sprite.append('circle')
+    .attr('r', 5)
+    .attr('fill', 'url(#galaxy-core)')
+    .attr('class', 'sprite-core');
 }
 
 /**
@@ -355,8 +332,8 @@ function drawGalaxySpriteNode(d, g) {
   const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
   const brightness = 0.8 + coherence * 0.4;
   
-  // Calculate scale based on node radius (sprite is designed for ~30px radius)
-  const scale = radius / 30;
+  // Calculate scale based on node radius (sprite is designed for ~10px radius)
+  const scale = radius / 10;
   
   // Add sprite instance
   g.append('use')
@@ -502,7 +479,7 @@ function highlightSearchResults(results) {
         const parentNode = d3.select(this.parentNode);
         const d = parentNode.datum();
         const radius = getNodeRadius(d);
-        const scale = (radius + 5) / 30; // Slightly larger
+        const scale = (radius + 5) / 10; // Slightly larger
         return `scale(${scale})`;
       })
       .transition()
@@ -511,7 +488,7 @@ function highlightSearchResults(results) {
         const parentNode = d3.select(this.parentNode);
         const d = parentNode.datum();
         const radius = getNodeRadius(d);
-        const scale = radius / 30; // Back to normal
+        const scale = radius / 10; // Back to normal
         return `scale(${scale})`;
       });
   }

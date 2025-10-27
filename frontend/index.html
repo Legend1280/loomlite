@@ -351,25 +351,7 @@
       font-size: 11px;
     }
     
-    /* Galaxy Sprite Node Animations */
-    @keyframes glimmer {
-      0%, 100% { opacity: 0.4; }
-      50% { opacity: 1; }
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .sparkles circle {
-      animation: glimmer 3s ease-in-out infinite;
-      animation-delay: calc(var(--rand) * 1s);
-    }
-    
-    .sparkles {
-      animation: spin 20s linear infinite;
-    }
-    
+    /* Galaxy Sprite Node Styling */
     .galaxy-node {
       filter: brightness(var(--brightness, 1));
       transition: filter 0.3s ease;
