@@ -111,12 +111,30 @@ export function initSurfaceViewer() {
  * Render surface viewer header with mode toggle
  */
 function renderHeader(container) {
+  // Create header wrapper with label
+  const headerWrapper = document.createElement('div');
+  headerWrapper.style.cssText = `
+    background: #0c0c0c;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+  `;
+  
+  // Add SURFACE VIEWER label
+  const label = document.createElement('div');
+  label.style.cssText = `
+    padding: 12px 16px 8px 16px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: #9a9a9a;
+    text-transform: uppercase;
+  `;
+  label.textContent = 'SURFACE VIEWER';
+  headerWrapper.appendChild(label);
+  
+  // Create tabs container
   const header = document.createElement('div');
   header.id = 'surface-viewer-header';
   header.style.cssText = `
-    background: #0c0c0c;
-    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
-    height: 48px;
     display: flex;
     align-items: stretch;
     gap: 0;
@@ -183,33 +201,22 @@ function renderHeader(container) {
     
     // Click handler
     tabBtn.addEventListener('click', () => {
-      if (tab.mode === 'analytics') {
-        // Toggle analytics overlay
-        if (currentDocId) {
-          if (analyticsVisible) {
-            const overlay = document.getElementById('analytics-overlay');
-            if (overlay) {
-              overlay.style.transform = 'translateX(100%)';
-              analyticsVisible = false;
-            }
-          } else {
-            loadAnalytics(currentDocId);
-          }
-        }
-      } else {
-        // Switch mode
-        switchMode(tab.mode);
-      }
+      // Switch mode for all tabs (including analytics)
+      switchMode(tab.mode);
       
       // Update all tabs
-      renderHeader(container.parentElement);
-      container.remove();
+      const headerWrapper = container.querySelector('div');
+      if (headerWrapper) {
+        headerWrapper.remove();
+      }
+      renderHeader(container);
     });
     
     header.appendChild(tabBtn);
   });
   
-  container.appendChild(header);
+  headerWrapper.appendChild(header);
+  container.appendChild(headerWrapper);
 }
 
 /**
@@ -263,7 +270,7 @@ function renderContentArea(container) {
   content.style.cssText = `
     padding: 0;
     overflow-y: auto;
-    height: calc(100% - 48px);
+    height: calc(100% - 80px);
     background: linear-gradient(180deg, #0c0c0c 0%, #111111 100%);
   `;
   
@@ -305,6 +312,8 @@ function switchMode(mode) {
         renderOntologyMode(currentConcept);
       } else if (mode === 'document' && currentDocId) {
         renderDocumentMode(currentDocId);
+      } else if (mode === 'analytics' && currentDocId) {
+        renderAnalyticsMode(currentDocId);
       }
       
       // Fade in
@@ -1029,23 +1038,86 @@ async function trackDwellTime(folderName, docId, seconds) {
 }
 
 /**
- * Load and display analytics for current document
+ * Render analytics mode inline (not as overlay)
  */
-async function loadAnalytics(docId) {
+async function renderAnalyticsMode(docId) {
+  const content = document.getElementById('surface-viewer-content');
+  if (!content) return;
+  
   try {
     const response = await fetch(`${BACKEND_URL}/document-stats/${docId}`);
     const stats = await response.json();
     
-    renderAnalyticsOverlay(stats);
+    // Calculate relative time
+    const lastOpened = stats.last_opened ? getRelativeTime(stats.last_opened) : 'Never';
+    
+    content.innerHTML = `
+      <div style="padding: 24px; background: #0f172a;">
+        <h3 style="font-size: 18px; color: #e2e8f0; margin-bottom: 24px; font-weight: 600;">Document Analytics</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
+            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">TOTAL VIEWS</div>
+            <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${stats.total_views}</div>
+          </div>
+          
+          <div style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 3px solid #10b981;">
+            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">PINS</div>
+            <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${stats.total_pins}</div>
+          </div>
+          
+          <div style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">AVG DWELL TIME</div>
+            <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${formatDwellTime(stats.avg_dwell_time)}</div>
+          </div>
+        </div>
+        
+        <div style="background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">LAST OPENED</div>
+          <div style="color: #e6e6e6; font-size: 14px;">${lastOpened}</div>
+        </div>
+        
+        <div style="background: #1e293b; padding: 20px; border-radius: 8px;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">FOLDERS</div>
+          <div style="color: #e6e6e6; font-size: 14px; margin-bottom: 16px;">${stats.folder_count} folder(s)</div>
+          
+          ${stats.folders && stats.folders.length > 0 ? `
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(42, 42, 42, 0.5);">
+              <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">FOLDER BREAKDOWN</div>
+              ${stats.folders.map(f => `
+                <div style="margin-bottom: 12px; padding: 12px; background: #0f172a; border-radius: 6px; border-left: 2px solid #fad643;">
+                  <div style="color: #e6e6e6; font-size: 13px; font-weight: 500; margin-bottom: 6px;">${f.folder_name}</div>
+                  <div style="color: #9a9a9a; font-size: 11px; display: flex; gap: 12px;">
+                    <span>${f.view_count} views</span>
+                    <span>•</span>
+                    <span>${f.pin_count} pins</span>
+                    <span>•</span>
+                    <span>${Math.floor(f.dwell_time / 60)}m dwell</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
   } catch (error) {
     console.error('Error loading analytics:', error);
+    content.innerHTML = `
+      <div style="padding: 24px; background: #0f172a;">
+        <div style="color: #ef4444; padding: 20px; background: #1e1b1b; border-radius: 8px; border: 1px solid #7f1d1d;">
+          <div style="font-weight: 600; margin-bottom: 8px;">Error Loading Analytics</div>
+          <div style="font-size: 12px; color: #fca5a5;">${error.message}</div>
+        </div>
+      </div>
+    `;
   }
 }
 
 /**
- * Render analytics overlay
+ * OLD OVERLAY CODE - DEPRECATED
  */
-function renderAnalyticsOverlay(stats) {
+function renderAnalyticsOverlay_DEPRECATED(stats) {
   let overlay = document.getElementById('analytics-overlay');
   
   if (!overlay) {
