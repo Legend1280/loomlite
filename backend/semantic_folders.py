@@ -148,8 +148,21 @@ def build_semantic_folders(
                 "concept_type": concept_type
             }
     
+    # Add a special "Recent Files" folder with all documents
+    recent_files_items = list(doc_scores.values())
+    if sort_mode == "auto" or sort_mode == "recency":
+        recent_files_items.sort(key=lambda x: x["created_at"], reverse=True)
+    elif sort_mode == "alphabetical":
+        recent_files_items.sort(key=lambda x: x["title"])
+    
+    # Limit to 10 most recent
+    folders["📅 Recent Files"] = recent_files_items[:10]
+    
     # Add documents to folders (deduplicated)
-    for folder_name in folders:
+    for folder_name in list(folders.keys()):
+        if folder_name == "📅 Recent Files":
+            continue  # Already populated
+            
         # Get all doc_ids for this folder
         folder_doc_ids = set()
         for row in rows:
@@ -175,14 +188,26 @@ def build_semantic_folders(
         
         folders[folder_name] = folder_items
     
-    return {
-        "folders": [
-            {
+    # Sort folders with Recent Files first
+    sorted_folders = []
+    
+    # Add Recent Files first if it exists
+    if "📅 Recent Files" in folders:
+        sorted_folders.append({
+            "name": "📅 Recent Files",
+            "items": folders["📅 Recent Files"]
+        })
+    
+    # Add remaining folders in alphabetical order
+    for folder_name in sorted(folders.keys()):
+        if folder_name != "📅 Recent Files":
+            sorted_folders.append({
                 "name": folder_name,
-                "items": items
-            }
-            for folder_name, items in sorted(folders.items())
-        ],
+                "items": folders[folder_name]
+            })
+    
+    return {
+        "folders": sorted_folders,
         "sort_mode": sort_mode,
         "query": query
     }
