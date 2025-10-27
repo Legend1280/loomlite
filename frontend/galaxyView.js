@@ -196,9 +196,9 @@ function createGalaxyVisualization(container) {
       drillDownToSolarSystem(d);
     });
   
-  // Draw each node as a nova with satellites
+  // Draw each node as a galaxy sprite
   node.each(function(d) {
-    drawNovaNode(d, d3.select(this));
+    drawGalaxySpriteNode(d, d3.select(this));
   });
   
   // Add document title
@@ -231,9 +231,6 @@ function createGalaxyVisualization(container) {
     
     node.attr('transform', d => `translate(${d.x},${d.y})`);
   });
-  
-  // Start satellite orbit animation
-  startSatelliteAnimation();
 }
 
 /**
@@ -258,59 +255,78 @@ function createStarfield(svg, width, height) {
 }
 
 /**
- * Add SVG gradients and filters for nova-style nodes
+ * Add SVG gradients, filters, and sprite symbol for galaxy nodes
  */
 function addGradients(svg) {
   const defs = svg.append('defs');
   
-  // Nova core gradient (bright yellow radial)
-  const novaGradient = defs.append('radialGradient')
-    .attr('id', 'nova-gradient');
+  // Galaxy core gradient (radial)
+  const coreGradient = defs.append('radialGradient')
+    .attr('id', 'galaxy-core');
   
-  novaGradient.append('stop')
+  coreGradient.append('stop')
     .attr('offset', '0%')
-    .attr('stop-color', '#fad643')  // Bright yellow core
-    .attr('stop-opacity', 1);
+    .attr('stop-color', '#fad643');
   
-  novaGradient.append('stop')
-    .attr('offset', '50%')
-    .attr('stop-color', '#fbbf24')
-    .attr('stop-opacity', 0.9);
+  coreGradient.append('stop')
+    .attr('offset', '80%')
+    .attr('stop-color', '#f59e0b');
   
-  novaGradient.append('stop')
+  coreGradient.append('stop')
     .attr('offset', '100%')
-    .attr('stop-color', '#f59e0b')
-    .attr('stop-opacity', 0.7);
+    .attr('stop-color', 'transparent');
   
-  // Glow filter for nova effect
-  const glowFilter = defs.append('filter')
-    .attr('id', 'nova-glow')
+  // Blur filter for halo
+  const blurFilter = defs.append('filter')
+    .attr('id', 'blur4')
     .attr('x', '-50%')
     .attr('y', '-50%')
     .attr('width', '200%')
     .attr('height', '200%');
   
-  glowFilter.append('feGaussianBlur')
-    .attr('stdDeviation', '4.5')
-    .attr('result', 'coloredBlur');
+  blurFilter.append('feGaussianBlur')
+    .attr('stdDeviation', '4');
   
-  const feMerge = glowFilter.append('feMerge');
-  feMerge.append('feMergeNode').attr('in', 'coloredBlur');
-  feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+  // Galaxy sprite symbol
+  const sprite = defs.append('symbol')
+    .attr('id', 'galaxy-sprite')
+    .attr('viewBox', '-20 -20 40 40');
   
-  // Outer glow gradient (for halo effect)
-  const outerGlow = defs.append('radialGradient')
-    .attr('id', 'outer-glow');
+  // Core circle
+  sprite.append('circle')
+    .attr('r', 6)
+    .attr('fill', 'url(#galaxy-core)')
+    .attr('class', 'sprite-core');
   
-  outerGlow.append('stop')
-    .attr('offset', '0%')
-    .attr('stop-color', '#fad643')
-    .attr('stop-opacity', 0.4);
+  // Halo circle
+  sprite.append('circle')
+    .attr('r', 14)
+    .attr('fill', '#fff')
+    .attr('opacity', 0.2)
+    .attr('filter', 'url(#blur4)');
   
-  outerGlow.append('stop')
-    .attr('offset', '100%')
-    .attr('stop-color', '#f59e0b')
-    .attr('stop-opacity', 0);
+  // Sparkles group (will rotate)
+  const sparkles = sprite.append('g')
+    .attr('class', 'sparkles');
+  
+  // Add 5 sparkles at different positions
+  const sparklePositions = [
+    { cx: 10, cy: 0 },
+    { cx: -8, cy: 5 },
+    { cx: 3, cy: -9 },
+    { cx: -5, cy: -7 },
+    { cx: 7, cy: 8 }
+  ];
+  
+  sparklePositions.forEach((pos, i) => {
+    sparkles.append('circle')
+      .attr('r', 1)
+      .attr('cx', pos.cx)
+      .attr('cy', pos.cy)
+      .attr('fill', '#fff')
+      .attr('opacity', 0.6)
+      .attr('class', `sparkle sparkle-${i}`);
+  });
 }
 
 /**
@@ -327,97 +343,31 @@ function getNodeRadius(node) {
 }
 
 /**
- * Draw a nova-style node with core, glow, and orbiting satellites
+ * Draw a galaxy sprite node (GPU-accelerated, no JS animation)
  * @param {Object} d - Node data
  * @param {d3.Selection} g - D3 selection of the node group
  */
-function drawNovaNode(d, g) {
+function drawGalaxySpriteNode(d, g) {
   const radius = getNodeRadius(d);
-  const satelliteCount = Math.min(2 + Math.floor(d.conceptCount / 20), 4); // 2-4 satellites
   
   // Calculate semantic brightness (0.8 to 1.2 range)
   const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
   const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
   const brightness = 0.8 + coherence * 0.4;
   
-  // Outer glow halo
-  g.append('circle')
-    .attr('class', 'nova-halo')
-    .attr('r', radius + 15)
-    .attr('fill', 'url(#outer-glow)')
-    .attr('opacity', 0.3)
-    .style('filter', `brightness(${brightness})`);
+  // Calculate scale based on node radius (sprite is designed for ~30px radius)
+  const scale = radius / 30;
   
-  // Middle glow layer
-  g.append('circle')
-    .attr('class', 'nova-glow')
-    .attr('r', radius + 8)
-    .attr('fill', 'url(#nova-gradient)')
-    .attr('opacity', 0.5)
-    .style('filter', 'url(#nova-glow)');
-  
-  // Core nova circle
-  g.append('circle')
-    .attr('class', 'nova-core')
-    .attr('r', radius)
-    .attr('fill', 'url(#nova-gradient)')
-    .attr('stroke', '#fad643')
-    .attr('stroke-width', 2)
-    .style('filter', `brightness(${brightness})`);
-  
-  // Add orbiting satellites
-  const satellites = g.append('g')
-    .attr('class', 'satellites');
-  
-  for (let i = 0; i < satelliteCount; i++) {
-    const angle = (i / satelliteCount) * Math.PI * 2;
-    const orbitRadius = radius + 20 + Math.random() * 10;
-    
-    satellites.append('circle')
-      .attr('class', `satellite satellite-${i}`)
-      .attr('r', 2)
-      .attr('fill', '#fad643')
-      .attr('opacity', 0.7)
-      .attr('cx', Math.cos(angle) * orbitRadius)
-      .attr('cy', Math.sin(angle) * orbitRadius)
-      .datum({ orbitRadius, angle, speed: 0.001 + Math.random() * 0.002 });
-  }
-  
-  // Store satellite data for animation
-  d.satellites = satellites;
+  // Add sprite instance
+  g.append('use')
+    .attr('href', '#galaxy-sprite')
+    .attr('class', 'galaxy-node')
+    .attr('transform', `scale(${scale})`)
+    .style('--rand', Math.random().toFixed(2))
+    .style('--brightness', brightness);
 }
 
-/**
- * Animate satellite orbits using d3.timer for smooth rotation
- */
-function startSatelliteAnimation() {
-  let startTime = Date.now();
-  
-  d3.timer(() => {
-    const elapsed = Date.now() - startTime;
-    
-    // Animate all satellites
-    if (g) {
-      g.selectAll('.satellite').each(function() {
-        const satellite = d3.select(this);
-        const data = satellite.datum();
-        
-        if (data && data.orbitRadius) {
-          // Calculate new angle based on elapsed time and speed
-          const newAngle = data.angle + elapsed * data.speed;
-          
-          // Update satellite position using CSS transform (GPU-accelerated)
-          const x = Math.cos(newAngle) * data.orbitRadius;
-          const y = Math.sin(newAngle) * data.orbitRadius;
-          
-          satellite
-            .attr('cx', x)
-            .attr('cy', y);
-        }
-      });
-    }
-  });
-}
+
 
 /**
  * Truncate title to max length
@@ -511,27 +461,12 @@ function highlightSearchResults(results) {
       return matchedDocIds.has(d.id) ? 1 : 0.3;
     });
   
-  // Update nova core circles (highlight matched documents with green glow)
-  g.selectAll('.nova-core')
+  // Update galaxy sprite nodes (highlight matched documents)
+  g.selectAll('.galaxy-node')
     .transition()
     .duration(300)
-    .attr('stroke', function() {
-      // Get parent node data
-      const parentNode = d3.select(this.parentNode);
-      const d = parentNode.datum();
-      
-      // Defensive check for data
-      if (!d || !d.id) return '#fad643';
-      return matchedDocIds.has(d.id) ? '#10b981' : '#fad643';
-    })
-    .attr('stroke-width', function() {
-      const parentNode = d3.select(this.parentNode);
-      const d = parentNode.datum();
-      
-      if (!d || !d.id) return 2;
-      return matchedDocIds.has(d.id) ? 4 : 2;
-    })
     .style('filter', function() {
+      // Get parent node data
       const parentNode = d3.select(this.parentNode);
       const d = parentNode.datum();
       
@@ -541,33 +476,43 @@ function highlightSearchResults(results) {
       const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
       const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
       const baseBrightness = 0.8 + coherence * 0.4;
-      const matchBoost = matchedDocIds.has(d.id) ? 0.3 : 0;
+      const matchBoost = matchedDocIds.has(d.id) ? 0.4 : 0; // Higher boost for visibility
       
       return `brightness(${baseBrightness + matchBoost})`;
+    })
+    .style('--match-color', function() {
+      const parentNode = d3.select(this.parentNode);
+      const d = parentNode.datum();
+      
+      if (!d || !d.id) return '#fad643';
+      return matchedDocIds.has(d.id) ? '#10b981' : '#fad643';
     });
   
-  // Pulse effect for matched documents (nova cores only)
+  // Pulse effect for matched documents (scale sprite)
   if (matchedDocIds.size > 0) {
-    g.selectAll('g')
+    g.selectAll('.galaxy-node')
       .filter(function() {
-        // Only select top-level node groups with data
-        const d = this.__data__;
-        return this.parentNode === g.node() && d && d.id && matchedDocIds.has(d.id);
-      })
-      .selectAll('.nova-core')
-      .transition()
-      .duration(500)
-      .attr('r', function() {
         const parentNode = d3.select(this.parentNode);
         const d = parentNode.datum();
-        return getNodeRadius(d) + 5;
+        return d && d.id && matchedDocIds.has(d.id);
       })
       .transition()
       .duration(500)
-      .attr('r', function() {
+      .attr('transform', function() {
         const parentNode = d3.select(this.parentNode);
         const d = parentNode.datum();
-        return getNodeRadius(d);
+        const radius = getNodeRadius(d);
+        const scale = (radius + 5) / 30; // Slightly larger
+        return `scale(${scale})`;
+      })
+      .transition()
+      .duration(500)
+      .attr('transform', function() {
+        const parentNode = d3.select(this.parentNode);
+        const d = parentNode.datum();
+        const radius = getNodeRadius(d);
+        const scale = radius / 30; // Back to normal
+        return `scale(${scale})`;
       });
   }
 }
@@ -587,12 +532,10 @@ function clearSearchHighlights() {
     .duration(300)
     .style('opacity', 1);
   
-  // Restore nova core default styling
-  g.selectAll('.nova-core')
+  // Restore galaxy sprite default styling
+  g.selectAll('.galaxy-node')
     .transition()
     .duration(300)
-    .attr('stroke', '#fad643')
-    .attr('stroke-width', 2)
     .style('filter', function() {
       const parentNode = d3.select(this.parentNode);
       const d = parentNode.datum();
@@ -605,7 +548,8 @@ function clearSearchHighlights() {
       const brightness = 0.8 + coherence * 0.4;
       
       return `brightness(${brightness})`;
-    });
+    })
+    .style('--match-color', '#fad643');
 }
 
 // Export for global access
