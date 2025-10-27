@@ -13,9 +13,32 @@ const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 // Global state
 let folders = [];
 let savedViews = [];
-let currentSortMode = 'auto';
+let currentSortMode = loadFromStorage('sortMode', 'auto');
 let currentQuery = '';
-let expandedFolders = new Set();
+let expandedFolders = new Set(loadFromStorage('expandedFolders', []));
+
+/**
+ * Load state from localStorage
+ */
+function loadFromStorage(key, defaultValue) {
+  try {
+    const stored = localStorage.getItem(`loomlite_${key}`);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
+/**
+ * Save state to localStorage
+ */
+function saveToStorage(key, value) {
+  try {
+    localStorage.setItem(`loomlite_${key}`, JSON.stringify(value));
+  } catch (e) {
+    console.warn('Failed to save to localStorage:', e);
+  }
+}
 
 /**
  * Initialize Dynamic Folders Panel
@@ -332,6 +355,9 @@ function renderSavedViews() {
  */
 async function loadFolders(query = '', sortMode = 'auto') {
   try {
+    // Show skeleton loader
+    showSkeletonLoader();
+    
     let url = `${BACKEND_URL}/semantic-folders?sort=${sortMode}`;
     if (query) {
       url += `&query=${encodeURIComponent(query)}`;
@@ -343,9 +369,51 @@ async function loadFolders(query = '', sortMode = 'auto') {
     currentSortMode = sortMode;
     currentQuery = query;
     
+    // Persist sort mode to localStorage
+    saveToStorage('sortMode', sortMode);
+    
     renderFolders();
   } catch (error) {
     console.error('❌ Error loading folders:', error);
+    renderFolders(); // Show empty state on error
+  }
+}
+
+/**
+ * Show skeleton loader while folders are loading
+ */
+function showSkeletonLoader() {
+  const list = document.getElementById('folders-list');
+  if (!list) return;
+  
+  list.innerHTML = '';
+  
+  // Create 3 skeleton items
+  for (let i = 0; i < 3; i++) {
+    const skeleton = document.createElement('div');
+    skeleton.style.cssText = `
+      margin-bottom: 8px;
+      padding: 8px;
+      background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 4px;
+      height: 40px;
+    `;
+    list.appendChild(skeleton);
+  }
+  
+  // Add shimmer animation if not already added
+  if (!document.getElementById('skeleton-animations')) {
+    const style = document.createElement('style');
+    style.id = 'skeleton-animations';
+    style.textContent = `
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+    `;
+    document.head.appendChild(style);
   }
 }
 
@@ -451,7 +519,34 @@ function createFolderItem(folder) {
     folderContents.style.cssText = `
       margin-top: 4px;
       padding-left: 24px;
+      animation: slideDown 0.2s ease-out;
+      overflow: hidden;
     `;
+    
+    // Add CSS animation keyframes if not already added
+    if (!document.getElementById('folder-animations')) {
+      const style = document.createElement('style');
+      style.id = 'folder-animations';
+      style.textContent = `
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            max-height: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            max-height: 1000px;
+            transform: translateY(0);
+          }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
     
     folder.items.forEach(item => {
       const docItem = document.createElement('div');
@@ -504,6 +599,10 @@ function toggleFolder(folderName) {
   } else {
     expandedFolders.add(folderName);
   }
+  
+  // Persist expanded folders to localStorage
+  saveToStorage('expandedFolders', Array.from(expandedFolders));
+  
   renderFolders();
 }
 
