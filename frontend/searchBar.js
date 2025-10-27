@@ -44,8 +44,8 @@ export async function initSearchBar() {
   // Fetch available filters
   await fetchAvailableFilters();
   
-  // Render filter chips
-  renderFilterChips();
+  // Filter chips removed in v2.2
+  // renderFilterChips();
   
   console.log('✅ Search Bar initialized');
 }
@@ -60,8 +60,8 @@ function createSearchContainer() {
   container.style.cssText = `
     position: relative;
     flex: 0 0 auto;
-    width: 28%;
-    max-width: 400px;
+    width: 20%;
+    max-width: 280px;
     margin: 0;
   `;
   
