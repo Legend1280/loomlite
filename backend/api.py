@@ -392,24 +392,105 @@ async def get_doc_text(doc_id: str):
 
 @app.get("/search")
 async def search(q: str = "", types: str = "", tags: str = ""):
-    """Search concepts"""
-    conn = get_db()
-    query = "SELECT * FROM concepts WHERE 1=1"
-    params = []
+    """
+    Semantic search with document-level scoring (v1.6)
+    Returns documents ranked by relevance with matching concepts
+    """
+    if not q:
+        # Empty query - return empty results
+        return {
+            "query": "",
+            "results": [],
+            "document_scores": {},
+            "count": 0,
+            "threshold": 0.25
+        }
     
-    if q:
-        query += " AND label LIKE ?"
-        params.append(f"%{q}%")
+    conn = get_db()
+    threshold = 0.25
+    
+    # Step 1: Find all matching concepts
+    concept_query = "SELECT * FROM concepts WHERE label LIKE ?"
+    concept_params = [f"%{q}%"]
     
     if types:
         type_list = types.split(",")
-        query += f" AND type IN ({','.join(['?']*len(type_list))})"
-        params.extend(type_list)
+        concept_query += f" AND type IN ({','.join(['?']*len(type_list))})"
+        concept_params.extend(type_list)
     
-    results = conn.execute(query, params).fetchall()
+    matching_concepts = conn.execute(concept_query, concept_params).fetchall()
+    
+    # Step 2: Group concepts by document and calculate scores
+    doc_concept_map = {}
+    for concept in matching_concepts:
+        concept_dict = dict(concept)
+        doc_id = concept_dict['doc_id']
+        if doc_id not in doc_concept_map:
+            doc_concept_map[doc_id] = []
+        doc_concept_map[doc_id].append(concept_dict)
+    
+    # Step 3: Calculate document-level scores
+    document_scores = {}
+    results = []
+    
+    for doc_id, concepts in doc_concept_map.items():
+        # Get document metadata
+        doc = conn.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
+        if not doc:
+            continue
+        
+        doc_dict = dict(doc)
+        title = doc_dict.get('title', '')
+        
+        # Calculate composite score
+        # titleMatch: fuzzy match between query and title
+        title_lower = title.lower()
+        query_lower = q.lower()
+        title_match = 1.0 if query_lower in title_lower else 0.0
+        
+        # conceptSim: max confidence of matching concepts
+        concept_sim = max([c.get('confidence', 0.0) for c in concepts]) if concepts else 0.0
+        
+        # spanOverlap: simplified - if concepts match, assume span overlap
+        span_overlap = 0.5 if concepts else 0.0
+        
+        # Composite score: 0.4*title + 0.4*concept + 0.2*span
+        score = (0.4 * title_match) + (0.4 * concept_sim) + (0.2 * span_overlap)
+        
+        # Only include documents above threshold
+        if score >= threshold:
+            document_scores[doc_id] = score
+            
+            # Determine match type
+            match_type = "title" if title_match > 0 else "concept"
+            
+            results.append({
+                "doc_id": doc_id,
+                "title": title,
+                "score": round(score, 3),
+                "match_type": match_type,
+                "concepts": [
+                    {
+                        "id": c['id'],
+                        "label": c['label'],
+                        "type": c.get('type', 'Unknown'),
+                        "score": round(c.get('confidence', 0.0), 3)
+                    } for c in concepts[:5]  # Limit to top 5 concepts per doc
+                ]
+            })
+    
+    # Sort results by score (descending)
+    results.sort(key=lambda x: x['score'], reverse=True)
+    
     conn.close()
     
-    return {"concepts": [dict(r) for r in results]}
+    return {
+        "query": q,
+        "results": results,
+        "document_scores": document_scores,
+        "count": len(results),
+        "threshold": threshold
+    }
 
 @app.get("/jump")
 async def jump(doc_id: str, concept_id: str):
