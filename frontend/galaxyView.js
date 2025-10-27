@@ -374,32 +374,47 @@ function highlightSearchResults(results) {
   
   console.log(`Highlighting ${matchedDocIds.size} documents in Galaxy View`);
   
-  // Update node styles
+  // Update node styles (only document node groups, not nested groups)
   g.selectAll('g')
+    .filter(function() {
+      // Only select top-level node groups that have data bound
+      return this.parentNode === g.node() && this.__data__;
+    })
     .transition()
     .duration(300)
     .style('opacity', d => {
+      // Defensive check for data
+      if (!d || !d.id) return 1;
       return matchedDocIds.has(d.id) ? 1 : 0.3;
     });
   
   // Update node circles
   g.selectAll('circle')
     .filter(function() {
-      return this.parentNode.tagName === 'g'; // Only main circles, not glow
+      // Only main circles with data bound
+      return this.parentNode.tagName === 'g' && this.__data__;
     })
     .transition()
     .duration(300)
     .attr('stroke', d => {
+      // Defensive check for data
+      if (!d || !d.id) return '#f59e0b';
       return matchedDocIds.has(d.id) ? '#10b981' : '#f59e0b';
     })
     .attr('stroke-width', d => {
+      // Defensive check for data
+      if (!d || !d.id) return 2;
       return matchedDocIds.has(d.id) ? 4 : 2;
     });
   
   // Pulse effect for matched documents
   if (matchedDocIds.size > 0) {
     g.selectAll('g')
-      .filter(d => matchedDocIds.has(d.id))
+      .filter(function() {
+        // Only select top-level node groups with data
+        const d = this.__data__;
+        return this.parentNode === g.node() && d && d.id && matchedDocIds.has(d.id);
+      })
       .selectAll('circle')
       .transition()
       .duration(500)
