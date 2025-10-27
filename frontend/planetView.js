@@ -434,15 +434,17 @@ function update(source) {
         .attr('stroke-width', 2)
         .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))');  // Subtle shadow only
       
-      // Add tooltip for planet node (document summary)
-      if (d.data.summary) {
-        planetCircle.append('title')
-          .text(d.data.summary);
-      }
+      // Add tooltip for planet node (title + summary merged)
+      const tooltipText = d.data.summary 
+        ? `${d.data.name}\n\n${d.data.summary}`  // Title + blank line + summary
+        : d.data.name;  // Just title if no summary
       
-      // Add planet text below the sphere
+      planetCircle.append('title')
+        .text(tooltipText);
+      
+      // Add planet text ABOVE the sphere
       node.append('text')
-        .attr('dy', planetRadius + 20)  // Position below planet
+        .attr('dy', -(planetRadius + 10))  // Position above planet (negative offset)
         .attr('x', 0)
         .attr('text-anchor', 'middle')
         .attr('fill', '#e2e8f0')
