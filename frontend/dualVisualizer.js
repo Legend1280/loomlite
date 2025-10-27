@@ -45,6 +45,11 @@ export async function drawDualVisualizer(docId) {
       highlightSearchResultsInSolar(results);
     });
     
+    // Listen for center command (triple-click)
+    bus.on('centerSolarSystem', () => {
+      centerSolarView();
+    });
+    
     console.log('Dual Visualizer rendered successfully');
   } catch (error) {
     console.error('Error rendering dual visualizer:', error);
@@ -354,6 +359,39 @@ bus.on('conceptSelected', (event) => {
   
   console.log(`Dual Visualizer: Highlighted concept ${conceptId}`);
 });
+
+/**
+ * Center the Solar System view
+ */
+function centerSolarView() {
+  console.log('Centering Solar System view...');
+  
+  const svg = d3.select('#visualizer-top svg');
+  if (svg.empty()) return;
+  
+  const container = document.getElementById('visualizer-top');
+  if (!container) return;
+  
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  
+  // Get the main group element
+  const g = svg.select('g');
+  if (g.empty()) return;
+  
+  // Calculate center position
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
+  // Reset zoom and pan to center with smooth transition
+  svg.transition()
+    .duration(600)
+    .ease(d3.easeCubicInOut)
+    .call(
+      d3.zoom().transform,
+      d3.zoomIdentity.translate(0, 0).scale(1)
+    );
+}
 
 // Export for global access
 window.drawDualVisualizer = drawDualVisualizer;

@@ -450,6 +450,7 @@
     import { initSurfaceViewer } from './surfaceViewer.js';
     import { initSearchBar } from './searchBar.js';
     import { initSystemStatus } from './systemStatus.js';
+    import { initQuadrantFocus } from './quadrantFocus.js';
     
     /**
      * Initialize resizable panels with drag handles
@@ -782,6 +783,14 @@
       
       // Initialize Resizable Panels
       initResizablePanels();
+      
+      // Initialize Quadrant Focus System
+      try {
+        initQuadrantFocus();
+        console.log('Quadrant Focus system initialized');
+      } catch (e) {
+        console.error('Quadrant Focus init failed:', e);
+      }
       
       // Initialize System Status Dashboard
       try {

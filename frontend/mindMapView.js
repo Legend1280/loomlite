@@ -735,6 +735,41 @@ function setupEventListeners() {
       await initMindMapView(docId);
     }
   });
+  
+  // Listen for center command (triple-click)
+  bus.on('centerMindMap', () => {
+    centerOnRoot();
+  });
+}
+
+/**
+ * Center the view on the root node
+ */
+function centerOnRoot() {
+  if (!svg || !g) return;
+  
+  console.log('Centering Mind Map on root...');
+  
+  const container = document.getElementById('visualizer-bottom');
+  if (!container) return;
+  
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  
+  // Center position
+  const centerX = 60;
+  const centerY = height / 2;
+  
+  // Create smooth transition
+  const transition = svg.transition()
+    .duration(600)
+    .ease(d3.easeCubicInOut);
+  
+  // Reset zoom and pan to center
+  svg.call(
+    d3.zoom().transform,
+    d3.zoomIdentity.translate(centerX, centerY).scale(1)
+  );
 }
 
 /**
