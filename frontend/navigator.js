@@ -351,7 +351,13 @@ function createDocumentItem(doc, options = {}) {
   };
   
   item.onclick = () => {
-    bus.emit('documentSelected', { detail: { docId: doc.id, title: doc.title } });
+    console.log(`📄 Navigator: Opening document ${doc.title}`);
+    
+    // Auto-switch to Split mode (Solar + Mind Map)
+    bus.emit('viewModeChanged', { mode: 'split' });
+    
+    // Emit event to load document in Solar System and Mind Map
+    bus.emit('documentFocus', { docId: doc.id });
   };
   
   // Icon
