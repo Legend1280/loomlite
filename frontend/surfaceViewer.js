@@ -18,6 +18,7 @@ let documentText = null;
 let documentSpans = [];
 let selectedConceptId = null;
 let allConcepts = []; // Store all concepts for hierarchy queries
+let allRelations = []; // Store all relations
 
 // Analytics state
 let analyticsVisible = false;
@@ -298,8 +299,22 @@ function updateContent() {
   
   setTimeout(() => {
     // Render based on mode
-    if (currentMode === 'ontology' && currentConcept) {
-      renderOntologyMode(currentConcept);
+    if (currentMode === 'ontology') {
+      if (currentConcept) {
+        // Show specific concept details
+        renderOntologyMode(currentConcept);
+      } else if (currentDocId && allConcepts.length > 0) {
+        // Show full document ontology
+        renderFullOntology(currentDocId, { concepts: allConcepts, relations: allRelations });
+      } else {
+        // Show default message
+        content.innerHTML = `
+          <div style="color: #9a9a9a; text-align: center; padding: 60px 20px;">
+            <div style="font-size: 14px; margin-bottom: 8px; color: #e6e6e6;">Select a document to view ontology</div>
+            <div style="font-size: 12px; color: #9a9a9a;">Click on any file in the Navigator or Galaxy View</div>
+          </div>
+        `;
+      }
     } else if (currentMode === 'document' && currentDocId) {
       renderDocumentMode(currentDocId);
     } else if (currentMode === 'analytics' && currentDocId) {
@@ -308,8 +323,8 @@ function updateContent() {
       // Show default message
       content.innerHTML = `
         <div style="color: #9a9a9a; text-align: center; padding: 60px 20px;">
-          <div style="font-size: 14px; margin-bottom: 8px; color: #e6e6e6;">Select a concept to view details</div>
-          <div style="font-size: 12px; color: #9a9a9a;">Click on any node in the visualization</div>
+          <div style="font-size: 14px; margin-bottom: 8px; color: #e6e6e6;">Select a document</div>
+          <div style="font-size: 12px; color: #9a9a9a;">Click on any file in the Navigator or Galaxy View</div>
         </div>
       `;
     }
@@ -347,13 +362,14 @@ async function loadDocumentOntology(docId) {
     
     // Store in global state
     allConcepts = data.concepts || [];
+    allRelations = data.relations || [];
     
     // If in ontology mode and no specific concept selected, show full ontology
     if (currentMode === 'ontology' && !currentConcept) {
       renderFullOntology(docId, data);
     }
     
-    console.log(`✅ Loaded ${allConcepts.length} concepts and ${data.relations?.length || 0} relations`);
+    console.log(`Loaded ${allConcepts.length} concepts and ${data.relations?.length || 0} relations`);
     
   } catch (error) {
     console.error('Error loading document ontology:', error);
@@ -532,28 +548,17 @@ function renderFullOntology(docId, ontologyData) {
  */
 async function handleDocumentSelection(eventDetail) {
   const { docId, concept, summary } = eventDetail;
-  console.log(`📝 Document root selected: ${concept?.title || docId}`);
+  console.log(`Document root selected: ${concept?.title || docId}`);
   
   currentDocId = docId;
-  currentConcept = concept;
+  currentConcept = null; // Clear concept to show full ontology
   selectedConceptId = null;
   
-  if (currentMode === 'ontology') {
-    // Show document summary in ontology mode
-    const content = document.getElementById('surface-viewer-content');
-    if (content && summary) {
-      content.innerHTML = `
-        <div style="padding: 24px; background: #111111;">
-          <h3 style="font-size: 18px; margin-bottom: 16px; color: #fad643; font-weight: 600;">${concept?.title || 'Document'}</h3>
-          <div style="margin-bottom: 20px; padding: 20px; background: #181818; border-radius: 8px; border-left: 3px solid #fad643;">
-            <div style="color: #fad643; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 DOCUMENT SUMMARY</div>
-            <div style="color: #e6e6e6; line-height: 1.7; font-size: 14px;">${summary}</div>
-          </div>
-        </div>
-      `;
-    }
-  } else if (currentMode === 'document') {
-    // In document mode, just load the text without highlighting
+  // Load full ontology for this document
+  await loadDocumentOntology(docId);
+  
+  // Update content based on current mode
+  if (currentMode === 'document') {
     await renderDocumentMode(docId);
   }
 }
@@ -563,7 +568,7 @@ async function handleDocumentSelection(eventDetail) {
  */
 async function handleFolderSelection(eventDetail) {
   const { folder, document, doc_id, title, score } = eventDetail;
-  console.log(`📁 Folder selection: ${title} from ${folder}`);
+  console.log(`Folder selection: ${title} from ${folder}`);
   
   currentDocId = doc_id;
   selectedConceptId = null;
