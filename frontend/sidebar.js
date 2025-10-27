@@ -8,6 +8,8 @@
 import { bus, setCurrentDocId } from './eventBus.js';
 import { initDynamicFoldersPanel } from './dynamicFoldersPanel.js';
 
+const API_BASE = 'https://loomlite-production.up.railway.app';
+
 // Global state
 let documents = [];
 let activeDocId = null;
@@ -109,7 +111,7 @@ async function fetchAndRenderDocuments(sidebar) {
   
   try {
     // Fetch documents from /tree endpoint
-    const response = await fetch('https://loomlite-production.up.railway.app/tree');
+    const response = await fetch(`${API_BASE}/tree`);
     if (!response.ok) {
       throw new Error(`Failed to fetch documents: ${response.statusText}`);
     }

@@ -29,10 +29,16 @@ app = FastAPI(
     description="Ontology query and N8N ingestion endpoints"
 )
 
-# CORS
+# CORS - Fixed: allow_origins=["*"] with allow_credentials=True is invalid
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://loomlite.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
