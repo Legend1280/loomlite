@@ -59,6 +59,9 @@ export async function initDynamicFoldersPanel(container) {
   
   // Load folders
   await loadFolders();
+
+  // Setup search event listeners (v1.6)
+  setupSearchEventListeners();
   
   console.log('Dynamic Folders Panel initialized');
 }
@@ -347,11 +350,66 @@ function renderSavedViews() {
     viewItem.appendChild(deleteBtn);
     
     list.appendChild(viewItem);
+   }
+}
+
+/**
+ * Setup search event listeners (v1.6)
+ */
+function setupSearchEventListeners() {
+  bus.on('searchResults', (event) => {
+    const { documentScores } = event.detail;
+    if (documentScores) {
+      filterFoldersBySearch(documentScores);
+    }
+  });
+
+  bus.on('searchCleared', () => {
+    resetFolderFilter();
   });
 }
 
 /**
- * Load folders from backend
+ * Filter folders and documents based on search scores (v1.6)
+ */
+function filterFoldersBySearch(documentScores) {
+  const matchedDocIds = new Set(Object.keys(documentScores));
+  console.log(`Filtering sidebar with ${matchedDocIds.size} documents`);
+
+  // Filter individual document items
+  document.querySelectorAll('.file-item').forEach(item => {
+    const docId = item.dataset.docId;
+    item.style.display = matchedDocIds.has(docId) ? 'flex' : 'none';
+  });
+
+  // Filter semantic folders
+  document.querySelectorAll('.folder-item').forEach(folder => {
+    const docsInFolder = Array.from(folder.nextElementSibling.querySelectorAll('.file-item'));
+    const hasMatch = docsInFolder.some(doc => matchedDocIds.has(doc.dataset.docId));
+    folder.style.display = hasMatch ? 'flex' : 'none';
+    // Also hide the content if the folder is hidden
+    if (!hasMatch) {
+        folder.nextElementSibling.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Reset search filter and show all items (v1.6)
+ */
+function resetFolderFilter() {
+  console.log('Resetting sidebar search filter');
+  document.querySelectorAll('.file-item, .folder-item').forEach(item => {
+    item.style.display = 'flex';
+  });
+  // Ensure folder contents are visible if they were hidden
+  document.querySelectorAll('.folder-content').forEach(content => {
+      content.style.display = 'block';
+  });
+}
+
+/**
+ * Load folders from backendd
  */
 async function loadFolders(query = '', sortMode = 'auto') {
   try {
@@ -457,7 +515,8 @@ function createFolderItem(folder) {
   `;
   
   // Folder header
-  const folderHeader = document.createElement('div');
+  const folderHeader = document.createElement("div");
+ folderHeader.className = "folder-item";
   folderHeader.style.cssText = `
     display: flex;
     align-items: center;
@@ -515,7 +574,8 @@ function createFolderItem(folder) {
   
   // Folder contents (documents)
   if (isExpanded && folder.items.length > 0) {
-    const folderContents = document.createElement('div');
+    const folderContents = document.createElement("div");
+ folderContents.className = "folder-content";
     folderContents.style.cssText = `
       margin-top: 4px;
       padding-left: 24px;
@@ -549,7 +609,9 @@ function createFolderItem(folder) {
     }
     
     folder.items.forEach(item => {
-      const docItem = document.createElement('div');
+      const docItem = document.createElement("div");
+ docItem.className = "file-item";
+ docItem.dataset.docId = item.doc_id;
       docItem.style.cssText = `
         padding: 6px 8px;
         background: #0f172a;

@@ -124,6 +124,8 @@ function createSearchContainer() {
       }, DEBOUNCE_DELAY);
     } else {
       hideSuggestions();
+      // Emit searchCleared event when input is empty
+      bus.emit('searchCleared', {});
     }
   });
   
@@ -193,14 +195,39 @@ async function performSearch(query) {
     }
     
     const data = await response.json();
-    const results = data.concepts || data; // Handle both {concepts: [...]} and [...] formats
-    currentSuggestions = results.slice(0, MAX_SUGGESTIONS);
     
-    // Emit search results event for graph highlighting
+    // Handle new v1.6 response format with document-level scoring
+    const results = data.results || data.concepts || data;
+    const documentScores = data.document_scores || {};
+    const threshold = data.threshold || 0.25;
+    
+    // Extract concepts for autocomplete suggestions
+    const allConcepts = [];
+    if (data.results) {
+      // New format: extract concepts from document results
+      data.results.forEach(doc => {
+        doc.concepts?.forEach(concept => {
+          allConcepts.push({
+            ...concept,
+            doc_id: doc.doc_id,
+            doc_title: doc.title
+          });
+        });
+      });
+    } else {
+      // Legacy format: use concepts directly
+      allConcepts.push(...results);
+    }
+    
+    currentSuggestions = allConcepts.slice(0, MAX_SUGGESTIONS);
+    
+    // Emit search results event with enhanced data
     bus.emit('searchResults', { 
-      query, 
+      query,
       results,
-      count: results.length 
+      documentScores,
+      threshold,
+      count: results.length
     });
     
     // Show suggestions

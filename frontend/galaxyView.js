@@ -41,6 +41,11 @@ export async function initGalaxyView() {
     highlightSearchResults(results);
   });
   
+  // Listen for search cleared
+  bus.on('searchCleared', () => {
+    resetSearchHighlight();
+  });
+  
   console.log('Galaxy View initialized');
 }
 
@@ -409,7 +414,7 @@ function highlightSearchResults(results) {
   // Get unique document IDs from search results
   const matchedDocIds = new Set(results.map(r => r.doc_id).filter(Boolean));
   
-  console.log(`Highlighting ${matchedDocIds.size} documents in Galaxy View`);
+  console.log(`Filtering ${matchedDocIds.size} documents in Galaxy View (v1.6)`);
   
   // Update node styles (only document node groups, not nested groups)
   g.selectAll('g')
@@ -418,11 +423,12 @@ function highlightSearchResults(results) {
       return this.parentNode === g.node() && this.__data__;
     })
     .transition()
-    .duration(300)
+    .duration(400)  // Smooth 400ms transition
     .style('opacity', d => {
       // Defensive check for data
       if (!d || !d.id) return 1;
-      return matchedDocIds.has(d.id) ? 1 : 0.3;
+      // Fade non-matching to 0.05, keep matching at 1.0
+      return matchedDocIds.has(d.id) ? 1.0 : 0.05;
     });
   
   // Update node circles
@@ -463,14 +469,16 @@ function highlightSearchResults(results) {
 }
 
 /**
- * Clear search highlights
+ * Reset search highlight (v1.6)
  */
-function clearSearchHighlights() {
+function resetSearchHighlight() {
   if (!g) return;
+  
+  console.log('Resetting Galaxy View search filter');
   
   g.selectAll('g')
     .transition()
-    .duration(300)
+    .duration(400)
     .style('opacity', 1);
   
   g.selectAll('circle')

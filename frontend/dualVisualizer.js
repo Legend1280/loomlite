@@ -45,6 +45,11 @@ export async function drawDualVisualizer(docId) {
       highlightSearchResultsInSolar(results);
     });
     
+    // Listen for search cleared
+    bus.on('searchCleared', () => {
+      resetSolarSearchHighlight();
+    });
+    
     // Listen for center command (triple-click)
     bus.on('centerSolarSystem', () => {
       centerSolarView();
@@ -296,31 +301,59 @@ function hideTooltip() {
 function highlightSearchResultsInSolar(results) {
   if (!currentSvg || !currentOntology) return;
   
-  // Get concept IDs from search results that match current document
-  const matchedConceptIds = new Set(
+  // Extract concept IDs from new v1.6 response format
+  const matchedConceptIds = new Set();
+  
+  // Handle new format: results is array of documents with concepts
+  if (results && results.length > 0 && results[0].concepts) {
+    results.forEach(doc => {
+      doc.concepts?.forEach(concept => {
+        if (currentOntology.concepts.some(c => c.id === concept.id)) {
+          matchedConceptIds.add(concept.id);
+        }
+      });
+    });
+  } else {
+    // Legacy format: results is array of concepts
     results
       .filter(r => currentOntology.concepts.some(c => c.id === r.id))
-      .map(r => r.id)
-  );
+      .forEach(r => matchedConceptIds.add(r.id));
+  }
   
-  console.log(`Highlighting ${matchedConceptIds.size} concepts in Solar System View`);
+  console.log(`Filtering ${matchedConceptIds.size} concepts in Solar System View (v1.6)`);
   
   if (matchedConceptIds.size === 0) {
-    // No matches in current document, dim all
+    // No matches in current document, fade all to 0.1
     currentSvg.selectAll('circle')
       .transition()
-      .duration(300)
-      .style('opacity', 0.3);
+      .duration(400)
+      .style('opacity', 0.1);
+    
+    // Also fade links
+    currentSvg.selectAll('line')
+      .transition()
+      .duration(400)
+      .style('opacity', 0.05);
     return;
   }
   
-  // Highlight matching concepts
+  // Filter matching concepts (fade non-matching to 0.1)
   currentSvg.selectAll('circle')
     .transition()
-    .duration(300)
-    .style('opacity', d => matchedConceptIds.has(d.id) ? 1 : 0.3)
+    .duration(400)
+    .style('opacity', d => matchedConceptIds.has(d.id) ? 1.0 : 0.1)
     .attr('stroke', d => matchedConceptIds.has(d.id) ? '#10b981' : '#fff')
     .attr('stroke-width', d => matchedConceptIds.has(d.id) ? 3 : 1.5);
+  
+  // Fade links connected to non-matching concepts
+  currentSvg.selectAll('line')
+    .transition()
+    .duration(400)
+    .style('opacity', d => {
+      const sourceMatch = matchedConceptIds.has(d.source.id);
+      const targetMatch = matchedConceptIds.has(d.target.id);
+      return (sourceMatch || targetMatch) ? 0.6 : 0.05;
+    });
   
   // Pulse effect for matched concepts
   currentSvg.selectAll('circle')
@@ -334,17 +367,24 @@ function highlightSearchResultsInSolar(results) {
 }
 
 /**
- * Clear search highlights in Solar System view
+ * Reset search highlight in Solar System view (v1.6)
  */
-function clearSearchHighlightsInSolar() {
+function resetSolarSearchHighlight() {
   if (!currentSvg) return;
+  
+  console.log('Resetting Solar System View search filter');
   
   currentSvg.selectAll('circle')
     .transition()
-    .duration(300)
+    .duration(400)
     .style('opacity', 1)
     .attr('stroke', '#fff')
     .attr('stroke-width', 1.5);
+  
+  currentSvg.selectAll('line')
+    .transition()
+    .duration(400)
+    .style('opacity', 0.6);
 }
 
 // Listen for external concept selection events

@@ -740,9 +740,22 @@ function hideTooltip() {
 function highlightSearchResults(results) {
   if (!g) return;
   
-  const matchedIds = new Set(results.map(r => r.id));
+  // Extract concept IDs from new v1.6 response format
+  const matchedIds = new Set();
   
-  // Highlighting search results
+  if (results && results.length > 0 && results[0].concepts) {
+    // New format: results is array of documents with concepts
+    results.forEach(doc => {
+      doc.concepts?.forEach(concept => {
+        matchedIds.add(concept.id);
+      });
+    });
+  } else {
+    // Legacy format: results is array of concepts
+    results.forEach(r => matchedIds.add(r.id));
+  }
+  
+  console.log(`Filtering ${matchedIds.size} concepts in Planet View (v1.6)`);
   
   // Auto-expand nodes that contain matches
   root.descendants().forEach(d => {
@@ -767,7 +780,7 @@ function highlightSearchResults(results) {
     g.selectAll('g.node')
       .select('rect')
       .transition()
-      .duration(300)
+      .duration(400)  // Smooth 400ms transition
       .attr('stroke', d => {
         return matchedIds.has(d.data.id) ? '#10b981' : getNodeStrokeColor(d.data.type);
       })
@@ -776,21 +789,23 @@ function highlightSearchResults(results) {
       })
       .style('opacity', d => {
         if (d.data.type === 'document' || d.data.type === 'category') return 1;
-        return matchedIds.has(d.data.id) ? 1 : 0.4;
+        return matchedIds.has(d.data.id) ? 1.0 : 0.2;  // Fade non-matching to 0.2
       });
   }, ANIMATION_DURATION);
 }
 
 /**
- * Clear search highlights
+ * Clear search highlights (v1.6)
  */
-function clearHighlights() {
+function clearSearchHighlights() {
   if (!g) return;
+  
+  console.log('Resetting Planet View search filter');
   
   g.selectAll('g.node')
     .select('rect')
     .transition()
-    .duration(300)
+    .duration(400)
     .attr('stroke', d => getNodeStrokeColor(d.data.type))
     .attr('stroke-width', 2)
     .style('opacity', 1);
@@ -804,6 +819,11 @@ function setupEventListeners() {
   bus.on('searchResults', (event) => {
     const { results } = event.detail;
     highlightSearchResults(results);
+  });
+  
+  // Listen for search cleared
+  bus.on('searchCleared', () => {
+    clearSearchHighlights();
   });
   
   // Listen for document focus
