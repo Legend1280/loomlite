@@ -343,11 +343,11 @@ async function handleDocumentSelection(eventDetail) {
     const content = document.getElementById('surface-viewer-content');
     if (content && summary) {
       content.innerHTML = `
-        <div style="padding: 24px; background: #0f172a;">
-          <h3 style="font-size: 18px; margin-bottom: 16px; color: #818cf8; font-weight: 600;">${concept?.title || 'Document'}</h3>
-          <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #4f46e5;">
-            <div style="color: #818cf8; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 DOCUMENT SUMMARY</div>
-            <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">${summary}</div>
+        <div style="padding: 24px; background: #111111;">
+          <h3 style="font-size: 18px; margin-bottom: 16px; color: #fad643; font-weight: 600;">${concept?.title || 'Document'}</h3>
+          <div style="margin-bottom: 20px; padding: 20px; background: #181818; border-radius: 8px; border-left: 3px solid #fad643;">
+            <div style="color: #fad643; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 DOCUMENT SUMMARY</div>
+            <div style="color: #e6e6e6; line-height: 1.7; font-size: 14px;">${summary}</div>
           </div>
         </div>
       `;
@@ -376,28 +376,28 @@ async function handleFolderSelection(eventDetail) {
   const content = document.getElementById('surface-viewer-content');
   if (content) {
     content.innerHTML = `
-      <div style="padding: 24px; background: #0f172a;">
+      <div style="padding: 24px; background: #111111;">
         <div style="margin-bottom: 20px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">📁 FOLDER</div>
-          <div style="color: #818cf8; font-size: 16px; font-weight: 600; margin-bottom: 8px;">${folder}</div>
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">📁 FOLDER</div>
+          <div style="color: #fad643; font-size: 16px; font-weight: 600; margin-bottom: 8px;">${folder}</div>
         </div>
         
-        <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0; font-weight: 600;">${title}</h3>
+        <h3 style="font-size: 18px; margin-bottom: 16px; color: #e6e6e6; font-weight: 600;">${title}</h3>
         
-        <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #10b981;">
-          <div style="color: #10b981; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">SEMANTIC SCORE</div>
-          <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">This document has a semantic relevance score of <strong>${score}</strong> within the "${folder}" folder.</div>
-          <div style="color: #64748b; font-size: 12px; margin-top: 8px;">Score is calculated based on concept confidence, recency, relations, and hierarchy.</div>
+        <div style="margin-bottom: 20px; padding: 20px; background: #181818; border-radius: 8px; border-left: 3px solid #fad643;">
+          <div style="color: #fad643; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">SEMANTIC SCORE</div>
+          <div style="color: #e6e6e6; line-height: 1.7; font-size: 14px;">This document has a semantic relevance score of <strong>${score}</strong> within the "${folder}" folder.</div>
+          <div style="color: #9a9a9a; font-size: 12px; margin-top: 8px;">Score is calculated based on concept confidence, recency, relations, and hierarchy.</div>
         </div>
         
         <div style="margin-bottom: 16px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DOCUMENT ID</div>
-          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #94a3b8;">${doc_id}</div>
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DOCUMENT ID</div>
+          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #c5c5c5;">${doc_id}</div>
         </div>
         
-        <div style="margin-top: 24px; padding: 16px; background: #1e293b; border-radius: 6px;">
-          <div style="color: #64748b; font-size: 11px; margin-bottom: 8px;">💡 Tip</div>
-          <div style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
+        <div style="margin-top: 24px; padding: 16px; background: #181818; border-radius: 6px;">
+          <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 8px;">💡 Tip</div>
+          <div style="color: #c5c5c5; font-size: 12px; line-height: 1.6;">
             Switch to <strong>Paragraph</strong> mode to read the full document text, or explore the <strong>Mind Map</strong> to see this document's concepts.
           </div>
         </div>
@@ -493,27 +493,27 @@ function renderOntologyMode(concept) {
   // Perplexity-style theme
   if (isClusterOrRefinement && hasSummary) {
     content.innerHTML = `
-      <div style="padding: 24px; background: #0f172a;">
-        <h3 style="font-size: 18px; margin-bottom: 16px; color: #818cf8; font-weight: 600;">${concept.label}</h3>
+      <div style="padding: 24px; background: #111111;">
+        <h3 style="font-size: 18px; margin-bottom: 16px; color: #fad643; font-weight: 600;">${concept.label}</h3>
         
         <div style="margin-bottom: 20px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TYPE</div>
-          <div style="color: #cbd5e1; font-size: 14px;">${concept.type || (concept.hierarchy_level === 1 ? 'Cluster' : 'Refinement')}</div>
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TYPE</div>
+          <div style="color: #c5c5c5; font-size: 14px;">${concept.type || (concept.hierarchy_level === 1 ? 'Cluster' : 'Refinement')}</div>
         </div>
         
-        <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #4f46e5;">
-          <div style="color: #818cf8; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 SUMMARY</div>
-          <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">${concept.summary}</div>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">HIERARCHY LEVEL</div>
-          <div style="color: #cbd5e1; font-size: 14px;">${concept.hierarchy_level === 1 ? 'Level 1 (Cluster)' : 'Level 2 (Refinement)'}</div>
+        <div style="margin-bottom: 20px; padding: 20px; background: #181818; border-radius: 8px; border-left: 3px solid #fad643;">
+          <div style="color: #fad643; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 SUMMARY</div>
+          <div style="color: #e6e6e6; line-height: 1.7; font-size: 14px;">${concept.summary}</div>
         </div>
         
         <div style="margin-bottom: 16px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">METADATA</div>
-          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #94a3b8;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">HIERARCHY LEVEL</div>
+          <div style="color: #c5c5c5; font-size: 14px;">${concept.hierarchy_level === 1 ? 'Level 1 (Cluster)' : 'Level 2 (Refinement)'}</div>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">METADATA</div>
+          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #c5c5c5;">
             ID: ${concept.id}
           </div>
         </div>
@@ -522,51 +522,51 @@ function renderOntologyMode(concept) {
   } else {
     // Regular concept view
     content.innerHTML = `
-      <div style="padding: 24px; background: #0f172a;">
-        <h3 style="font-size: 18px; margin-bottom: 16px; color: #818cf8; font-weight: 600;">${concept.label}</h3>
+      <div style="padding: 24px; background: #111111;">
+        <h3 style="font-size: 18px; margin-bottom: 16px; color: #fad643; font-weight: 600;">${concept.label}</h3>
         
         ${hasSummary ? `
-          <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #4f46e5;">
-            <div style="color: #818cf8; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 SUMMARY</div>
-            <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">${concept.summary}</div>
+          <div style="margin-bottom: 20px; padding: 20px; background: #181818; border-radius: 8px; border-left: 3px solid #fad643;">
+            <div style="color: #fad643; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📝 SUMMARY</div>
+            <div style="color: #e6e6e6; line-height: 1.7; font-size: 14px;">${concept.summary}</div>
           </div>
         ` : ''}
         
         <div style="margin-bottom: 16px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TYPE</div>
-          <div style="color: #cbd5e1; font-size: 14px;">${concept.type}</div>
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TYPE</div>
+          <div style="color: #c5c5c5; font-size: 14px;">${concept.type}</div>
         </div>
         
         <div style="margin-bottom: 16px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">CONFIDENCE</div>
-          <div style="color: #cbd5e1; font-size: 14px;">${Math.round((concept.confidence || 0) * 100)}%</div>
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">CONFIDENCE</div>
+          <div style="color: #c5c5c5; font-size: 14px;">${Math.round((concept.confidence || 0) * 100)}%</div>
         </div>
         
         ${concept.aliases && concept.aliases.length > 0 ? `
           <div style="margin-bottom: 16px;">
-            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ALIASES</div>
-            <div style="color: #cbd5e1; font-size: 14px;">${Array.isArray(concept.aliases) ? concept.aliases.join(', ') : concept.aliases}</div>
+            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ALIASES</div>
+            <div style="color: #c5c5c5; font-size: 14px;">${Array.isArray(concept.aliases) ? concept.aliases.join(', ') : concept.aliases}</div>
           </div>
         ` : ''}
         
         ${concept.tags && concept.tags.length > 0 ? `
           <div style="margin-bottom: 16px;">
-            <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TAGS</div>
-            <div style="color: #cbd5e1; font-size: 14px;">${Array.isArray(concept.tags) ? concept.tags.join(', ') : concept.tags}</div>
+            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TAGS</div>
+            <div style="color: #c5c5c5; font-size: 14px;">${Array.isArray(concept.tags) ? concept.tags.join(', ') : concept.tags}</div>
           </div>
         ` : ''}
         
         <div style="margin-bottom: 16px;">
-          <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">METADATA</div>
-          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #94a3b8;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">METADATA</div>
+          <div style="font-family: 'Courier New', monospace; font-size: 11px; color: #c5c5c5;">
             ${concept.model_name ? `Model: ${concept.model_name}<br>` : ''}
             ID: ${concept.id}
           </div>
         </div>
         
-        <div style="margin-top: 24px; padding: 16px; background: #1e293b; border-radius: 6px; border: 1px solid #334155;">
-          <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">💡 TIP</div>
-          <div style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
+        <div style="margin-top: 24px; padding: 16px; background: #181818; border-radius: 6px; border: 1px solid rgba(42, 42, 42, 0.5);">
+          <div style="font-size: 11px; color: #9a9a9a; margin-bottom: 8px;">💡 TIP</div>
+          <div style="font-size: 12px; color: #c5c5c5; line-height: 1.6;">
             Switch to Paragraph mode to see this concept highlighted in the original text.
           </div>
         </div>
@@ -584,7 +584,7 @@ async function renderDocumentMode(docId) {
   
   // Show loading state
   content.innerHTML = `
-    <div style="color: #64748b; text-align: center; padding: 60px 20px; background: #0f172a;">
+    <div style="color: #9a9a9a; text-align: center; padding: 60px 20px; background: #111111;">
       <div style="font-size: 14px;">Loading document text...</div>
     </div>
   `;
@@ -616,7 +616,7 @@ async function renderDocumentMode(docId) {
     console.error('Error loading document:', error);
     
     content.innerHTML = `
-      <div style="padding: 24px; background: #0f172a;">
+      <div style="padding: 24px; background: #111111;">
         <div style="color: #ef4444; padding: 20px; background: #1e1b1b; border-radius: 8px; border: 1px solid #7f1d1d;">
           <div style="font-weight: 600; margin-bottom: 10px; font-size: 14px;">Document Text Not Available</div>
           <div style="font-size: 13px; color: #fca5a5; line-height: 1.6;">
@@ -637,7 +637,7 @@ function renderStructuredTextWithHighlighting(text, spans) {
   
   if (!text) {
     content.innerHTML = `
-      <div style="color: #64748b; text-align: center; padding: 60px 20px; background: #0f172a;">
+      <div style="color: #9a9a9a; text-align: center; padding: 60px 20px; background: #111111;">
         <div style="font-size: 14px;">No text content available</div>
       </div>
     `;
@@ -679,7 +679,7 @@ function renderStructuredTextWithHighlighting(text, spans) {
         // Remove list marker from HTML (already in <li>)
         lineHTML = lineHTML.replace(/^-\s*/, '').replace(/^\d+\.\s*/, '');
         
-        return `<li style="margin-bottom: 0.5em; color: #cbd5e1;">${lineHTML}</li>`;
+        return `<li style="margin-bottom: 0.5em; color: #c5c5c5;">${lineHTML}</li>`;
       }).join('');
       
       currentOffset = paraEnd + 2; // Account for \n\n
@@ -702,7 +702,7 @@ function renderStructuredTextWithHighlighting(text, spans) {
       return `<p style="
         margin-bottom: 1.5em;
         line-height: 1.8;
-        color: #cbd5e1;
+        color: #c5c5c5;
         font-size: 15px;
       " data-para-index="${paraIndex}">${paraHTML}</p>`;
     }
@@ -715,7 +715,7 @@ function renderStructuredTextWithHighlighting(text, spans) {
       margin: 0 auto;
       padding: 3rem 2.5rem;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #0f172a;
+      background: #111111;
     ">
       ${elementsHTML}
     </article>
@@ -776,7 +776,7 @@ function buildHighlightedHTML(text, spans, textOffset) {
       data-opacity="0"
       style="
         background: transparent;
-        color: #cbd5e1;
+        color: #c5c5c5;
         padding: 0;
         border-bottom: none;
         cursor: pointer;
@@ -838,7 +838,7 @@ async function highlightConceptWithDescendants(conceptId) {
     span.style.background = 'transparent';
     span.style.borderBottom = 'none';
     span.style.fontWeight = '400';
-    span.style.color = '#cbd5e1';
+    span.style.color = '#c5c5c5';
     span.dataset.opacity = '0';
   });
   
@@ -867,7 +867,7 @@ async function highlightConceptWithDescendants(conceptId) {
       span.style.background = `rgba(251, 191, 36, ${opacity})`;
       span.style.borderBottom = `2px solid rgba(251, 191, 36, ${opacity * 2})`;
       span.style.fontWeight = id === conceptId ? '600' : '500';
-      span.style.color = '#fbbf24';
+      span.style.color = '#fad643';
       span.dataset.opacity = opacity.toString();
     });
   });
@@ -901,7 +901,7 @@ async function highlightCluster(clusterId) {
     span.style.background = 'transparent';
     span.style.borderBottom = 'none';
     span.style.fontWeight = '400';
-    span.style.color = '#cbd5e1';
+    span.style.color = '#c5c5c5';
     span.dataset.opacity = '0';
   });
   
@@ -912,7 +912,7 @@ async function highlightCluster(clusterId) {
       span.style.background = `rgba(251, 191, 36, 0.25)`;
       span.style.borderBottom = `2px solid rgba(251, 191, 36, 0.5)`;
       span.style.fontWeight = '500';
-      span.style.color = '#fbbf24';
+      span.style.color = '#fad643';
       span.dataset.opacity = '0.25';
     });
   });
@@ -946,7 +946,7 @@ async function highlightRefinement(refinementId) {
     span.style.background = 'transparent';
     span.style.borderBottom = 'none';
     span.style.fontWeight = '400';
-    span.style.color = '#cbd5e1';
+    span.style.color = '#c5c5c5';
     span.dataset.opacity = '0';
   });
   
@@ -957,7 +957,7 @@ async function highlightRefinement(refinementId) {
       span.style.background = `rgba(251, 191, 36, 0.3)`;
       span.style.borderBottom = `2px solid rgba(251, 191, 36, 0.6)`;
       span.style.fontWeight = '500';
-      span.style.color = '#fbbf24';
+      span.style.color = '#fad643';
       span.dataset.opacity = '0.3';
     });
   });
@@ -1055,32 +1055,32 @@ async function renderAnalyticsMode(docId) {
     const lastOpened = stats.last_opened ? getRelativeTime(stats.last_opened) : 'Never';
     
     content.innerHTML = `
-      <div style="padding: 24px; background: #0f172a;">
-        <h3 style="font-size: 18px; color: #e2e8f0; margin-bottom: 24px; font-weight: 600;">Document Analytics</h3>
+      <div style="padding: 24px; background: #111111;">
+        <h3 style="font-size: 18px; color: #e6e6e6; margin-bottom: 24px; font-weight: 600;">Document Analytics</h3>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-          <div style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
+          <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
             <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">TOTAL VIEWS</div>
             <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${stats.total_views}</div>
           </div>
           
-          <div style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 3px solid #10b981;">
+          <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
             <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">PINS</div>
             <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${stats.total_pins}</div>
           </div>
           
-          <div style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+          <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
             <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">AVG DWELL TIME</div>
             <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${formatDwellTime(stats.avg_dwell_time)}</div>
           </div>
         </div>
         
-        <div style="background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
           <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">LAST OPENED</div>
           <div style="color: #e6e6e6; font-size: 14px;">${lastOpened}</div>
         </div>
         
-        <div style="background: #1e293b; padding: 20px; border-radius: 8px;">
+        <div style="background: #181818; padding: 20px; border-radius: 8px;">
           <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">FOLDERS</div>
           <div style="color: #e6e6e6; font-size: 14px; margin-bottom: 16px;">${stats.folder_count} folder(s)</div>
           
@@ -1088,7 +1088,7 @@ async function renderAnalyticsMode(docId) {
             <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(42, 42, 42, 0.5);">
               <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">FOLDER BREAKDOWN</div>
               ${stats.folders.map(f => `
-                <div style="margin-bottom: 12px; padding: 12px; background: #0f172a; border-radius: 6px; border-left: 2px solid #fad643;">
+                <div style="margin-bottom: 12px; padding: 12px; background: #111111; border-radius: 6px; border-left: 2px solid #fad643;">
                   <div style="color: #e6e6e6; font-size: 13px; font-weight: 500; margin-bottom: 6px;">${f.folder_name}</div>
                   <div style="color: #9a9a9a; font-size: 11px; display: flex; gap: 12px;">
                     <span>${f.view_count} views</span>
@@ -1107,7 +1107,7 @@ async function renderAnalyticsMode(docId) {
   } catch (error) {
     console.error('Error loading analytics:', error);
     content.innerHTML = `
-      <div style="padding: 24px; background: #0f172a;">
+      <div style="padding: 24px; background: #111111;">
         <div style="color: #ef4444; padding: 20px; background: #1e1b1b; border-radius: 8px; border: 1px solid #7f1d1d;">
           <div style="font-weight: 600; margin-bottom: 8px;">Error Loading Analytics</div>
           <div style="font-size: 12px; color: #fca5a5;">${error.message}</div>
@@ -1132,8 +1132,8 @@ function renderAnalyticsOverlay_DEPRECATED(stats) {
       top: 60px;
       width: 300px;
       max-height: calc(100vh - 80px);
-      background: #1e293b;
-      border-left: 1px solid #334155;
+      background: #181818;
+      border-left: 1px solid rgba(42, 42, 42, 0.5);
       padding: 20px;
       overflow-y: auto;
       transform: translateX(100%);
@@ -1148,11 +1148,11 @@ function renderAnalyticsOverlay_DEPRECATED(stats) {
   
   overlay.innerHTML = `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-      <h3 style="font-size: 16px; color: #e2e8f0; margin: 0;">Analytics</h3>
+      <h3 style="font-size: 16px; color: #e6e6e6; margin: 0;">Analytics</h3>
       <button id="close-analytics" style="
         background: transparent;
         border: none;
-        color: #64748b;
+        color: #9a9a9a;
         font-size: 20px;
         cursor: pointer;
         padding: 0;
@@ -1161,37 +1161,37 @@ function renderAnalyticsOverlay_DEPRECATED(stats) {
     </div>
     
     <div style="margin-bottom: 16px;">
-      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TOTAL VIEWS</div>
-      <div style="color: #e2e8f0; font-size: 24px; font-weight: 600;">${stats.total_views}</div>
+      <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TOTAL VIEWS</div>
+      <div style="color: #e6e6e6; font-size: 24px; font-weight: 600;">${stats.total_views}</div>
     </div>
     
     <div style="margin-bottom: 16px;">
-      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">PINS</div>
-      <div style="color: #e2e8f0; font-size: 24px; font-weight: 600;">${stats.total_pins}</div>
+      <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">PINS</div>
+      <div style="color: #e6e6e6; font-size: 24px; font-weight: 600;">${stats.total_pins}</div>
     </div>
     
     <div style="margin-bottom: 16px;">
-      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">AVG DWELL TIME</div>
-      <div style="color: #e2e8f0; font-size: 24px; font-weight: 600;">${formatDwellTime(stats.avg_dwell_time)}</div>
+      <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">AVG DWELL TIME</div>
+      <div style="color: #e6e6e6; font-size: 24px; font-weight: 600;">${formatDwellTime(stats.avg_dwell_time)}</div>
     </div>
     
     <div style="margin-bottom: 16px;">
-      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">LAST OPENED</div>
-      <div style="color: #e2e8f0; font-size: 14px;">${lastOpened}</div>
+      <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">LAST OPENED</div>
+      <div style="color: #e6e6e6; font-size: 14px;">${lastOpened}</div>
     </div>
     
     <div style="margin-bottom: 16px;">
-      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">FOLDERS</div>
-      <div style="color: #e2e8f0; font-size: 14px;">${stats.folder_count} folder(s)</div>
+      <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">FOLDERS</div>
+      <div style="color: #e6e6e6; font-size: 14px;">${stats.folder_count} folder(s)</div>
     </div>
     
     ${stats.folders && stats.folders.length > 0 ? `
-      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #334155;">
-        <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">FOLDER BREAKDOWN</div>
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(42, 42, 42, 0.5);">
+        <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">FOLDER BREAKDOWN</div>
         ${stats.folders.map(f => `
-          <div style="margin-bottom: 12px; padding: 8px; background: #0f172a; border-radius: 4px;">
-            <div style="color: #e2e8f0; font-size: 12px; font-weight: 500; margin-bottom: 4px;">${f.folder_name}</div>
-            <div style="color: #64748b; font-size: 11px;">
+          <div style="margin-bottom: 12px; padding: 8px; background: #111111; border-radius: 4px;">
+            <div style="color: #e6e6e6; font-size: 12px; font-weight: 500; margin-bottom: 4px;">${f.folder_name}</div>
+            <div style="color: #9a9a9a; font-size: 11px;">
               ${f.view_count} views • ${f.pin_count} pins • ${Math.floor(f.dwell_time / 60)}m
             </div>
           </div>
