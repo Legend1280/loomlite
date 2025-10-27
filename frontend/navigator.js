@@ -1,6 +1,9 @@
 /**
- * File System Sidebar for LoomLite v4.0
+ * NAVIGATOR - Document Navigation System for LoomLite v4.0
  * 4-Tier Architecture: Top Hits → Pinned → Standard → Semantic
+ * 
+ * The Navigator provides intelligent document organization and quick access
+ * through multiple filtering and grouping strategies.
  */
 
 import { bus } from './eventBus.js';
@@ -15,14 +18,14 @@ let semanticFolders = [];
 let collapsedSections = loadCollapsedState();
 
 /**
- * Initialize file system sidebar
+ * Initialize Navigator
  */
 export function initFileSystemSidebar() {
-  console.log('Initializing File System Sidebar v4.0...');
+  console.log('Initializing Navigator v4.0...');
   
   const container = document.getElementById('file-system-sidebar');
   if (!container) {
-    console.warn('File system sidebar container not found');
+    console.warn('Navigator container not found');
     return;
   }
   
@@ -31,7 +34,7 @@ export function initFileSystemSidebar() {
   
   // Listen for document upload events to refresh
   bus.on('documentUploaded', () => {
-    console.log('Document uploaded, refreshing sidebar...');
+    console.log('Document uploaded, refreshing Navigator...');
     loadAllTiers();
   });
 }
@@ -152,6 +155,20 @@ function renderSidebar() {
     overflow-y: auto;
     overflow-x: hidden;
   `;
+  
+  // Add NAVIGATOR label at the top
+  const navigatorLabel = document.createElement('div');
+  navigatorLabel.style.cssText = `
+    padding: 16px 12px 12px 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #9a9a9a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+  `;
+  navigatorLabel.textContent = 'NAVIGATOR';
+  container.appendChild(navigatorLabel);
   
   // Render each tier
   renderTopHits(container);
