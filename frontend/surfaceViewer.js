@@ -336,7 +336,7 @@ async function loadDocumentOntology(docId) {
   if (!docId) return;
   
   try {
-    console.log(`📊 Loading full ontology for document: ${docId}`);
+    console.log(`Loading full ontology for document: ${docId}`);
     
     const response = await fetch(`${BACKEND_URL}/doc/${docId}/ontology`);
     if (!response.ok) {
@@ -413,7 +413,7 @@ function renderFullOntology(docId, ontologyData) {
   let html = `
     <div style="padding: 24px; background: #111111; height: 100%; overflow-y: auto;">
       <h3 style="font-size: 18px; margin-bottom: 8px; color: #fad643; font-weight: 600;">
-        📊 Document Ontology
+        Document Ontology
       </h3>
       <p style="font-size: 12px; color: #9a9a9a; margin-bottom: 20px; line-height: 1.6;">
         This is the complete semantic structure extracted from the document, showing all concepts, their types, and how they relate to each other.
@@ -478,8 +478,8 @@ function renderFullOntology(docId, ontologyData) {
                   <div style="padding: 8px 0; border-bottom: ${idx < items.length - 1 ? '1px solid rgba(42, 42, 42, 0.4)' : 'none'};">
                     <div style="color: #e6e6e6; font-size: 13px; margin-bottom: 4px; font-weight: 500;">${concept.label}</div>
                     <div style="display: flex; gap: 12px; font-size: 11px; color: #9a9a9a;">
-                      ${concept.confidence ? `<span>✓ ${(concept.confidence * 100).toFixed(0)}% confident</span>` : ''}
-                      ${concept.hierarchy_level !== undefined ? `<span>🎯 ${hierarchyLabel(concept.hierarchy_level)}</span>` : ''}
+                      ${concept.confidence ? `<span>${(concept.confidence * 100).toFixed(0)}% confident</span>` : ''}
+                      ${concept.hierarchy_level !== undefined ? `<span>${hierarchyLabel(concept.hierarchy_level)}</span>` : ''}
                     </div>
                   </div>
                 `).join('')}
