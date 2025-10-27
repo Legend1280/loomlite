@@ -19,6 +19,12 @@ let documentSpans = [];
 let selectedConceptId = null;
 let allConcepts = []; // Store all concepts for hierarchy queries
 
+// Analytics state
+let analyticsVisible = false;
+let currentFolder = null;
+let viewStartTime = null;
+const BACKEND_URL = 'https://loomlite-production.up.railway.app';
+
 /**
  * Initialize surface viewer
  */
@@ -68,8 +74,19 @@ export function initSurfaceViewer() {
     
     console.log(`📁 Folder selection received:`, { folder, title, score });
     
+    // Track dwell time for previous document
+    if (viewStartTime && currentDocId && currentFolder) {
+      const dwellSeconds = Math.floor((Date.now() - viewStartTime) / 1000);
+      trackDwellTime(currentFolder, currentDocId, dwellSeconds);
+    }
+    
     // Load the document in Surface Viewer
     currentDocId = doc_id;
+    currentFolder = folder;
+    viewStartTime = Date.now();
+    
+    // Track view event
+    trackView(folder, doc_id);
     
     // Show folder context in ontology mode
     handleFolderSelection(event.detail);
@@ -113,6 +130,50 @@ function renderHeader(container) {
   `;
   title.textContent = '📄 Surface Viewer';
   
+  // Right side controls container
+  const rightControls = document.createElement('div');
+  rightControls.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  `;
+  
+  // Analytics button
+  const analyticsBtn = document.createElement('button');
+  analyticsBtn.id = 'analytics-toggle-btn';
+  analyticsBtn.style.cssText = `
+    background: transparent;
+    border: 1px solid #334155;
+    color: #64748b;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  `;
+  analyticsBtn.textContent = '📊 Analytics';
+  analyticsBtn.onmouseover = () => {
+    analyticsBtn.style.borderColor = '#3b82f6';
+    analyticsBtn.style.color = '#3b82f6';
+  };
+  analyticsBtn.onmouseout = () => {
+    analyticsBtn.style.borderColor = '#334155';
+    analyticsBtn.style.color = '#64748b';
+  };
+  analyticsBtn.onclick = () => {
+    if (currentDocId) {
+      if (analyticsVisible) {
+        const overlay = document.getElementById('analytics-overlay');
+        if (overlay) {
+          overlay.style.transform = 'translateX(100%)';
+          analyticsVisible = false;
+        }
+      } else {
+        loadAnalytics(currentDocId);
+      }
+    }
+  };
+  
   // Mode toggle buttons
   const modeToggle = document.createElement('div');
   modeToggle.style.cssText = `
@@ -129,8 +190,11 @@ function renderHeader(container) {
   modeToggle.appendChild(ontologyBtn);
   modeToggle.appendChild(documentBtn);
   
+  rightControls.appendChild(analyticsBtn);
+  rightControls.appendChild(modeToggle);
+  
   header.appendChild(title);
-  header.appendChild(modeToggle);
+  header.appendChild(rightControls);
   container.appendChild(header);
 }
 
@@ -925,6 +989,174 @@ async function fetchAndDisplayConcept(conceptId) {
   } catch (error) {
     console.error('❌ Error fetching concept:', error);
   }
+}
+
+/**
+ * Track view event
+ */
+async function trackView(folderName, docId) {
+  try {
+    await fetch(`${BACKEND_URL}/analytics/track-view?folder_name=${encodeURIComponent(folderName)}&doc_id=${encodeURIComponent(docId)}`, {
+      method: 'POST'
+    });
+    console.log('📊 View tracked:', { folderName, docId });
+  } catch (error) {
+    console.error('❌ Error tracking view:', error);
+  }
+}
+
+/**
+ * Track dwell time
+ */
+async function trackDwellTime(folderName, docId, seconds) {
+  if (seconds < 1) return; // Don't track very short views
+  
+  try {
+    await fetch(`${BACKEND_URL}/analytics/track-dwell?folder_name=${encodeURIComponent(folderName)}&doc_id=${encodeURIComponent(docId)}&seconds=${seconds}`, {
+      method: 'POST'
+    });
+    console.log('📊 Dwell time tracked:', { folderName, docId, seconds });
+  } catch (error) {
+    console.error('❌ Error tracking dwell time:', error);
+  }
+}
+
+/**
+ * Load and display analytics for current document
+ */
+async function loadAnalytics(docId) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/document-stats/${docId}`);
+    const stats = await response.json();
+    
+    renderAnalyticsOverlay(stats);
+  } catch (error) {
+    console.error('❌ Error loading analytics:', error);
+  }
+}
+
+/**
+ * Render analytics overlay
+ */
+function renderAnalyticsOverlay(stats) {
+  let overlay = document.getElementById('analytics-overlay');
+  
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'analytics-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      right: 0;
+      top: 60px;
+      width: 300px;
+      max-height: calc(100vh - 80px);
+      background: #1e293b;
+      border-left: 1px solid #334155;
+      padding: 20px;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    `;
+    document.body.appendChild(overlay);
+  }
+  
+  // Calculate relative time
+  const lastOpened = stats.last_opened ? getRelativeTime(stats.last_opened) : 'Never';
+  
+  overlay.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+      <h3 style="font-size: 16px; color: #e2e8f0; margin: 0;">📊 Analytics</h3>
+      <button id="close-analytics" style="
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      ">×</button>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TOTAL VIEWS</div>
+      <div style="color: #e2e8f0; font-size: 24px; font-weight: 600;">${stats.total_views}</div>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">PINS</div>
+      <div style="color: #e2e8f0; font-size: 24px; font-weight: 600;">${stats.total_pins}</div>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">AVG DWELL TIME</div>
+      <div style="color: #e2e8f0; font-size: 24px; font-weight: 600;">${formatDwellTime(stats.avg_dwell_time)}</div>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">LAST OPENED</div>
+      <div style="color: #e2e8f0; font-size: 14px;">${lastOpened}</div>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">FOLDERS</div>
+      <div style="color: #e2e8f0; font-size: 14px;">${stats.folder_count} folder(s)</div>
+    </div>
+    
+    ${stats.folders && stats.folders.length > 0 ? `
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #334155;">
+        <div style="color: #64748b; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">FOLDER BREAKDOWN</div>
+        ${stats.folders.map(f => `
+          <div style="margin-bottom: 12px; padding: 8px; background: #0f172a; border-radius: 4px;">
+            <div style="color: #e2e8f0; font-size: 12px; font-weight: 500; margin-bottom: 4px;">${f.folder_name}</div>
+            <div style="color: #64748b; font-size: 11px;">
+              ${f.view_count} views • ${f.pin_count} pins • ${Math.floor(f.dwell_time / 60)}m
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+  
+  // Show overlay
+  setTimeout(() => {
+    overlay.style.transform = 'translateX(0)';
+  }, 10);
+  
+  analyticsVisible = true;
+  
+  // Add close button handler
+  document.getElementById('close-analytics').onclick = () => {
+    overlay.style.transform = 'translateX(100%)';
+    analyticsVisible = false;
+  };
+}
+
+/**
+ * Format dwell time in human-readable format
+ */
+function formatDwellTime(seconds) {
+  if (seconds < 60) return `${Math.floor(seconds)}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+}
+
+/**
+ * Get relative time string
+ */
+function getRelativeTime(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
 }
 
 /**
