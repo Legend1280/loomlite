@@ -147,8 +147,8 @@ function renderSidebar() {
   container.style.cssText = `
     width: 240px;
     height: 100%;
-    background: #0f172a;
-    border-right: 1px solid #1e293b;
+    background: #0c0c0c;
+    border-right: 1px solid rgba(42, 42, 42, 0.4);
     overflow-y: auto;
     overflow-x: hidden;
   `;
@@ -164,7 +164,7 @@ function renderSidebar() {
  * Render Top Hits section
  */
 function renderTopHits(container) {
-  const section = createSection('Top Hits', '🔥', topHits.length);
+  const section = createSection('Top Hits', '▲', topHits.length);
   container.appendChild(section.header);
   container.appendChild(section.content);
   
@@ -186,7 +186,7 @@ function renderTopHits(container) {
  * Render Pinned Folders section
  */
 function renderPinnedFolders(container) {
-  const section = createSection('Pinned', '📌', pinnedFolders.length);
+  const section = createSection('Pinned', '◆', pinnedFolders.length);
   container.appendChild(section.header);
   container.appendChild(section.content);
   
@@ -205,7 +205,7 @@ function renderPinnedFolders(container) {
  * Render Standard Folders section
  */
 function renderStandardFolders(container) {
-  const section = createSection('Standard Folders', '📁', standardFolders.length);
+  const section = createSection('Standard Folders', '■', standardFolders.length);
   container.appendChild(section.header);
   container.appendChild(section.content);
   
@@ -224,7 +224,7 @@ function renderStandardFolders(container) {
  * Render Semantic Folders section
  */
 function renderSemanticFolders(container) {
-  const section = createSection('Semantic Folders', '🧠', semanticFolders.length);
+  const section = createSection('Semantic Folders', '●', semanticFolders.length);
   container.appendChild(section.header);
   container.appendChild(section.content);
   
@@ -242,7 +242,7 @@ function renderSemanticFolders(container) {
 /**
  * Create a collapsible section
  */
-function createSection(title, icon, count) {
+function createSection(title, iconText, count) {
   const sectionId = title.toLowerCase().replace(/\s+/g, '-');
   const isCollapsed = collapsedSections[sectionId] || false;
   
@@ -251,9 +251,9 @@ function createSection(title, icon, count) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px;
-    background: #1e293b;
-    border-bottom: 1px solid #334155;
+    padding: 10px 12px;
+    background: #111111;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
     cursor: pointer;
     user-select: none;
   `;
@@ -262,19 +262,19 @@ function createSection(title, icon, count) {
   leftSide.style.cssText = 'display: flex; align-items: center; gap: 8px;';
   
   const iconEl = document.createElement('span');
-  iconEl.textContent = icon;
-  iconEl.style.fontSize = '14px';
+  iconEl.textContent = iconText;
+  iconEl.style.cssText = 'font-size: 12px; color: #9a9a9a; font-weight: 400;';
   
   const titleEl = document.createElement('span');
   titleEl.textContent = title;
-  titleEl.style.cssText = 'font-size: 12px; font-weight: 600; color: #e2e8f0;';
+  titleEl.style.cssText = 'font-size: 12px; font-weight: 500; color: #e6e6e6; letter-spacing: 0.5px;';
   
   const countBadge = document.createElement('span');
   countBadge.textContent = count;
   countBadge.style.cssText = `
     font-size: 10px;
-    color: #94a3b8;
-    background: #334155;
+    color: #9a9a9a;
+    background: #181818;
     padding: 2px 6px;
     border-radius: 10px;
   `;
@@ -285,7 +285,7 @@ function createSection(title, icon, count) {
   
   const chevron = document.createElement('span');
   chevron.textContent = isCollapsed ? '›' : '⌄';
-  chevron.style.cssText = 'font-size: 14px; color: #94a3b8; transition: transform 0.2s;';
+  chevron.style.cssText = 'font-size: 14px; color: #9a9a9a; transition: transform 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);';
   
   header.appendChild(leftSide);
   header.appendChild(chevron);
@@ -319,12 +319,19 @@ function createDocumentItem(doc, options = {}) {
     gap: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    transition: background 0.2s;
-    border-bottom: 1px solid #1e293b;
+    transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+    border-left: 2px solid transparent;
   `;
   
-  item.onmouseover = () => item.style.background = '#1e293b';
-  item.onmouseout = () => item.style.background = 'transparent';
+  item.onmouseover = () => {
+    item.style.background = 'rgba(24, 24, 24, 0.5)';
+    item.style.borderLeft = '2px solid #fad643';
+  };
+  item.onmouseout = () => {
+    item.style.background = 'transparent';
+    item.style.borderLeft = '2px solid transparent';
+  };
   
   item.onclick = () => {
     bus.emit('documentSelected', { detail: { docId: doc.id, title: doc.title } });
@@ -332,8 +339,8 @@ function createDocumentItem(doc, options = {}) {
   
   // Icon
   const icon = document.createElement('span');
-  icon.textContent = '📄';
-  icon.style.fontSize = '14px';
+  icon.textContent = '○';
+  icon.style.cssText = 'font-size: 12px; color: #c5c5c5';
   
   // Title
   const titleEl = document.createElement('div');
@@ -343,7 +350,7 @@ function createDocumentItem(doc, options = {}) {
   title.textContent = doc.title;
   title.style.cssText = `
     font-size: 11px;
-    color: #e2e8f0;
+    color: #e6e6e6;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -384,12 +391,19 @@ function createPinnedItem(pin) {
     gap: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    transition: background 0.2s;
-    border-bottom: 1px solid #1e293b;
+    transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+    border-left: 2px solid transparent;
   `;
   
-  item.onmouseover = () => item.style.background = '#1e293b';
-  item.onmouseout = () => item.style.background = 'transparent';
+  item.onmouseover = () => {
+    item.style.background = 'rgba(24, 24, 24, 0.5)';
+    item.style.borderLeft = '2px solid #fad643';
+  };
+  item.onmouseout = () => {
+    item.style.background = 'transparent';
+    item.style.borderLeft = '2px solid transparent';
+  };
   
   item.onclick = () => {
     if (pin.type === 'document') {
@@ -400,15 +414,15 @@ function createPinnedItem(pin) {
   };
   
   const icon = document.createElement('span');
-  icon.textContent = pin.type === 'document' ? '📄' : '📁';
-  icon.style.fontSize = '14px';
+  icon.textContent = pin.type === 'document' ? '○' : '■';
+  icon.style.cssText = 'font-size: 12px; color: #c5c5c5';
   
   const label = document.createElement('div');
   label.textContent = pin.label;
   label.style.cssText = `
     flex: 1;
     font-size: 11px;
-    color: #e2e8f0;
+    color: #e6e6e6;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -437,27 +451,34 @@ function createFolderItem(folder, options = {}) {
     gap: 8px;
     padding: 8px 12px;
     cursor: pointer;
-    transition: background 0.2s;
-    border-bottom: 1px solid #1e293b;
+    transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+    border-left: 2px solid transparent;
   `;
   
-  header.onmouseover = () => header.style.background = '#1e293b';
-  header.onmouseout = () => header.style.background = 'transparent';
+  header.onmouseover = () => {
+    header.style.background = 'rgba(24, 24, 24, 0.5)';
+    header.style.borderLeft = '2px solid #fad643';
+  };
+  header.onmouseout = () => {
+    header.style.background = 'transparent';
+    header.style.borderLeft = '2px solid transparent';
+  };
   
   const chevron = document.createElement('span');
   chevron.textContent = isExpanded ? '⌄' : '›';
-  chevron.style.cssText = 'font-size: 12px; color: #94a3b8;';
+  chevron.style.cssText = 'font-size: 12px; color: #9a9a9a;';
   
   const icon = document.createElement('span');
-  icon.textContent = '📁';
-  icon.style.fontSize = '14px';
+  icon.textContent = '■';
+  icon.style.cssText = 'font-size: 12px; color: #c5c5c5';
   
   const name = document.createElement('div');
   name.textContent = folder.folder_name;
   name.style.cssText = `
     flex: 1;
     font-size: 11px;
-    color: #e2e8f0;
+    color: #e6e6e6;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -467,8 +488,8 @@ function createFolderItem(folder, options = {}) {
   count.textContent = folder.items?.length || 0;
   count.style.cssText = `
     font-size: 9px;
-    color: #94a3b8;
-    background: #334155;
+    color: #9a9a9a;
+    background: #181818;
     padding: 2px 5px;
     border-radius: 8px;
   `;
