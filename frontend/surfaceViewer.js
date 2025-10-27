@@ -92,16 +92,18 @@ export function initSurfaceViewer() {
     handleFolderSelection(event.detail);
   });
   
-  // Listen for documentFocus events to load document in Reader Mode
+  // Listen for documentFocus events to load document
   bus.on('documentFocus', async (event) => {
     const { docId, doc_id } = event.detail;
     currentDocId = docId || doc_id;
     
-    // Keep current mode when loading a new document
-    updateModeButtons();
+    console.log(`📄 Document focused: ${currentDocId}`);
     
-    // Load document text
-    await renderDocumentMode(currentDocId);
+    // Load full ontology data for this document
+    await loadDocumentOntology(currentDocId);
+    
+    // Update content based on current mode
+    updateContent();
   });
   
   console.log('Enhanced Surface Viewer v3.0b initialized');
@@ -326,6 +328,204 @@ function switchMode(mode) {
   currentMode = mode;
   updateContent();
 }
+
+/**
+ * Load full document ontology data
+ */
+async function loadDocumentOntology(docId) {
+  if (!docId) return;
+  
+  try {
+    console.log(`📊 Loading full ontology for document: ${docId}`);
+    
+    const response = await fetch(`${BACKEND_URL}/doc/${docId}/ontology`);
+    if (!response.ok) {
+      throw new Error(`Failed to load ontology: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Store in global state
+    allConcepts = data.concepts || [];
+    
+    // If in ontology mode and no specific concept selected, show full ontology
+    if (currentMode === 'ontology' && !currentConcept) {
+      renderFullOntology(docId, data);
+    }
+    
+    console.log(`✅ Loaded ${allConcepts.length} concepts and ${data.relations?.length || 0} relations`);
+    
+  } catch (error) {
+    console.error('Error loading document ontology:', error);
+  }
+}
+
+/**
+ * Render full document ontology in human-readable format
+ */
+function renderFullOntology(docId, ontologyData) {
+  const content = document.getElementById('surface-viewer-content');
+  if (!content) return;
+  
+  const { concepts = [], relations = [] } = ontologyData;
+  
+  // Group concepts by type
+  const conceptsByType = {};
+  concepts.forEach(concept => {
+    const type = concept.type || 'Unknown';
+    if (!conceptsByType[type]) {
+      conceptsByType[type] = [];
+    }
+    conceptsByType[type].push(concept);
+  });
+  
+  // Count relations by verb
+  const relationsByVerb = {};
+  relations.forEach(rel => {
+    const verb = rel.verb || 'unknown';
+    relationsByVerb[verb] = (relationsByVerb[verb] || 0) + 1;
+  });
+  
+  // Helper: Convert hierarchy level to human-readable
+  const hierarchyLabel = (level) => {
+    if (level === 0) return 'Document Root';
+    if (level === 1) return 'Top-level Cluster';
+    if (level === 2) return 'Refinement';
+    if (level === 3) return 'Concept';
+    return `Level ${level}`;
+  };
+  
+  // Helper: Format verb to human-readable
+  const formatVerb = (verb) => {
+    const verbMap = {
+      'contains': 'contains',
+      'defines': 'defines',
+      'develops': 'develops',
+      'manages': 'manages',
+      'leads': 'leads',
+      'uses': 'uses',
+      'creates': 'creates'
+    };
+    return verbMap[verb] || verb;
+  };
+  
+  // Build HTML
+  let html = `
+    <div style="padding: 24px; background: #111111; height: 100%; overflow-y: auto;">
+      <h3 style="font-size: 18px; margin-bottom: 8px; color: #fad643; font-weight: 600;">
+        📊 Document Ontology
+      </h3>
+      <p style="font-size: 12px; color: #9a9a9a; margin-bottom: 20px; line-height: 1.6;">
+        This is the complete semantic structure extracted from the document, showing all concepts, their types, and how they relate to each other.
+      </p>
+      
+      <!-- Summary Stats -->
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px;">
+        <div style="background: #181818; padding: 16px; border-radius: 8px; border-left: 3px solid #fad643;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px;">Total Concepts</div>
+          <div style="color: #fad643; font-size: 24px; font-weight: 600;">${concepts.length}</div>
+        </div>
+        <div style="background: #181818; padding: 16px; border-radius: 8px; border-left: 3px solid #fad643;">
+          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 6px;">Total Relations</div>
+          <div style="color: #fad643; font-size: 24px; font-weight: 600;">${relations.length}</div>
+        </div>
+      </div>
+      
+      <!-- Concept Types -->
+      <div style="margin-bottom: 24px;">
+        <h4 style="font-size: 14px; color: #e6e6e6; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+          Concept Types
+        </h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${Object.entries(conceptsByType).map(([type, items]) => `
+            <div style="background: #181818; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(250, 214, 67, 0.2);">
+              <span style="color: #fad643; font-size: 12px; font-weight: 500;">${type}</span>
+              <span style="color: #9a9a9a; font-size: 11px; margin-left: 6px;">${items.length}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+      <!-- Relation Types -->
+      <div style="margin-bottom: 24px;">
+        <h4 style="font-size: 14px; color: #e6e6e6; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+          Relation Types
+        </h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${Object.entries(relationsByVerb).map(([verb, count]) => `
+            <div style="background: #181818; padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(250, 214, 67, 0.2);">
+              <span style="color: #c5c5c5; font-size: 12px;">${verb}</span>
+              <span style="color: #9a9a9a; font-size: 11px; margin-left: 6px;">${count}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+      <!-- All Concepts List -->
+      <div style="margin-bottom: 24px;">
+        <h4 style="font-size: 14px; color: #e6e6e6; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+          All Concepts (${concepts.length})
+        </h4>
+        <div style="background: #181818; border-radius: 8px; overflow: hidden;">
+          ${Object.entries(conceptsByType).map(([type, items]) => `
+            <div style="margin-bottom: 16px;">
+              <div style="background: #0c0c0c; padding: 10px 16px; border-left: 3px solid #fad643;">
+                <span style="color: #fad643; font-size: 12px; font-weight: 600; text-transform: uppercase;">${type}</span>
+                <span style="color: #9a9a9a; font-size: 11px; margin-left: 8px;">(${items.length})</span>
+              </div>
+              <div style="padding: 12px 16px;">
+                ${items.map((concept, idx) => `
+                  <div style="padding: 8px 0; border-bottom: ${idx < items.length - 1 ? '1px solid rgba(42, 42, 42, 0.4)' : 'none'};">
+                    <div style="color: #e6e6e6; font-size: 13px; margin-bottom: 4px; font-weight: 500;">${concept.label}</div>
+                    <div style="display: flex; gap: 12px; font-size: 11px; color: #9a9a9a;">
+                      ${concept.confidence ? `<span>✓ ${(concept.confidence * 100).toFixed(0)}% confident</span>` : ''}
+                      ${concept.hierarchy_level !== undefined ? `<span>🎯 ${hierarchyLabel(concept.hierarchy_level)}</span>` : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      
+      <!-- Relations List -->
+      <div>
+        <h4 style="font-size: 14px; color: #e6e6e6; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+          How Concepts Relate (${relations.length} connections)
+        </h4>
+        <p style="font-size: 11px; color: #9a9a9a; margin-bottom: 12px; line-height: 1.5;">
+          These are the semantic relationships between concepts, showing how they connect and interact.
+        </p>
+        <div style="background: #181818; border-radius: 8px; padding: 16px;">
+          ${relations.slice(0, 50).map((rel, idx) => {
+            const srcConcept = concepts.find(c => c.id === rel.src);
+            const dstConcept = concepts.find(c => c.id === rel.dst);
+            const srcLabel = srcConcept?.label || rel.src.substring(0, 8) + '...';
+            const dstLabel = dstConcept?.label || rel.dst.substring(0, 8) + '...';
+            return `
+              <div style="padding: 8px 0; border-bottom: ${idx < Math.min(relations.length, 50) - 1 ? '1px solid rgba(42, 42, 42, 0.4)' : 'none'};">
+                <div style="font-size: 13px; color: #e6e6e6; line-height: 1.6;">
+                  <span style="color: #e6e6e6; font-weight: 500;">${srcLabel}</span>
+                  <span style="color: #fad643; margin: 0 6px; font-weight: 600;">${formatVerb(rel.verb)}</span>
+                  <span style="color: #e6e6e6; font-weight: 500;">${dstLabel}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+          ${relations.length > 50 ? `
+            <div style="padding: 12px 0; text-align: center; color: #9a9a9a; font-size: 11px;">
+              ... and ${relations.length - 50} more relations
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+  
+  content.innerHTML = html;
+}
+
 
 /**
  * Handle document root selection
