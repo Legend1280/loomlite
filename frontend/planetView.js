@@ -426,19 +426,33 @@ function update(source) {
       // Planet node (root document)
       const planetRadius = 30;
       
-      // Add planet circle with gradient
-      node.append('circle')
+      // Add planet circle - solid grey sphere
+      const planetCircle = node.append('circle')
         .attr('r', planetRadius)
-        .attr('fill', 'url(#planet-gradient)')
-        .attr('stroke', '#fbbf24')
-        .attr('stroke-width', 3)
-        .style('filter', 'drop-shadow(0 4px 8px rgba(251, 191, 36, 0.4))');
+        .attr('fill', '#64748b')  // Solid grey
+        .attr('stroke', '#94a3b8')  // Light grey border
+        .attr('stroke-width', 2)
+        .style('filter', 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))');  // Subtle shadow only
       
       // Add tooltip for planet node (document summary)
       if (d.data.summary) {
-        node.append('title')
+        planetCircle.append('title')
           .text(d.data.summary);
       }
+      
+      // Add planet text below the sphere
+      node.append('text')
+        .attr('dy', planetRadius + 20)  // Position below planet
+        .attr('x', 0)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#e2e8f0')
+        .attr('font-size', '14px')
+        .attr('font-weight', '600')
+        .text(d.data.name)
+        .style('pointer-events', 'none');
+      
+      // Mark this node as planet so we skip adding text again later
+      d._isPlanet = true;
     } else {
       // Regular concept nodes (rectangles)
       node.append('rect')
@@ -455,8 +469,9 @@ function update(source) {
     }
   });
   
-  // Add node text
-  nodeEnter.append('text')
+  // Add node text (skip for planet nodes - they have custom text below)
+  nodeEnter.filter(d => !d._isPlanet)
+    .append('text')
     .attr('dy', '0.35em')
     .attr('x', -NODE_WIDTH / 2 + 12)
     .attr('text-anchor', 'start')
