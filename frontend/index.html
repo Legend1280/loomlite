@@ -4,27 +4,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loom Lite v2.0 - Ontology Navigator</title>
+  <title>Loom Lite - Semantic Knowledge Navigator</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
       overflow: hidden;
       height: 100vh;
+      font-size: 13px;
     }
     
     /* TOOLBAR */
     #toolbar {
       height: 60px;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
+      background: #181818;
+      border-bottom: 1px solid rgba(42, 42, 42, 0.5);
       padding: 12px 20px;
       display: flex;
       align-items: center;
@@ -33,30 +32,30 @@
     
     #breadcrumbs {
       flex: 1;
-      font-size: 14px;
-      color: #94a3b8;
+      font-size: 13px;
+      color: #9b9b9b;
       display: flex;
       gap: 8px;
       align-items: center;
     }
     
     .breadcrumb-item {
-      color: #e2e8f0;
+      color: #e5e5e5;
       cursor: pointer;
-      transition: color 0.2s;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     
     .breadcrumb-item:hover {
-      color: #60a5fa;
+      color: #fad643;
     }
     
     .breadcrumb-separator {
-      color: #475569;
+      color: #2a2a2a;
     }
     
     /* VIEW MODE BUTTONS */
     #viewModeButtons {
-      background: #334155;
+      background: #1e1e1e;
       padding: 4px;
       border-radius: 8px;
       display: flex;
@@ -69,36 +68,38 @@
       background: transparent;
       border: none;
       border-radius: 6px;
-      color: #94a3b8;
+      color: #9b9b9b;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     
     .view-mode-btn:hover {
-      background: #475569;
-      color: #e2e8f0;
+      background: rgba(250, 214, 67, 0.1);
+      color: #e5e5e5;
     }
     
     .view-mode-btn.active {
-      background: #3b82f6;
-      color: white;
+      background: rgba(250, 214, 67, 0.2);
+      color: #fad643;
+      border: 1px solid rgba(250, 214, 67, 0.3);
     }
     
     /* UPLOAD BUTTON */
     .upload-btn {
       padding: 8px 16px;
-      background: #10b981;
-      border: none;
+      background: transparent;
+      border: 1px solid #fad643;
       border-radius: 6px;
-      color: white;
-      font-size: 13px;
-      font-weight: 600;
+      color: #fad643;
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     
     .upload-btn:hover {
-      background: #059669;
+      background: rgba(250, 214, 67, 0.1);
+      box-shadow: 0 0 12px rgba(250, 214, 67, 0.3);
     }
     
     /* THREE-PANEL LAYOUT */
@@ -110,8 +111,8 @@
     /* LEFT SIDEBAR */
     #sidebar {
       width: 16rem;
-      background: #1e293b;
-      border-right: 1px solid #334155;
+      background: #181818;
+      border-right: 1px solid rgba(42, 42, 42, 0.5);
       overflow-y: auto;
       flex-shrink: 0;
     }
@@ -127,14 +128,14 @@
       flex-direction: column;
       gap: 0;
       padding: 8px;
-      background: #0f172a;
+      background: #0a0a0a;
       min-width: 0;
     }
     
     .visualizer-container {
       flex: 1;
-      background: #1e293b;
-      border: 1px solid #334155;
+      background: #181818;
+      border: 1px solid rgba(42, 42, 42, 0.5);
       border-radius: 8px;
       overflow: hidden;
       position: relative;
@@ -143,13 +144,14 @@
     
     /* RESIZABLE DIVIDERS */
     .resize-handle {
-      background: #334155;
+      background: rgba(42, 42, 42, 0.5);
       position: relative;
       z-index: 100;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     
     .resize-handle:hover {
-      background: #475569;
+      background: rgba(250, 214, 67, 0.1);
     }
     
     .resize-handle-horizontal {
@@ -168,7 +170,7 @@
     .resize-handle-vertical::before {
       content: '';
       position: absolute;
-      background: #64748b;
+      background: #2a2a2a;
       border-radius: 2px;
     }
     
@@ -192,10 +194,10 @@
       position: absolute;
       top: 12px;
       left: 12px;
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
-      color: #64748b;
-      font-weight: 600;
+      color: #9b9b9b;
+      font-weight: 500;
       z-index: 10;
       pointer-events: none;
     }
@@ -230,8 +232,8 @@
     /* RIGHT PANEL - SURFACE VIEWER */
     #surface-viewer {
       width: 28rem;
-      background: #1e293b;
-      border-left: 1px solid #334155;
+      background: #181818;
+      border-left: 1px solid rgba(42, 42, 42, 0.5);
       overflow-y: auto;
       flex-shrink: 0;
     }
@@ -362,18 +364,20 @@
 <body>
   <!-- TOOLBAR -->
   <div id="toolbar">
+    <img src="logo.png" alt="Loom Lite" style="height: 36px; width: 36px; border-radius: 50%; margin-right: 12px;">
+    
     <div id="breadcrumbs">
       <span class="breadcrumb-item">Galaxy</span>
     </div>
     
     <div id="viewModeButtons">
-      <button class="view-mode-btn active" data-mode="galaxy">🌌 Galaxy</button>
-      <button class="view-mode-btn" data-mode="solar">☀️ Solar</button>
+      <button class="view-mode-btn active" data-mode="galaxy">Galaxy</button>
+      <button class="view-mode-btn" data-mode="solar">Solar</button>
       <button class="view-mode-btn" data-mode="split">Split</button>
-      <button class="view-mode-btn" data-mode="mind">🌳 Mind Map</button>
+      <button class="view-mode-btn" data-mode="mind">Mind Map</button>
     </div>
     
-    <button class="upload-btn">📤 Upload</button>
+    <button class="upload-btn">Upload</button>
   </div>
   
   <!-- THREE-PANEL LAYOUT -->
