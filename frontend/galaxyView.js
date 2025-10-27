@@ -329,20 +329,15 @@ function getNodeRadius(node) {
  * @param {d3.Selection} g - D3 selection of the node group
  */
 function drawGalaxySpriteNode(d, g) {
-  // Random scale for variety (0.9 to 1.1)
-  const randomScale = 0.9 + Math.random() * 0.2;
-  
   // Calculate semantic brightness (0.65 to 1.0 range for subtle effect)
   const maxConcepts = Math.max(...documents.map(doc => doc.conceptCount || 0));
   const coherence = maxConcepts > 0 ? d.conceptCount / maxConcepts : 0.5;
   const brightness = 0.65 + coherence * 0.35;
   
-  // Add sprite instance (no scaling based on radius - keep stars uniform)
+  // Add sprite instance at native size (no transform scaling)
   g.append('use')
     .attr('href', '#star-sprite')
     .attr('class', 'star-node')
-    .attr('transform', `scale(${randomScale})`)
-    .style('--rand', Math.random().toFixed(2))
     .style('--brightness', brightness);
 }
 
@@ -467,7 +462,7 @@ function highlightSearchResults(results) {
       return matchedDocIds.has(d.id) ? '#10b981' : '#fad643';
     });
   
-  // Pulse effect for matched documents (scale sprite)
+  // Pulse effect for matched documents (opacity pulse instead of scale)
   if (matchedDocIds.size > 0) {
     g.selectAll('.star-node')
       .filter(function() {
@@ -477,16 +472,10 @@ function highlightSearchResults(results) {
       })
       .transition()
       .duration(500)
-      .attr('transform', function() {
-        const randomScale = 0.9 + Math.random() * 0.2;
-        return `scale(${randomScale * 1.2})`; // 20% larger
-      })
+      .style('opacity', 1)
       .transition()
       .duration(500)
-      .attr('transform', function() {
-        const randomScale = 0.9 + Math.random() * 0.2;
-        return `scale(${randomScale})`; // Back to normal
-      });
+      .style('opacity', 0.8);
   }
 }
 
