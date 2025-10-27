@@ -18,11 +18,11 @@ let collapsedSections = loadCollapsedState();
  * Initialize file system sidebar
  */
 export function initFileSystemSidebar() {
-  console.log('🗂️ Initializing File System Sidebar v4.0...');
+  console.log('Initializing File System Sidebar v4.0...');
   
   const container = document.getElementById('file-system-sidebar');
   if (!container) {
-    console.warn('⚠️ File system sidebar container not found');
+    console.warn('File system sidebar container not found');
     return;
   }
   
@@ -31,7 +31,7 @@ export function initFileSystemSidebar() {
   
   // Listen for document upload events to refresh
   bus.on('documentUploaded', () => {
-    console.log('📄 Document uploaded, refreshing sidebar...');
+    console.log('Document uploaded, refreshing sidebar...');
     loadAllTiers();
   });
 }
@@ -50,7 +50,7 @@ async function loadAllTiers() {
     
     renderSidebar();
   } catch (error) {
-    console.error('❌ Error loading sidebar tiers:', error);
+    console.error('Error loading sidebar tiers:', error);
   }
 }
 
@@ -62,9 +62,9 @@ async function loadTopHits() {
     const response = await fetch(`${BACKEND_URL}/api/files/top-hits?limit=6`);
     const data = await response.json();
     topHits = data.top_hits || [];
-    console.log(`✅ Loaded ${topHits.length} top hits`);
+    console.log(`Loaded ${topHits.length} top hits`);
   } catch (error) {
-    console.error('❌ Error loading top hits:', error);
+    console.error('Error loading top hits:', error);
     topHits = [];
   }
 }
@@ -77,9 +77,9 @@ async function loadPinnedFolders() {
     const response = await fetch(`${BACKEND_URL}/api/files/pinned`);
     const data = await response.json();
     pinnedFolders = data.pinned || [];
-    console.log(`✅ Loaded ${pinnedFolders.length} pinned folders`);
+    console.log(`Loaded ${pinnedFolders.length} pinned folders`);
   } catch (error) {
-    console.error('❌ Error loading pinned folders:', error);
+    console.error('Error loading pinned folders:', error);
     pinnedFolders = [];
   }
 }
@@ -106,9 +106,9 @@ async function loadStandardFolders() {
       ...(byDate.folders || [])
     ];
     
-    console.log(`✅ Loaded ${standardFolders.length} standard folders`);
+    console.log(`Loaded ${standardFolders.length} standard folders`);
   } catch (error) {
-    console.error('❌ Error loading standard folders:', error);
+    console.error('Error loading standard folders:', error);
     standardFolders = [];
   }
 }
@@ -129,9 +129,9 @@ async function loadSemanticFolders() {
     // Filter out empty folders
     semanticFolders = folders.filter(f => f.items && f.items.length > 0);
     
-    console.log(`✅ Loaded ${semanticFolders.length} semantic folders`);
+    console.log(`Loaded ${semanticFolders.length} semantic folders`);
   } catch (error) {
-    console.error('❌ Error loading semantic folders:', error);
+    console.error('Error loading semantic folders:', error);
     semanticFolders = [];
   }
 }
@@ -535,7 +535,7 @@ function loadCollapsedState() {
     const stored = localStorage.getItem('loomlite_collapsedSections');
     return stored ? JSON.parse(stored) : {};
   } catch (error) {
-    console.warn('⚠️ Error loading collapsed state:', error);
+    console.warn('Error loading collapsed state:', error);
     return {};
   }
 }
@@ -547,7 +547,7 @@ function saveCollapsedState() {
   try {
     localStorage.setItem('loomlite_collapsedSections', JSON.stringify(collapsedSections));
   } catch (error) {
-    console.warn('⚠️ Error saving collapsed state:', error);
+    console.warn('Error saving collapsed state:', error);
   }
 }
 

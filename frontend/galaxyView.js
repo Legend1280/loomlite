@@ -21,11 +21,11 @@ let sharedConcepts = [];
  * Initialize Galaxy View
  */
 export async function initGalaxyView() {
-  console.log('🌌 Initializing Galaxy View...');
+  console.log('Initializing Galaxy View...');
   
   const container = document.getElementById('galaxyContainer');
   if (!container) {
-    console.error('❌ Galaxy container not found');
+    console.error('Galaxy container not found');
     return;
   }
   
@@ -41,7 +41,7 @@ export async function initGalaxyView() {
     highlightSearchResults(results);
   });
   
-  console.log('✅ Galaxy View initialized');
+  console.log('Galaxy View initialized');
 }
 
 /**
@@ -55,9 +55,9 @@ async function loadDocuments() {
     // Load concept data for each document to find shared concepts
     await analyzeSharedConcepts();
     
-    console.log(`📚 Loaded ${documents.length} documents`);
+    console.log(`Loaded ${documents.length} documents`);
   } catch (error) {
-    console.error('❌ Failed to load documents:', error);
+    console.error('Failed to load documents:', error);
   }
 }
 
@@ -89,7 +89,7 @@ async function analyzeSharedConcepts() {
         });
       });
     } catch (error) {
-      console.error(`❌ Failed to load ontology for ${doc.id}:`, error);
+      console.error(`Failed to load ontology for ${doc.id}:`, error);
       doc.conceptCount = 0;
     }
   }
@@ -166,7 +166,7 @@ function createGalaxyVisualization(container) {
     }
   });
   
-  console.log(`🌌 Galaxy: ${nodes.length} documents, ${links.length} connections`);
+  console.log(`Galaxy: ${nodes.length} documents, ${links.length} connections`);
   
   // Create force simulation
   simulation = d3.forceSimulation(nodes)
@@ -372,7 +372,7 @@ function highlightSearchResults(results) {
   // Get unique document IDs from search results
   const matchedDocIds = new Set(results.map(r => r.doc_id).filter(Boolean));
   
-  console.log(`🔍 Highlighting ${matchedDocIds.size} documents in Galaxy View`);
+  console.log(`Highlighting ${matchedDocIds.size} documents in Galaxy View`);
   
   // Update node styles
   g.selectAll('g')

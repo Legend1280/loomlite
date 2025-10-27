@@ -411,12 +411,12 @@
     <main id="center">
       <!-- Galaxy View (Level 1: All Documents) -->
       <div id="galaxyContainer" class="visualizer-container" style="display: block;">
-        <div class="visualizer-label">🌌 GALAXY VIEW - All Documents</div>
+        <div class="visualizer-label">GALAXY VIEW - All Documents</div>
       </div>
       
       <!-- Solar System View (Level 2: One Document) -->
       <div id="visualizer-top" class="visualizer-container" style="display: none;">
-        <div class="visualizer-label">☀️ SOLAR SYSTEM VIEW</div>
+        <div class="visualizer-label">SOLAR SYSTEM VIEW</div>
         <svg></svg>
       </div>
       
@@ -425,7 +425,7 @@
       
       <!-- Mind Map View (Hierarchical) -->
       <div id="visualizer-bottom" class="visualizer-container" style="display: none;">
-        <div class="visualizer-label">🌳 MIND MAP</div>
+        <div class="visualizer-label">MIND MAP</div>
         <svg></svg>
       </div>
     </main>
@@ -561,15 +561,15 @@
         });
       }
       
-      console.log('↔️ Resizable panels initialized');
+      console.log('Resizable panels initialized');
     }
     
     // Initialize app
     document.addEventListener('DOMContentLoaded', async () => {
-      console.log('🚀 Loom Lite v2.0 Core - Initializing...');
+      console.log('Loom Lite v2.0 Core - Initializing...');
       
       // Initialize modules
-      console.log('📦 Initializing modules...');
+      console.log('Initializing modules...');
       try {
         // Create file system sidebar container
         const sidebarEl = document.getElementById('sidebar');
@@ -577,23 +577,23 @@
           sidebarEl.id = 'file-system-sidebar';
         }
         initFileSystemSidebar();
-        console.log('✅ File System Sidebar initialized');
+        console.log('File System Sidebar initialized');
       } catch (e) {
-        console.error('❌ File System Sidebar init failed:', e);
+        console.error('File System Sidebar init failed:', e);
       }
       
       try {
         initSurfaceViewer();
-        console.log('✅ Surface Viewer initialized');
+        console.log('Surface Viewer initialized');
       } catch (e) {
-        console.error('❌ Surface Viewer init failed:', e);
+        console.error('Surface Viewer init failed:', e);
       }
       
       try {
         initSearchBar();
-        console.log('✅ Search Bar initialized');
+        console.log('Search Bar initialized');
       } catch (e) {
-        console.error('❌ Search Bar init failed:', e);
+        console.error('Search Bar init failed:', e);
       }
       
       // Initialize Upload button
@@ -614,11 +614,11 @@
             fileInput.addEventListener('change', async (event) => {
               const files = event.target.files;
               if (!files || files.length === 0) {
-                console.log('⚠️ No files selected');
+                console.log('No files selected');
                 return;
               }
               
-              console.log(`📂 ${files.length} file(s) selected`);
+              console.log(`${files.length} file(s) selected`);
               const startTime = Date.now();
               let successCount = 0;
               let failCount = 0;
@@ -642,25 +642,25 @@
                   }
                   
                   const result = await response.json();
-                  console.log(`✅ Uploaded ${file.name}: ${result.job_id}`);
+                  console.log(`Uploaded ${file.name}: ${result.job_id}`);
                   successCount++;
                 } catch (error) {
-                  console.error(`❌ Failed ${file.name}:`, error);
+                  console.error(`Failed ${file.name}:`, error);
                   failCount++;
                 }
               }
               
               const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-              console.log(`\n📊 Upload Summary:`);
-              console.log(`   ✅ Success: ${successCount}`);
-              console.log(`   ❌ Failed: ${failCount}`);
-              console.log(`   ⏱️  Time: ${elapsed}s`);
+              console.log(`\nUpload Summary:`);
+              console.log(`   Success: ${successCount}`);
+              console.log(`   Failed: ${failCount}`);
+              console.log(`   Time: ${elapsed}s`);
               
               // Show summary alert
               if (failCount === 0) {
-                alert(`✅ Successfully uploaded ${successCount} file(s) in ${elapsed}s!\n\nRefreshing page...`);
+                alert(`Successfully uploaded ${successCount} file(s) in ${elapsed}s!\n\nRefreshing page...`);
               } else {
-                alert(`⚠️ Upload completed with errors:\n✅ Success: ${successCount}\n❌ Failed: ${failCount}\n\nCheck console for details.`);
+                alert(`Upload completed with errors:\nSuccess: ${successCount}\nFailed: ${failCount}\n\nCheck console for details.`);
               }
               
               // Refresh document list
@@ -673,10 +673,10 @@
             });
           }
           
-          console.log('🔘 Opening file picker...');
+          console.log('Opening file picker...');
           fileInput.click();
         });
-        console.log('✅ Upload button initialized (multi-file support)');
+        console.log('Upload button initialized (multi-file support)');
       }
       
       // Set up view mode buttons
@@ -735,22 +735,22 @@
           // Update app class
           app.className = mode;
           
-          console.log(`✅ View mode changed to: ${mode}`);
+          console.log(`View mode changed to: ${mode}`);
         });
       });
       
       // Initialize Galaxy View (default view)
       try {
         await initGalaxyView();
-        console.log('✅ Galaxy View initialized');
+        console.log('Galaxy View initialized');
       } catch (error) {
-        console.error('❌ Galaxy View init failed:', error);
+        console.error('Galaxy View init failed:', error);
       }
       
       // Listen for view mode change events (programmatic)
       bus.on('viewModeChanged', (event) => {
         const { mode } = event.detail;
-        console.log(`🔄 Programmatic view mode change to: ${mode}`);
+        console.log(`Programmatic view mode change to: ${mode}`);
         
         // Trigger the button click to switch mode
         const btn = document.querySelector(`[data-mode="${mode}"]`);
@@ -786,12 +786,12 @@
       // Initialize System Status Dashboard
       try {
         initSystemStatus();
-        console.log('✅ System Status Dashboard initialized');
+        console.log('System Status Dashboard initialized');
       } catch (e) {
-        console.error('❌ System Status init failed:', e);
+        console.error('System Status init failed:', e);
       }
       
-      console.log('✅ Loom Lite v2.0 Core - Ready');
+      console.log('Loom Lite v2.0 Core - Ready');
     });
   </script>
 </body>

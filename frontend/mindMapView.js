@@ -30,7 +30,7 @@ export async function initMindMapView(docId) {
   
   const container = document.getElementById('visualizer-bottom');
   if (!container) {
-    console.error('❌ Mind Map container not found');
+    console.error('Mind Map container not found');
     return;
   }
   
@@ -58,7 +58,7 @@ async function loadOntology(docId) {
     currentOntology = await response.json();
     // Ontology loaded
   } catch (error) {
-    console.error('❌ Failed to load ontology:', error);
+    console.error('Failed to load ontology:', error);
     currentOntology = { concepts: [], relations: [] };
   }
 }
@@ -548,7 +548,7 @@ function handleNodeClick(d) {
     const nodeType = d.data.type || 'concept';  // 'document', 'cluster', 'refinement', or 'concept'
     const hierarchyLevel = d.data.hierarchyLevel;
     
-    console.log(`🎯 Mind Map node clicked: ${d.data.name} (type: ${nodeType}, level: ${hierarchyLevel})`);
+    console.log(`Mind Map node clicked: ${d.data.name} (type: ${nodeType}, level: ${hierarchyLevel})`);
     
     bus.emit('conceptSelected', {
       conceptId: d.data.id,

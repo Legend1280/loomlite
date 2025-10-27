@@ -44,10 +44,10 @@ function saveToStorage(key, value) {
  * Initialize Dynamic Folders Panel
  */
 export async function initDynamicFoldersPanel(container) {
-  console.log('🔄 Initializing Dynamic Folders Panel...');
+  console.log('Initializing Dynamic Folders Panel...');
   
   if (!container) {
-    console.warn('⚠️ Container element not provided');
+    console.warn('Container element not provided');
     return;
   }
   
@@ -60,7 +60,7 @@ export async function initDynamicFoldersPanel(container) {
   // Load folders
   await loadFolders();
   
-  console.log('✅ Dynamic Folders Panel initialized');
+  console.log('Dynamic Folders Panel initialized');
 }
 
 /**
@@ -146,7 +146,7 @@ function renderPanelStructure(container) {
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
   searchInput.id = 'folder-search-input';
-  searchInput.placeholder = '🔍 Search folders and documents...';
+  searchInput.placeholder = 'Search folders and documents...';
   searchInput.style.cssText = `
     width: 100%;
     background: #0f172a;
@@ -201,9 +201,9 @@ function renderPanelStructure(container) {
   `;
   
   const sortOptions = [
-    { value: 'auto', label: '🎯 Auto (Semantic)' },
-    { value: 'alphabetical', label: '🔤 Alphabetical' },
-    { value: 'recency', label: '🕐 Recent First' }
+    { value: 'auto', label: 'Auto (Semantic)' },
+    { value: 'alphabetical', label: 'Alphabetical' },
+    { value: 'recency', label: 'Recent First' }
   ];
   
   sortOptions.forEach(opt => {
@@ -254,7 +254,7 @@ async function loadSavedViews() {
     savedViews = data.views || [];
     renderSavedViews();
   } catch (error) {
-    console.error('❌ Error loading saved views:', error);
+    console.error('Error loading saved views:', error);
   }
 }
 
@@ -374,7 +374,7 @@ async function loadFolders(query = '', sortMode = 'auto') {
     
     renderFolders();
   } catch (error) {
-    console.error('❌ Error loading folders:', error);
+    console.error('Error loading folders:', error);
     renderFolders(); // Show empty state on error
   }
 }
@@ -610,7 +610,7 @@ function toggleFolder(folderName) {
  * Handle document click
  */
 function handleDocumentClick(item, folder) {
-  console.log('📄 Document clicked:', item.title);
+  console.log('Document clicked:', item.title);
   
   // Emit folderSelected event (similar to conceptSelected)
   bus.emit('folderSelected', {
@@ -633,7 +633,7 @@ function handleDocumentClick(item, folder) {
  * Handle search input
  */
 async function handleSearch(query) {
-  console.log('🔍 Search query:', query);
+  console.log('Search query:', query);
   await loadFolders(query, currentSortMode);
 }
 
@@ -641,7 +641,7 @@ async function handleSearch(query) {
  * Handle sort mode change
  */
 async function handleSortModeChange(sortMode) {
-  console.log('🔄 Sort mode changed:', sortMode);
+  console.log('Sort mode changed:', sortMode);
   await loadFolders(currentQuery, sortMode);
 }
 
@@ -666,13 +666,13 @@ async function handlePinCurrentView() {
     });
     
     if (response.ok) {
-      console.log('✅ View saved successfully');
+      console.log('View saved successfully');
       await loadSavedViews();
     } else {
-      console.error('❌ Failed to save view');
+      console.error('Failed to save view');
     }
   } catch (error) {
-    console.error('❌ Error saving view:', error);
+    console.error('Error saving view:', error);
   }
 }
 
@@ -680,7 +680,7 @@ async function handlePinCurrentView() {
  * Handle load saved view
  */
 async function handleLoadSavedView(view) {
-  console.log('📂 Loading saved view:', view.view_name);
+  console.log('Loading saved view:', view.view_name);
   await loadFolders(view.query, view.sort_mode);
   
   // Update sort select
@@ -702,13 +702,13 @@ async function handleDeleteSavedView(viewId) {
     });
     
     if (response.ok) {
-      console.log('✅ View deleted successfully');
+      console.log('View deleted successfully');
       await loadSavedViews();
     } else {
-      console.error('❌ Failed to delete view');
+      console.error('Failed to delete view');
     }
   } catch (error) {
-    console.error('❌ Error deleting view:', error);
+    console.error('Error deleting view:', error);
   }
 }
 

@@ -178,13 +178,13 @@ export function clearFilters() {
 bus.on('documentLoaded', (event) => {
   const { docId } = event.detail;
   state.currentDocId = docId;
-  console.log(`📄 Document loaded: ${docId}`);
+  console.log(`Document loaded: ${docId}`);
 });
 
 bus.on('conceptSelected', (event) => {
   const { conceptId } = event.detail;
   state.currentConceptId = conceptId;
-  console.log(`🎯 Concept selected: ${conceptId}`);
+  console.log(`Concept selected: ${conceptId}`);
 });
 
 // Export for global access
@@ -196,5 +196,5 @@ window.setCurrentDocId = setCurrentDocId;
 window.getCurrentConceptId = getCurrentConceptId;
 window.setCurrentConceptId = setCurrentConceptId;
 
-console.log('✅ Event Bus initialized');
+console.log('Event Bus initialized');
 

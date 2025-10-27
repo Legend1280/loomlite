@@ -45,9 +45,9 @@ export async function drawDualVisualizer(docId) {
       highlightSearchResultsInSolar(results);
     });
     
-    console.log('✅ Dual Visualizer rendered successfully');
+    console.log('Dual Visualizer rendered successfully');
   } catch (error) {
-    console.error('❌ Error rendering dual visualizer:', error);
+    console.error('Error rendering dual visualizer:', error);
   }
 }
 
@@ -72,7 +72,7 @@ function renderForceGraph(svg, data) {
     target: r.dst
   }));
   
-  console.log(`📊 Rendering ${concepts.length} concepts and ${relations.length} relations`);
+  console.log(`Rendering ${concepts.length} concepts and ${relations.length} relations`);
   
   // Create force simulation
   const simulation = d3.forceSimulation(concepts)
@@ -298,7 +298,7 @@ function highlightSearchResultsInSolar(results) {
       .map(r => r.id)
   );
   
-  console.log(`🔍 Highlighting ${matchedConceptIds.size} concepts in Solar System View`);
+  console.log(`Highlighting ${matchedConceptIds.size} concepts in Solar System View`);
   
   if (matchedConceptIds.size === 0) {
     // No matches in current document, dim all
@@ -352,7 +352,7 @@ bus.on('conceptSelected', (event) => {
     .attr('stroke', d => d.id === conceptId ? '#fbbf24' : '#fff')
     .attr('stroke-width', d => d.id === conceptId ? 3 : 1.5);
   
-  console.log(`🎯 Dual Visualizer: Highlighted concept ${conceptId}`);
+  console.log(`Dual Visualizer: Highlighted concept ${conceptId}`);
 });
 
 // Export for global access

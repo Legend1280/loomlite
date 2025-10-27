@@ -22,11 +22,11 @@ let availableTags = [];
  * Initialize search bar
  */
 export async function initSearchBar() {
-  console.log('🔍 Initializing Search Bar...');
+  console.log('Initializing Search Bar...');
   
   const toolbar = document.getElementById('toolbar');
   if (!toolbar) {
-    console.warn('⚠️ Toolbar element not found');
+    console.warn('Toolbar element not found');
     return;
   }
   
@@ -47,7 +47,7 @@ export async function initSearchBar() {
   // Filter chips removed in v2.2
   // renderFilterChips();
   
-  console.log('✅ Search Bar initialized');
+  console.log('Search Bar initialized');
 }
 
 /**
@@ -208,15 +208,15 @@ async function performSearch(query) {
     
     const endTime = performance.now();
     const searchTime = endTime - startTime;
-    console.log(`🔍 Search completed in ${searchTime.toFixed(2)}ms`);
+    console.log(`Search completed in ${searchTime.toFixed(2)}ms`);
     
     // Check performance target
     if (searchTime > 150) {
-      console.warn(`⚠️ Search exceeded target (${searchTime.toFixed(2)}ms > 150ms)`);
+      console.warn(`Search exceeded target (${searchTime.toFixed(2)}ms > 150ms)`);
     }
     
   } catch (error) {
-    console.error('❌ Search error:', error);
+    console.error('Search error:', error);
     hideSuggestions();
   }
 }
@@ -257,7 +257,7 @@ function showSuggestions(suggestions) {
         <span style="color: ${getTypeColor(concept.type)}; font-weight: 600;">${concept.label}</span>
         <span style="color: #64748b; font-size: 11px;">${concept.type}</span>
       </div>
-      ${concept.doc_id ? `<div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">📄 ${concept.doc_id}</div>` : ''}
+      ${concept.doc_id ? `<div style="color: #94a3b8; font-size: 11px; margin-top: 2px;">${concept.doc_id}</div>` : ''}
     `;
     
     item.addEventListener('mouseenter', () => {
@@ -293,7 +293,7 @@ function hideSuggestions() {
  * @param {Object} concept - Selected concept
  */
 async function handleSuggestionClick(concept) {
-  console.log(`✅ Suggestion selected: ${concept.label}`);
+  console.log(`Suggestion selected: ${concept.label}`);
   
   // Hide suggestions
   hideSuggestions();
@@ -306,7 +306,7 @@ async function handleSuggestionClick(concept) {
   
   // If concept has a document, load it first
   if (concept.doc_id) {
-    console.log(`📄 Loading document: ${concept.doc_id}`);
+    console.log(`Loading document: ${concept.doc_id}`);
     
     // Emit document focus to switch document in sidebar
     bus.emit('documentFocus', { docId: concept.doc_id });
@@ -315,7 +315,7 @@ async function handleSuggestionClick(concept) {
     // The drawDualVisualizer function will be called by the sidebar
     // After it completes, we can select the concept
     setTimeout(() => {
-      console.log(`🎯 Selecting concept: ${concept.label}`);
+      console.log(`Selecting concept: ${concept.label}`);
       bus.emit('conceptSelected', { 
         conceptId: concept.id, 
         docId: concept.doc_id 
@@ -351,10 +351,10 @@ async function fetchAvailableFilters() {
       availableTags = tags.map(t => t.label || t).sort();
     }
     
-    console.log(`📊 Loaded filters: ${availableTypes.length} types, ${availableTags.length} tags`);
+    console.log(`Loaded filters: ${availableTypes.length} types, ${availableTags.length} tags`);
     
   } catch (error) {
-    console.error('❌ Error fetching filters:', error);
+    console.error('Error fetching filters:', error);
   }
 }
 

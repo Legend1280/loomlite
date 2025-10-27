@@ -29,11 +29,11 @@ const BACKEND_URL = 'https://loomlite-production.up.railway.app';
  * Initialize surface viewer
  */
 export function initSurfaceViewer() {
-  console.log('🔄 Initializing Enhanced Surface Viewer v3.0b...');
+  console.log('Initializing Enhanced Surface Viewer v3.0b...');
   
   const surfaceViewer = document.getElementById('surface-viewer');
   if (!surfaceViewer) {
-    console.warn('⚠️ Surface Viewer element not found');
+    console.warn('Surface Viewer element not found');
     return;
   }
   
@@ -47,7 +47,7 @@ export function initSurfaceViewer() {
   bus.on('conceptSelected', (event) => {
     const { concept, conceptId, nodeType, hierarchyLevel, summary } = event.detail;
     
-    console.log(`📡 Surface Viewer received selection:`, { conceptId, nodeType, hierarchyLevel });
+    console.log(`Surface Viewer received selection:`, { conceptId, nodeType, hierarchyLevel });
     
     // Handle different node types
     if (nodeType === 'document') {
@@ -104,7 +104,7 @@ export function initSurfaceViewer() {
     await renderDocumentMode(currentDocId);
   });
   
-  console.log('✅ Enhanced Surface Viewer v3.0b initialized');
+  console.log('Enhanced Surface Viewer v3.0b initialized');
 }
 
 /**
@@ -283,7 +283,7 @@ function renderContentArea(container) {
  */
 function switchMode(mode) {
   currentMode = mode;
-  console.log(`🔄 Switching to ${mode} mode`);
+  console.log(`Switching to ${mode} mode`);
   
   // Update tabs (re-render header)
   const header = document.getElementById('surface-viewer-header');
@@ -373,7 +373,7 @@ async function handleFolderSelection(eventDetail) {
         <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0; font-weight: 600;">${title}</h3>
         
         <div style="margin-bottom: 20px; padding: 20px; background: #1e293b; border-radius: 8px; border-left: 3px solid #10b981;">
-          <div style="color: #10b981; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">📊 SEMANTIC SCORE</div>
+          <div style="color: #10b981; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">SEMANTIC SCORE</div>
           <div style="color: #e2e8f0; line-height: 1.7; font-size: 14px;">This document has a semantic relevance score of <strong>${score}</strong> within the "${folder}" folder.</div>
           <div style="color: #64748b; font-size: 12px; margin-top: 8px;">Score is calculated based on concept confidence, recency, relations, and hierarchy.</div>
         </div>
@@ -402,7 +402,7 @@ async function handleFolderSelection(eventDetail) {
       bus.emit('ontologyLoaded', { docId: doc_id, ontology });
     }
   } catch (error) {
-    console.error('❌ Error loading ontology:', error);
+    console.error('Error loading ontology:', error);
   }
 }
 
@@ -411,7 +411,7 @@ async function handleFolderSelection(eventDetail) {
  */
 async function handleClusterSelection(eventDetail) {
   const { conceptId, concept, summary, docId } = eventDetail;
-  console.log(`📦 Cluster selected: ${concept?.label || conceptId}`);
+  console.log(`Cluster selected: ${concept?.label || conceptId}`);
   
   currentConcept = concept;
   currentDocId = docId || currentDocId;
@@ -452,7 +452,7 @@ async function handleRefinementSelection(eventDetail) {
  * Handle concept selection
  */
 async function handleConceptSelection(concept) {
-  console.log(`🎯 Concept selected: ${concept.label}`);
+  console.log(`Concept selected: ${concept.label}`);
   
   currentConcept = concept;
   currentDocId = concept.doc_id || window.getActiveDocId?.();
@@ -595,13 +595,13 @@ async function renderDocumentMode(docId) {
     documentSpans = textData.spans || [];
     allConcepts = ontologyData.concepts || [];
     
-    console.log(`📄 Loaded document (${documentText?.length || 0} chars, ${documentSpans.length} spans, ${allConcepts.length} concepts)`);
+    console.log(`Loaded document (${documentText?.length || 0} chars, ${documentSpans.length} spans, ${allConcepts.length} concepts)`);
     
     // Render text with structure preservation
     renderStructuredTextWithHighlighting(documentText, documentSpans);
     
   } catch (error) {
-    console.error('❌ Error loading document:', error);
+    console.error('Error loading document:', error);
     
     content.innerHTML = `
       <div style="padding: 24px; background: #0f172a;">
@@ -809,7 +809,7 @@ async function highlightConceptWithDescendants(conceptId) {
   // Find the selected concept
   const selectedConcept = allConcepts.find(c => c.id === conceptId);
   if (!selectedConcept) {
-    console.warn(`⚠️ Concept ${conceptId} not found`);
+    console.warn(`Concept ${conceptId} not found`);
     return;
   }
   
@@ -994,7 +994,7 @@ async function fetchAndDisplayConcept(conceptId) {
       handleConceptSelection(concept);
     }
   } catch (error) {
-    console.error('❌ Error fetching concept:', error);
+    console.error('Error fetching concept:', error);
   }
 }
 
@@ -1006,9 +1006,9 @@ async function trackView(folderName, docId) {
     await fetch(`${BACKEND_URL}/analytics/track-view?folder_name=${encodeURIComponent(folderName)}&doc_id=${encodeURIComponent(docId)}`, {
       method: 'POST'
     });
-    console.log('📊 View tracked:', { folderName, docId });
+    console.log('View tracked:', { folderName, docId });
   } catch (error) {
-    console.error('❌ Error tracking view:', error);
+    console.error('Error tracking view:', error);
   }
 }
 
@@ -1022,9 +1022,9 @@ async function trackDwellTime(folderName, docId, seconds) {
     await fetch(`${BACKEND_URL}/analytics/track-dwell?folder_name=${encodeURIComponent(folderName)}&doc_id=${encodeURIComponent(docId)}&seconds=${seconds}`, {
       method: 'POST'
     });
-    console.log('📊 Dwell time tracked:', { folderName, docId, seconds });
+    console.log('Dwell time tracked:', { folderName, docId, seconds });
   } catch (error) {
-    console.error('❌ Error tracking dwell time:', error);
+    console.error('Error tracking dwell time:', error);
   }
 }
 
@@ -1038,7 +1038,7 @@ async function loadAnalytics(docId) {
     
     renderAnalyticsOverlay(stats);
   } catch (error) {
-    console.error('❌ Error loading analytics:', error);
+    console.error('Error loading analytics:', error);
   }
 }
 
@@ -1073,7 +1073,7 @@ function renderAnalyticsOverlay(stats) {
   
   overlay.innerHTML = `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-      <h3 style="font-size: 16px; color: #e2e8f0; margin: 0;">📊 Analytics</h3>
+      <h3 style="font-size: 16px; color: #e2e8f0; margin: 0;">Analytics</h3>
       <button id="close-analytics" style="
         background: transparent;
         border: none;
@@ -1179,5 +1179,5 @@ function escapeHtml(text) {
 window.initSurfaceViewer = initSurfaceViewer;
 window.handleConceptSelection = handleConceptSelection;
 
-console.log('✅ Surface Viewer v3.0b module loaded');
+console.log('Surface Viewer v3.0b module loaded');
 

@@ -46,7 +46,7 @@ export function initSystemStatus() {
   // Update status every 5 seconds
   setInterval(checkAllComponents, 5000);
   
-  console.log('✅ System Status Dashboard initialized');
+  console.log('System Status Dashboard initialized');
 }
 
 /**
@@ -211,7 +211,7 @@ function updateStatusUI() {
     const status = componentStatus[component];
     
     if (typeof status === 'boolean') {
-      icon.textContent = status ? '✅' : '❌';
+      icon.innerHTML = status ? '<div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></div>' : '<div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>';
       item.style.opacity = status ? '1' : '0.5';
     }
   });

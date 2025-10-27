@@ -17,11 +17,11 @@ let isCollapsed = false;
  * Initialize sidebar with file list
  */
 export async function initSidebar() {
-  console.log('🔄 Initializing File Navigator Sidebar...');
+  console.log('Initializing File Navigator Sidebar...');
   
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) {
-    console.warn('⚠️ Sidebar element not found');
+    console.warn('Sidebar element not found');
     return;
   }
   
@@ -45,7 +45,7 @@ export async function initSidebar() {
   // Note: Original file list is replaced by dynamic folders panel
   // To show both, we could add a toggle or tabs
   
-  console.log('✅ File Navigator Sidebar initialized');
+  console.log('File Navigator Sidebar initialized');
 }
 
 /**
@@ -70,7 +70,7 @@ function renderHeader(sidebar) {
     font-weight: 600;
     color: #e2e8f0;
   `;
-  title.textContent = '☀️ Solar Systems';
+  title.textContent = 'DOCUMENTS';
   
   const collapseBtn = document.createElement('button');
   collapseBtn.id = 'collapse-btn';
@@ -115,7 +115,7 @@ async function fetchAndRenderDocuments(sidebar) {
     }
     
     documents = await response.json();
-    console.log(`📚 Fetched ${documents.length} documents`);
+    console.log(`Fetched ${documents.length} documents`);
     
     // Create file list container
     const fileList = document.createElement('div');
@@ -152,11 +152,11 @@ async function fetchAndRenderDocuments(sidebar) {
     
     // Check performance target
     if (renderTime > 500) {
-      console.warn(`⚠️ Render time exceeded target (${renderTime.toFixed(2)}ms > 500ms)`);
+      console.warn(`Render time exceeded target (${renderTime.toFixed(2)}ms > 500ms)`);
     }
     
   } catch (error) {
-    console.error('❌ Error fetching documents:', error);
+    console.error('Error fetching documents:', error);
     
     // Show error message
     const errorMessage = document.createElement('div');
@@ -195,8 +195,8 @@ function createFileItem(doc) {
   
   // Add icon
   const icon = document.createElement('span');
-  icon.textContent = '📄';
-  icon.style.fontSize = '16px';
+  icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  icon.style.cssText = 'display: flex; align-items: center; color: #94a3b8;';
   
   // Add title
   const title = document.createElement('span');
@@ -238,7 +238,7 @@ function createFileItem(doc) {
  * @param {Object} doc - Document object
  */
 async function handleFileClick(doc) {
-  console.log(`🔍 Loading document: ${doc.title || doc.id}`);
+  console.log(`Loading document: ${doc.title || doc.id}`);
   
   // Update active state
   setActiveDocument(doc.id);
@@ -254,7 +254,7 @@ async function handleFileClick(doc) {
   if (window.drawDualVisualizer) {
     await window.drawDualVisualizer(doc.id);
   } else {
-    console.error('❌ drawDualVisualizer function not found');
+    console.error('drawDualVisualizer function not found');
   }
 }
 
