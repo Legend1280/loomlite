@@ -21,67 +21,86 @@
     
     /* TOOLBAR */
     #toolbar {
-      height: 60px;
+      height: 56px;
+      background: linear-gradient(180deg, #0c0c0c 0%, #111111 100%);
+      border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    
+    /* SEARCH BAR */
+    #searchBar {
+      flex: 0 0 auto;
+      width: 28%;
+      max-width: 400px;
       background: #181818;
-      border-bottom: 1px solid rgba(42, 42, 42, 0.5);
-      padding: 12px 20px;
+      border-radius: 6px;
+      padding: 8px 12px;
       display: flex;
       align-items: center;
-      gap: 20px;
-    }
-    
-    #breadcrumbs {
-      flex: 1;
-      font-size: 13px;
-      color: #9b9b9b;
-      display: flex;
       gap: 8px;
-      align-items: center;
+      transition: box-shadow 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     
-    .breadcrumb-item {
-      color: #e5e5e5;
-      cursor: pointer;
-      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    #searchBar:focus-within {
+      box-shadow: 0 0 0 2px rgba(250, 214, 67, 0.2);
     }
     
-    .breadcrumb-item:hover {
-      color: #fad643;
+    .search-icon {
+      font-size: 16px;
+      color: #777777;
     }
     
-    .breadcrumb-separator {
-      color: #2a2a2a;
+    #searchInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #e6e6e6;
+      font-size: 12px;
+      font-family: inherit;
+    }
+    
+    #searchInput::placeholder {
+      color: #777777;
     }
     
     /* VIEW MODE BUTTONS */
     #viewModeButtons {
-      background: #1e1e1e;
-      padding: 4px;
-      border-radius: 8px;
+      flex: 1;
       display: flex;
-      gap: 4px;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
     }
     
     .view-mode-btn {
-      padding: 6px 14px;
-      font-size: 12px;
+      padding: 8px;
       background: transparent;
       border: none;
       border-radius: 6px;
-      color: #9b9b9b;
+      color: #e6e6e6;
       cursor: pointer;
       transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .view-mode-btn:hover {
-      background: rgba(250, 214, 67, 0.1);
-      color: #e5e5e5;
+      background: rgba(250, 214, 67, 0.2);
+      color: #fad643;
     }
     
     .view-mode-btn.active {
-      background: rgba(250, 214, 67, 0.2);
       color: #fad643;
-      border: 1px solid rgba(250, 214, 67, 0.3);
+      filter: drop-shadow(0 0 4px rgba(250, 214, 67, 0.3));
+    }
+    
+    .view-mode-btn svg {
+      display: block;
     }
     
     /* UPLOAD BUTTON */
@@ -93,13 +112,19 @@
       color: #fad643;
       font-size: 12px;
       font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.5px;
       cursor: pointer;
       transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     
     .upload-btn:hover {
       background: rgba(250, 214, 67, 0.1);
-      box-shadow: 0 0 12px rgba(250, 214, 67, 0.3);
+    }
+    
+    .upload-btn:active {
+      background: #fad643;
+      color: #0c0c0c;
     }
     
     /* THREE-PANEL LAYOUT */
@@ -364,20 +389,54 @@
 <body>
   <!-- TOOLBAR -->
   <div id="toolbar">
-    <img src="logo.png" alt="Loom Lite" style="height: 36px; width: 36px; border-radius: 50%; margin-right: 12px;">
+    <!-- Logo -->
+    <img src="logo.png" alt="Loom Lite" style="height: 32px; width: 32px; border-radius: 50%;">
     
-    <div id="breadcrumbs">
-      <span class="breadcrumb-item">Galaxy</span>
+    <!-- Search Bar -->
+    <div id="searchBar">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search">
     </div>
     
+    <!-- View Mode Icons -->
     <div id="viewModeButtons">
-      <button class="view-mode-btn active" data-mode="galaxy">Galaxy</button>
-      <button class="view-mode-btn" data-mode="solar">Solar</button>
-      <button class="view-mode-btn" data-mode="split">Split</button>
-      <button class="view-mode-btn" data-mode="mind">Mind Map</button>
+      <button class="view-mode-btn active" data-mode="galaxy" title="Galaxy View">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+          <circle cx="4" cy="4" r="1"/>
+          <circle cx="12" cy="5" r="1"/>
+          <circle cx="11" cy="11" r="1"/>
+          <path d="M 6 6 Q 8 8 10 6" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="view-mode-btn" data-mode="solar" title="Solar System View">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="2" fill="currentColor"/>
+          <circle cx="8" cy="8" r="5"/>
+          <circle cx="8" cy="8" r="7"/>
+        </svg>
+      </button>
+      <button class="view-mode-btn" data-mode="split" title="Split View">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="2" width="5" height="12" rx="1"/>
+          <rect x="9" y="2" width="5" height="12" rx="1"/>
+        </svg>
+      </button>
+      <button class="view-mode-btn" data-mode="mind" title="Mind Map View">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="8" cy="8" r="2" fill="currentColor"/>
+          <circle cx="3" cy="4" r="1.5"/>
+          <circle cx="13" cy="4" r="1.5"/>
+          <circle cx="8" cy="13" r="1.5"/>
+          <line x1="6.5" y1="7" x2="4" y2="5"/>
+          <line x1="9.5" y1="7" x2="12" y2="5"/>
+          <line x1="8" y1="10" x2="8" y2="11.5"/>
+        </svg>
+      </button>
     </div>
     
-    <button class="upload-btn">Upload</button>
+    <!-- Upload Button -->
+    <button class="upload-btn">UPLOAD</button>
   </div>
   
   <!-- THREE-PANEL LAYOUT -->
