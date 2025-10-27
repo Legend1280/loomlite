@@ -168,19 +168,17 @@ function createGalaxyVisualization(container) {
   
   console.log(`Galaxy: ${nodes.length} documents, ${links.length} connections`);
   
-  // Create force simulation with tight clustering
+  // Create force simulation with moderate clustering
   simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links)
       .id(d => d.id)
-      .distance(55)        // Tighter clusters (was 200)
-      .strength(0.45))     // Stronger pull to keep clusters together
+      .distance(120)       // Moderate spacing
+      .strength(0.3))      // Moderate bond strength
     .force('charge', d3.forceManyBody()
-      .strength(-18))      // Reduced repulsion (was -800)
-    .force('center', d3.forceCenter(width / 2, height / 2))  // Global gravity
-    .force('x', d3.forceX(width / 2).strength(0.12))         // Horizontal gravity
-    .force('y', d3.forceY(height / 2).strength(0.12))        // Vertical gravity
+      .strength(-200))     // Moderate repulsion
+    .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collision', d3.forceCollide()
-      .radius(8));         // Small collision radius to prevent overlap
+      .radius(12));        // Moderate collision radius
   
   // Draw links
   const link = g.append('g')
@@ -267,69 +265,49 @@ function createStarfield(svg, width, height) {
 function addGradients(svg) {
   const defs = svg.append('defs');
   
-  // Radiant sunburst gradient (bright center fading out)
-  const sunburstGradient = defs.append('radialGradient')
-    .attr('id', 'sunburst-glow');
+  // Simple gradient for nodes
+  const nodeGradient = defs.append('radialGradient')
+    .attr('id', 'node-glow');
   
-  sunburstGradient.append('stop')
+  nodeGradient.append('stop')
     .attr('offset', '0%')
-    .attr('stop-color', '#fff9e6')
-    .attr('stop-opacity', 0.9);
+    .attr('stop-color', '#fbbf24')
+    .attr('stop-opacity', 1);
   
-  sunburstGradient.append('stop')
-    .attr('offset', '30%')
-    .attr('stop-color', '#ffeaa0')
-    .attr('stop-opacity', 0.7);
-  
-  sunburstGradient.append('stop')
-    .attr('offset', '70%')
-    .attr('stop-color', '#ffb347')
-    .attr('stop-opacity', 0.3);
-  
-  sunburstGradient.append('stop')
+  nodeGradient.append('stop')
     .attr('offset', '100%')
-    .attr('stop-color', '#ff8c00')
-    .attr('stop-opacity', 0);
+    .attr('stop-color', '#f59e0b')
+    .attr('stop-opacity', 0.8);
   
-  // Strong blur filter for radiant effect
-  const radiantBlur = defs.append('filter')
-    .attr('id', 'radiant-blur')
-    .attr('x', '-150%')
-    .attr('y', '-150%')
-    .attr('width', '400%')
-    .attr('height', '400%');
+  // Minimal blur filter
+  const glowFilter = defs.append('filter')
+    .attr('id', 'node-blur')
+    .attr('x', '-50%')
+    .attr('y', '-50%')
+    .attr('width', '200%')
+    .attr('height', '200%');
   
-  radiantBlur.append('feGaussianBlur')
-    .attr('stdDeviation', '6');
+  glowFilter.append('feGaussianBlur')
+    .attr('stdDeviation', '2');
   
-  // Radiant sunburst sprite (no visible core, just glow)
+  // Simple node sprite (small, clean)
   const sprite = defs.append('symbol')
     .attr('id', 'star-sprite')
-    .attr('viewBox', '-32 -32 64 64');
+    .attr('viewBox', '-10 -10 20 20');
   
-  // Outer radiance (large, very subtle)
+  // Subtle glow layer
   sprite.append('circle')
-    .attr('r', 28)
-    .attr('fill', 'url(#sunburst-glow)')
-    .attr('opacity', 0.25)
-    .attr('filter', 'url(#radiant-blur)')
-    .attr('class', 'radiant-outer');
+    .attr('r', 6)
+    .attr('fill', 'url(#node-glow)')
+    .attr('opacity', 0.4)
+    .attr('filter', 'url(#node-blur)')
+    .attr('class', 'node-glow');
   
-  // Middle glow (medium, brighter)
+  // Core circle
   sprite.append('circle')
-    .attr('r', 16)
-    .attr('fill', 'url(#sunburst-glow)')
-    .attr('opacity', 0.5)
-    .attr('filter', 'url(#radiant-blur)')
-    .attr('class', 'radiant-middle');
-  
-  // Inner radiance (small, brightest - but NO SOLID CORE)
-  sprite.append('circle')
-    .attr('r', 8)
-    .attr('fill', 'url(#sunburst-glow)')
-    .attr('opacity', 0.8)
-    .attr('filter', 'url(#radiant-blur)')
-    .attr('class', 'radiant-inner');
+    .attr('r', 3)
+    .attr('fill', 'url(#node-glow)')
+    .attr('class', 'node-core');
 }
 
 /**

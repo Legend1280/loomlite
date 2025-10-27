@@ -351,20 +351,14 @@
       font-size: 11px;
     }
     
-    /* Radiant Sunburst Node Styling */
-    @keyframes radiant-breathe {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
-    
+    /* Simple Node Styling */
     .star-node {
       filter: brightness(var(--brightness, 1));
       transition: filter 0.3s ease;
     }
     
-    .radiant-inner {
-      animation: radiant-breathe 3s ease-in-out infinite;
-      animation-delay: calc(var(--rand) * 1.5s);
+    .node-core {
+      transition: opacity 0.3s ease;
     }
   </style>
 </head>
