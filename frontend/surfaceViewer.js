@@ -108,11 +108,18 @@ export function initSurfaceViewer() {
 }
 
 /**
- * Render surface viewer header with mode toggle
+ * Render surface viewer header with mode toggle - CLEAN VERSION
  */
 function renderHeader(container) {
+  // Remove any existing header
+  const existingHeader = container.querySelector('.surface-viewer-header-wrapper');
+  if (existingHeader) {
+    existingHeader.remove();
+  }
+  
   // Create header wrapper with label
   const headerWrapper = document.createElement('div');
+  headerWrapper.className = 'surface-viewer-header-wrapper';
   headerWrapper.style.cssText = `
     background: #0c0c0c;
     border-bottom: 1px solid rgba(42, 42, 42, 0.4);
@@ -132,27 +139,23 @@ function renderHeader(container) {
   headerWrapper.appendChild(label);
   
   // Create tabs container
-  const header = document.createElement('div');
-  header.id = 'surface-viewer-header';
-  header.style.cssText = `
+  const tabsContainer = document.createElement('div');
+  tabsContainer.style.cssText = `
     display: flex;
     align-items: stretch;
     gap: 0;
   `;
   
-  // Create three tabs: Ontology | Document | Analytics
+  // Define tabs
   const tabs = [
-    { id: 'ontology', label: 'Ontology', icon: createShareIcon(), mode: 'ontology' },
-    { id: 'document', label: 'Document', icon: createBookIcon(), mode: 'document' },
-    { id: 'analytics', label: 'Analytics', icon: createChartIcon(), mode: 'analytics' }
+    { id: 'ontology', label: 'Ontology', icon: createShareIcon() },
+    { id: 'document', label: 'Document', icon: createBookIcon() },
+    { id: 'analytics', label: 'Analytics', icon: createChartIcon() }
   ];
   
   tabs.forEach(tab => {
     const tabBtn = document.createElement('button');
-    tabBtn.className = `surface-tab surface-tab-${tab.id}`;
-    tabBtn.dataset.mode = tab.mode;
-    
-    const isActive = (tab.mode === currentMode) || (tab.mode === 'analytics' && analyticsVisible);
+    const isActive = (currentMode === tab.id);
     
     tabBtn.style.cssText = `
       flex: 1;
@@ -168,7 +171,7 @@ function renderHeader(container) {
       font-weight: 500;
       cursor: pointer;
       transition: all 0.25s ease-in-out;
-      padding: 0 16px;
+      padding: 12px 16px;
     `;
     
     // Add icon
@@ -188,7 +191,6 @@ function renderHeader(container) {
       if (!isActive) {
         tabBtn.style.background = '#181818';
         tabBtn.style.color = '#e6e6e6';
-        tabBtn.style.borderBottom = '1px solid rgba(42, 42, 42, 0.4)';
       }
     });
     
@@ -199,24 +201,20 @@ function renderHeader(container) {
       }
     });
     
-    // Click handler
+    // Click handler - simple mode switch
     tabBtn.addEventListener('click', () => {
-      // Switch mode for all tabs (including analytics)
-      switchMode(tab.mode);
-      
-      // Update all tabs
-      const headerWrapper = container.querySelector('div');
-      if (headerWrapper) {
-        headerWrapper.remove();
+      if (currentMode !== tab.id) {
+        currentMode = tab.id;
+        updateContent();
+        renderHeader(container); // Re-render tabs to update active state
       }
-      renderHeader(container);
     });
     
-    header.appendChild(tabBtn);
+    tabsContainer.appendChild(tabBtn);
   });
   
-  headerWrapper.appendChild(header);
-  container.appendChild(headerWrapper);
+  headerWrapper.appendChild(tabsContainer);
+  container.insertBefore(headerWrapper, container.firstChild);
 }
 
 /**
@@ -286,42 +284,47 @@ function renderContentArea(container) {
 }
 
 /**
- * Switch between Ontology and Document modes
+ * Update content based on current mode
+ */
+function updateContent() {
+  const content = document.getElementById('surface-viewer-content');
+  if (!content) return;
+  
+  // Fade out
+  content.style.opacity = '0';
+  content.style.transition = 'opacity 0.2s';
+  
+  setTimeout(() => {
+    // Render based on mode
+    if (currentMode === 'ontology' && currentConcept) {
+      renderOntologyMode(currentConcept);
+    } else if (currentMode === 'document' && currentDocId) {
+      renderDocumentMode(currentDocId);
+    } else if (currentMode === 'analytics' && currentDocId) {
+      renderAnalyticsMode(currentDocId);
+    } else {
+      // Show default message
+      content.innerHTML = `
+        <div style="color: #9a9a9a; text-align: center; padding: 60px 20px;">
+          <div style="font-size: 14px; margin-bottom: 8px; color: #e6e6e6;">Select a concept to view details</div>
+          <div style="font-size: 12px; color: #9a9a9a;">Click on any node in the visualization</div>
+        </div>
+      `;
+    }
+    
+    // Fade in
+    setTimeout(() => {
+      content.style.opacity = '1';
+    }, 50);
+  }, 200);
+}
+
+/**
+ * DEPRECATED - Use updateContent() instead
  */
 function switchMode(mode) {
   currentMode = mode;
-  console.log(`Switching to ${mode} mode`);
-  
-  // Update tabs (re-render header)
-  const header = document.getElementById('surface-viewer-header');
-  if (header) {
-    const container = header.parentElement;
-    header.remove();
-    renderHeader(container);
-  }
-  
-  // Smooth fade transition
-  const content = document.getElementById('surface-viewer-content');
-  if (content) {
-    content.style.opacity = '0';
-    content.style.transition = 'opacity 0.2s';
-    
-    setTimeout(() => {
-      // Re-render content based on mode
-      if (mode === 'ontology' && currentConcept) {
-        renderOntologyMode(currentConcept);
-      } else if (mode === 'document' && currentDocId) {
-        renderDocumentMode(currentDocId);
-      } else if (mode === 'analytics' && currentDocId) {
-        renderAnalyticsMode(currentDocId);
-      }
-      
-      // Fade in
-      setTimeout(() => {
-        content.style.opacity = '1';
-      }, 50);
-    }, 200);
-  }
+  updateContent();
 }
 
 /**
