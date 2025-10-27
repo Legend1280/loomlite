@@ -349,23 +349,23 @@ stateDiagram-v2
     
     state Normal {
         [*] --> AllVisible
-        AllVisible: Sidebar: 16rem
-        AllVisible: Center: flex 1
-        AllVisible: Surface: 28rem
+        AllVisible: Sidebar 16rem
+        AllVisible: Center flex 1
+        AllVisible: Surface 28rem
         AllVisible: All panels visible
     }
     
     state Detecting {
         [*] --> CountingClicks
-        CountingClicks: clickCount++
+        CountingClicks: clickCount increment
         CountingClicks: 300ms timer active
     }
     
     state FocusMode {
         [*] --> PanelExpanded
-        PanelExpanded: Focused: 90% width
-        PanelExpanded: Sidebar: 0 width
-        PanelExpanded: Others: hidden
+        PanelExpanded: Focused 90 percent width
+        PanelExpanded: Sidebar 0 width
+        PanelExpanded: Others hidden
         PanelExpanded: Yellow glow active
     }
     
@@ -406,19 +406,19 @@ stateDiagram-v2
     
     state Click1 {
         [*] --> Counting
-        Counting: clickCount = 1
+        Counting: clickCount equals 1
         Counting: Start 300ms timer
     }
     
     state Click2 {
         [*] --> Counting
-        Counting: clickCount = 2
+        Counting: clickCount equals 2
         Counting: Continue timer
     }
     
     state Click3 {
         [*] --> Counting
-        Counting: clickCount = 3
+        Counting: clickCount equals 3
         Counting: Continue timer
     }
     
