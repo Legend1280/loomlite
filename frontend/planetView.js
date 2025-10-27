@@ -674,6 +674,17 @@ function truncateText(text, maxLength) {
  * Show tooltip
  */
 function showTooltip(event, d) {
+  // Debug: Log data to see what's available
+  if (d.data.type === 'document') {
+    console.log('Planet tooltip data:', {
+      name: d.data.name,
+      type: d.data.type,
+      summary: d.data.summary,
+      concept: d.data.concept,
+      allData: d.data
+    });
+  }
+  
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'mindmap-tooltip')
