@@ -21,6 +21,7 @@ from reader import read_document
 from extractor import extract_ontology_from_text, store_ontology
 from semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
 from analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
+from file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -977,6 +978,67 @@ def trending_documents(limit: int = 10):
         conn = get_db()
         trending = get_trending_documents(conn, limit)
         return {"trending": trending}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# FILE SYSTEM ENDPOINTS (v4.0)
+# ============================================================================
+
+@app.get("/api/files/top-hits")
+def api_top_hits(limit: int = 6):
+    """
+    Get top hits based on dwell time, recency, and frequency
+    """
+    try:
+        conn = get_db()
+        top_hits = get_top_hits(conn, limit)
+        return {"top_hits": top_hits}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/files/pinned")
+def api_pinned_folders(user_id: str = "default"):
+    """
+    Get user-pinned folders and documents
+    """
+    try:
+        conn = get_db()
+        pinned = get_pinned_folders(conn, user_id)
+        return {"pinned": pinned}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/files/folders/{folder_type}")
+def api_standard_folder(folder_type: str):
+    """
+    Get standard folder contents (recent, favorites, etc.)
+    """
+    try:
+        conn = get_db()
+        
+        if folder_type == "by-type":
+            folders = get_standard_folders_by_type(conn)
+            return {"folders": folders}
+        elif folder_type == "by-date":
+            folders = get_standard_folders_by_date(conn)
+            return {"folders": folders}
+        else:
+            folder = get_standard_folder(conn, folder_type)
+            return folder
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/files/semantic/{category}")
+def api_semantic_folder(category: str):
+    """
+    Get semantic folder contents based on ontology
+    Categories: projects, concepts, financial, research, ai_tech
+    """
+    try:
+        conn = get_db()
+        folder = get_semantic_folder(conn, category)
+        return folder
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
