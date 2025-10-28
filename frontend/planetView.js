@@ -345,9 +345,12 @@ function createMindMapVisualization(container) {
     .attr('stop-color', '#f59e0b')
     .attr('stop-opacity', 1);
   
-  // Create zoom group
+  // Create zoom group - center planet initially
+  const initialX = width * 0.25;  // 25% from left edge (gives room to expand right)
+  const initialY = height / 2;    // Vertically centered
+  
   g = svg.append('g')
-    .attr('transform', `translate(60, ${height / 2})`);
+    .attr('transform', `translate(${initialX}, ${initialY})`);
   
   // Add zoom behavior with bounded panning
   const zoom = d3.zoom()
