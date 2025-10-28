@@ -419,9 +419,9 @@ function shiftCameraForExpansion() {
   const svgHeight = svg.node().clientHeight;
   
   // Calculate target X position based on tree depth
-  // Start at center (width/2), shift left as tree expands right
-  // Each level of depth shifts the planet 100px to the left
-  const targetX = (svgWidth / 2) - (maxDepth * 100);
+  // Start at center (width/2), shift RIGHT as tree expands right
+  // Each level of depth shifts the view 100px to the right
+  const targetX = (svgWidth / 2) + (maxDepth * 100);
   const targetY = svgHeight / 2;
   
   console.log('🎥 Camera shift:', { maxDepth, targetX, targetY, svgWidth, svgHeight });
