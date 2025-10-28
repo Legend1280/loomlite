@@ -405,10 +405,14 @@ function shiftCameraForExpansion() {
   }
   
   // Calculate the depth of the tree (how many columns)
+  // Include ALL visible nodes (with or without children)
   let maxDepth = 0;
   root.descendants().forEach(d => {
-    if (d.children && d.depth > maxDepth) {
-      maxDepth = d.depth;
+    // Count nodes that are visible (have children OR have _children that are collapsed)
+    if (d.children || d._children) {
+      if (d.depth > maxDepth) {
+        maxDepth = d.depth;
+      }
     }
   });
   
