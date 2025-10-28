@@ -230,12 +230,14 @@ function createFolderItem(folder) {
   
   // Toggle collapse
   header.onclick = () => {
-    const newState = !isCollapsed;
-    collapsedFolders[folderId] = !newState;  // Store opposite (false = expanded)
+    const currentlyCollapsed = content.style.display === 'none';
+    const newCollapsed = !currentlyCollapsed;
+    
+    collapsedFolders[folderId] = newCollapsed;
     saveCollapsedState();
     
-    content.style.display = newState ? 'none' : 'block';
-    chevron.textContent = newState ? '›' : '⌄';
+    content.style.display = newCollapsed ? 'none' : 'block';
+    chevron.textContent = newCollapsed ? '›' : '⌄';
   };
   
   folderContainer.appendChild(header);
@@ -259,6 +261,7 @@ function createDocumentItem(doc) {
     cursor: pointer;
     transition: all 0.15s ease-in-out;
     border-left: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.02);
   `;
   
   // Document icon (SVG)
@@ -271,7 +274,7 @@ function createDocumentItem(doc) {
   titleEl.textContent = truncateText(doc.title, 30);
   titleEl.style.cssText = `
     font-size: 11px;
-    color: #e6e6e6;
+    color: #b8b8b8;
     flex: 1;
   `;
   
@@ -280,12 +283,12 @@ function createDocumentItem(doc) {
   
   // Hover effects
   item.onmouseover = () => {
-    item.style.background = 'rgba(24, 24, 24, 0.5)';
+    item.style.background = 'rgba(255, 255, 255, 0.06)';
     item.style.borderLeft = '2px solid #fad643';
   };
   
   item.onmouseout = () => {
-    item.style.background = 'transparent';
+    item.style.background = 'rgba(255, 255, 255, 0.02)';
     item.style.borderLeft = '2px solid transparent';
   };
   
