@@ -220,6 +220,20 @@ function createGalaxyVisualization(container) {
     .attr('stroke', '#666666')
     .attr('stroke-width', 1.5);
   
+  // Add provenance indicator (small dot on top-right)
+  node.filter(d => d.provenance_status)
+    .append('circle')
+    .attr('r', 4)
+    .attr('cx', d => getNodeRadius(d) * 0.7)
+    .attr('cy', d => -getNodeRadius(d) * 0.7)
+    .attr('fill', d => {
+      if (d.provenance_status === 'verified') return '#10b981';
+      if (d.provenance_status === 'partial') return '#f59e0b';
+      return '#6b7280';
+    })
+    .attr('stroke', '#000')
+    .attr('stroke-width', 1);
+  
   // Add document title
   node.append('text')
     .attr('dy', d => getNodeRadius(d) + 20)

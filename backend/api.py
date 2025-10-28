@@ -25,6 +25,7 @@ from semantic_folders import build_semantic_folders, get_saved_views, create_sav
 from analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
 from file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
 from provenance import log_provenance_event, get_provenance_events, get_provenance_summary
+from provenance_status import get_provenance_status, add_provenance_status
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -365,8 +366,14 @@ async def get_tree():
     conn = get_db()
     docs = conn.execute("SELECT id, title, source_uri, created_at FROM documents ORDER BY created_at DESC").fetchall()
     conn.close()
-    # Return array with type='file' for frontend compatibility
-    return [{**dict(d), "type": "file"} for d in docs]
+    
+    # Convert to dicts and add type
+    docs_list = [{**dict(d), "type": "file"} for d in docs]
+    
+    # Add provenance status
+    docs_list = add_provenance_status(DB_PATH, docs_list)
+    
+    return docs_list
 
 @app.get("/doc/{doc_id}/ontology")
 async def get_doc_ontology(doc_id: str):

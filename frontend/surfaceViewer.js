@@ -1265,9 +1265,30 @@ async function renderProvenanceMode(docId) {
     // Calculate integrity percentage
     const integrityPercent = (provenance.semantic_integrity * 100).toFixed(1);
     
+    // Determine chain status
+    const requiredEvents = ['ingested', 'ontology_extracted', 'summaries_generated'];
+    const eventTypes = provenance.lineage.map(e => e.event);
+    const chainVerified = requiredEvents.every(req => eventTypes.includes(req));
+    const eventCount = provenance.event_count || provenance.lineage.length;
+    
     content.innerHTML = `
       <div style="padding: 24px; background: #111111;">
-        <h3 style="font-size: 18px; color: #e6e6e6; margin-bottom: 24px; font-weight: 600;">Document Provenance</h3>
+        <!-- Header with status badge -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h3 style="font-size: 18px; color: #e6e6e6; font-weight: 600; margin: 0;">Document Provenance</h3>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; ${
+              chainVerified 
+                ? 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);'
+                : 'background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);'
+            }">
+              ${chainVerified ? '✓ Chain Verified' : '⚠ Incomplete Chain'}
+            </div>
+            <div style="padding: 4px 10px; border-radius: 12px; font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
+              ${eventCount} event${eventCount !== 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>
         
         <!-- Origin Section -->
         <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid #fad643;">

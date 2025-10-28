@@ -72,6 +72,12 @@ def get_top_hits(conn: sqlite3.Connection, limit: int = 6) -> List[Dict[str, Any
             "last_opened": last_opened
         })
     
+    # Add provenance status to all documents
+    from provenance_status import add_provenance_status
+    import os
+    db_path = os.getenv("DATABASE_PATH", "/data/loom_lite_v2.db")
+    top_hits = add_provenance_status(db_path, top_hits)
+    
     return top_hits
 
 
