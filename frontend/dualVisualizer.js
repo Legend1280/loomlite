@@ -125,29 +125,36 @@ function renderSolarSystem(svg, data) {
   
   // Draw orbit rings (bottom layer) - tilted ellipses for 3D effect
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
-  const orbitAngles = [30, 60, 90]; // Different tilt angles for each level
+  
+  // Different tilt configurations for each hierarchy level
+  const orbitConfigs = [
+    { tilt: 15, rotation: 0, flatten: 0.3 },    // Level 1: slight tilt
+    { tilt: 35, rotation: 45, flatten: 0.4 },   // Level 2: medium tilt, rotated
+    { tilt: 55, rotation: 90, flatten: 0.5 },   // Level 3: steep tilt, perpendicular
+    { tilt: 70, rotation: 135, flatten: 0.6 }   // Level 4: very steep, diagonal
+  ];
   
   console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
   
-  let angleIndex = 0;
+  let configIndex = 0;
   orbitLevels.forEach((nodes, level) => {
     if (level === 0) return; // Skip sun
     
     const radius = nodes[0].orbitRadius; // All nodes at same level have same orbit
-    const tiltAngle = orbitAngles[angleIndex % orbitAngles.length];
-    angleIndex++;
+    const config = orbitConfigs[configIndex % orbitConfigs.length];
+    configIndex++;
     
-    // Create ellipse with perspective tilt
-    console.log(`🛸 Creating orbit at level ${level}, radius ${radius}, tilt ${tiltAngle}°`);
+    // Create ellipse with 3D perspective tilt
+    console.log(`🛸 Creating orbit at level ${level}, radius ${radius}, tilt ${config.tilt}°, rotation ${config.rotation}°`);
     
     const ellipseGroup = orbitRings.append('g')
-      .attr('transform', `translate(${centerX}, ${centerY}) rotate(${tiltAngle})`);
+      .attr('transform', `translate(${centerX}, ${centerY}) rotate(${config.rotation})`);
     
     ellipseGroup.append('ellipse')
       .attr('cx', 0)
       .attr('cy', 0)
       .attr('rx', radius)
-      .attr('ry', radius * 0.4) // Flatten for perspective
+      .attr('ry', radius * config.flatten) // Variable flattening for depth
       .attr('fill', 'none')
       .attr('stroke', '#4a4a4a')  // Lighter gray for visibility
       .attr('stroke-width', 1)
@@ -190,6 +197,10 @@ function renderSolarSystem(svg, data) {
     .attr('stroke', d => d.hierarchy_level === 0 ? 'none' : solarTypeColor(d.type))
     .attr('stroke-width', d => d.hierarchy_level === 0 ? 0 : 1.5)
     .style('cursor', 'pointer')
+    .each(function(d) {
+      // Store original data for animation
+      d3.select(this).datum().element = this;
+    })
     .on('click', (event, d) => {
       bus.emit('conceptSelected', { 
         conceptId: d.id, 
@@ -235,6 +246,82 @@ function renderSolarSystem(svg, data) {
   // Store references for search highlighting
   svg.selectAll('.node').data(layoutData.nodes);
   svg.selectAll('.link').data(relations);
+  
+  // Start orbital animation
+  startOrbitalAnimation(layoutData.nodes, centerX, centerY, orbitConfigs);
+}
+
+/**
+ * Animate nodes along elliptical orbits
+ * @param {Array} nodes - Array of node objects with orbital data
+ * @param {number} centerX - Center X coordinate
+ * @param {number} centerY - Center Y coordinate
+ * @param {Array} orbitConfigs - Orbit configuration array
+ */
+function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
+  let animationId = null;
+  let startTime = Date.now();
+  
+  function animate() {
+    const elapsed = (Date.now() - startTime) / 1000; // seconds
+    
+    nodes.forEach((node, i) => {
+      if (node.hierarchy_level === 0) return; // Skip sun
+      
+      // Get orbit configuration for this node's level
+      const configIndex = Math.min(node.hierarchy_level - 1, orbitConfigs.length - 1);
+      const config = orbitConfigs[configIndex];
+      
+      // Calculate orbital speed (inner orbits faster)
+      const baseSpeed = 0.1; // radians per second
+      const speed = baseSpeed / Math.sqrt(node.orbitRadius / 150); // Kepler's 3rd law approximation
+      
+      // Calculate current angle
+      const currentAngle = (node.angle || 0) + (elapsed * speed);
+      
+      // Elliptical orbit parameters
+      const rx = node.orbitRadius;
+      const ry = node.orbitRadius * config.flatten;
+      const rotation = (config.rotation * Math.PI) / 180;
+      
+      // Calculate position on ellipse
+      const localX = rx * Math.cos(currentAngle);
+      const localY = ry * Math.sin(currentAngle);
+      
+      // Rotate the ellipse
+      const rotatedX = localX * Math.cos(rotation) - localY * Math.sin(rotation);
+      const rotatedY = localX * Math.sin(rotation) + localY * Math.cos(rotation);
+      
+      // Final position
+      const x = centerX + rotatedX;
+      const y = centerY + rotatedY;
+      
+      // Calculate depth (z-position) for perspective
+      // Nodes on far side (negative y in local space) are "behind"
+      const depth = Math.sin(currentAngle) * config.flatten;
+      const scale = 1 - (depth * 0.3); // Shrink nodes on far side
+      const opacity = 0.5 + (depth * 0.5); // Fade nodes on far side
+      
+      // Update node position and appearance
+      if (node.element) {
+        d3.select(node.element)
+          .attr('cx', x)
+          .attr('cy', y)
+          .attr('r', node.nodeSize * scale)
+          .style('opacity', node.hierarchy_level === 0 ? 1 : opacity);
+      }
+    });
+    
+    animationId = requestAnimationFrame(animate);
+  }
+  
+  // Start animation
+  animate();
+  
+  // Store animation ID for cleanup
+  if (typeof window !== 'undefined') {
+    window.solarAnimationId = animationId;
+  }
 }
 
 /**
