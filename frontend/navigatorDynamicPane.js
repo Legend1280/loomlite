@@ -27,8 +27,10 @@ export function initDynamicPane(parentContainer) {
   container = parentContainer;
   
   // Listen for mode changes
-  bus.on('navigatorModeChanged', ({ mode }) => {
+  bus.on('navigatorModeChanged', (event) => {
+    const mode = event.detail?.mode || event.mode;
     console.log(`[DynamicPane] Mode changed to: ${mode}`);
+    console.log(`[DynamicPane] Event received:`, event);
     console.log(`[DynamicPane] Current folders data:`, foldersData);
     currentMode = mode;
     renderFolders();
