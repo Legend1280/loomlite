@@ -1595,3 +1595,139 @@ window.handleConceptSelection = handleConceptSelection;
 
 console.log('Surface Viewer v3.0b module loaded');
 
+
+
+/**
+ * Find similar concepts across all documents
+ */
+window.findSimilarConcepts = async function(conceptId, conceptLabel) {
+  console.log(`\ud83d\udd0d Finding concepts similar to: "${conceptLabel}" (${conceptId})`);
+  
+  const API_BASE = 'https://loomlite-production.up.railway.app';
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/similar/concept/${conceptId}?n=10&threshold=0.4`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.similar_concepts || data.similar_concepts.length === 0) {
+      alert(`No similar concepts found for "${conceptLabel}"`);
+      return;
+    }
+    
+    console.log(`Found ${data.similar_concepts.length} similar concepts`);
+    
+    // Create modal to show similar concepts
+    showSimilarConceptsModal(conceptLabel, data.similar_concepts);
+    
+  } catch (error) {
+    console.error('Error finding similar concepts:', error);
+    alert(`Failed to find similar concepts: ${error.message}`);
+  }
+};
+
+/**
+ * Show modal with similar concepts from across all documents
+ */
+function showSimilarConceptsModal(originalLabel, similarConcepts) {
+  // Remove existing modal if any
+  const existingModal = document.getElementById('similar-concepts-modal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // Create modal overlay
+  const modal = document.createElement('div');
+  modal.id = 'similar-concepts-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+  `;
+  
+  // Create modal content
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: #0c0c0c;
+    border: 1px solid rgba(250, 214, 67, 0.3);
+    border-radius: 12px;
+    max-width: 600px;
+    max-height: 70vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  `;
+  
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = `
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.6);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  `;
+  header.innerHTML = `
+    <div>
+      <h3 style="margin: 0; color: #e6e6e6; font-size: 16px; font-weight: 600;">Similar Concepts</h3>
+      <p style="margin: 4px 0 0 0; color: #9a9a9a; font-size: 12px;">Related to: <span style="color: #fad643;">${escapeHtml(originalLabel)}</span></p>
+    </div>
+    <button onclick="document.getElementById('similar-concepts-modal').remove()" style="background: none; border: none; color: #9a9a9a; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
+  `;
+  
+  // Concepts list
+  const list = document.createElement('div');
+  list.style.cssText = `
+    padding: 16px 24px;
+    overflow-y: auto;
+    flex: 1;
+  `;
+  
+  similarConcepts.forEach((concept, idx) => {
+    const item = document.createElement('div');
+    item.style.cssText = `
+      padding: 12px 0;
+      border-bottom: ${idx < similarConcepts.length - 1 ? '1px solid rgba(42, 42, 42, 0.4)' : 'none'};
+    `;
+    
+    const similarity = (concept.similarity * 100).toFixed(0);
+    const similarityColor = concept.similarity > 0.7 ? '#22c55e' : concept.similarity > 0.5 ? '#fad643' : '#9a9a9a';
+    
+    item.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+        <div style="color: #e6e6e6; font-size: 14px; font-weight: 500;">${escapeHtml(concept.label)}</div>
+        <div style="background: rgba(${concept.similarity > 0.7 ? '34, 197, 94' : concept.similarity > 0.5 ? '250, 214, 67' : '154, 154, 154'}, 0.15); color: ${similarityColor}; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; white-space: nowrap;">${similarity}%</div>
+      </div>
+      <div style="color: #9a9a9a; font-size: 11px;">
+        ${concept.type ? `<span style="color: #fad643;">${concept.type}</span> • ` : ''}
+        <span>From: ${escapeHtml(concept.doc_title || 'Unknown Document')}</span>
+      </div>
+    `;
+    
+    list.appendChild(item);
+  });
+  
+  content.appendChild(header);
+  content.appendChild(list);
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  
+  // Close on overlay click
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  };
+}
