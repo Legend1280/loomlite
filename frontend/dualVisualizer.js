@@ -67,6 +67,9 @@ export async function drawDualVisualizer(docId) {
  * @param {Object} data - Ontology data with concepts and relations
  */
 function renderSolarSystem(svg, data) {
+  // Clear ALL previous elements completely
+  svg.selectAll('*').remove();
+  
   const width = svg.node().parentElement.clientWidth;
   const height = svg.node().parentElement.clientHeight;
   
@@ -199,8 +202,8 @@ function renderSolarSystem(svg, data) {
     .attr('stroke-width', d => d.hierarchy_level === 0 ? 3 : 1.5)
     .style('cursor', 'pointer')
     .each(function(d) {
-      // Store original data for animation
-      d3.select(this).datum().element = this;
+      // Store element reference for animation
+      d.element = this;
     })
     .on('click', (event, d) => {
       bus.emit('conceptSelected', { 
@@ -231,7 +234,7 @@ function renderSolarSystem(svg, data) {
       hideTooltip();
     });
   
-  // Add labels for all nodes (visible at zoom > 0.5)
+  // Add labels for all nodes (will be updated in animation)
   const label = g.append('g')
     .attr('class', 'labels')
     .selectAll('text')
@@ -245,7 +248,11 @@ function renderSolarSystem(svg, data) {
     .attr('fill', '#ffffff')
     .attr('text-anchor', 'middle')
     .style('pointer-events', 'none')
-    .style('opacity', 0.8);
+    .style('opacity', 0.8)
+    .each(function(d) {
+      // Store label element reference for animation
+      d.labelElement = this;
+    });
   
   // Store references for search highlighting
   svg.selectAll('.node').data(layoutData.nodes);
@@ -307,6 +314,14 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
           .attr('cy', y)
           .attr('r', node.nodeSize * scale)
           .style('opacity', node.hierarchy_level === 0 ? 1 : opacity);
+      }
+      
+      // Update label position to follow node
+      if (node.labelElement) {
+        d3.select(node.labelElement)
+          .attr('x', x)
+          .attr('y', y + (node.hierarchy_level === 0 ? 35 : 20))
+          .style('opacity', node.hierarchy_level === 0 ? 1 : opacity * 0.8);
       }
     });
     
