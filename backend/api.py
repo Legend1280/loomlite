@@ -1463,6 +1463,30 @@ def api_thread_documents(threadId: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/admin/migrate-provenance")
+async def migrate_provenance():
+    """
+    Run database migration to add provenance_events table (v4.1)
+    Safe to run multiple times - will skip if table already exists
+    """
+    try:
+        from migrate_add_provenance_events import run_migration
+        run_migration(DB_PATH)
+        
+        return {
+            "status": "success",
+            "message": "Provenance events table created successfully",
+            "table": "provenance_events"
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 @app.get("/admin/sort-weights")
 def get_sort_weights():
     """
