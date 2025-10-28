@@ -413,10 +413,11 @@ function shiftCameraForExpansion() {
   const svgWidth = svg.node().clientWidth;
   const svgHeight = svg.node().clientHeight;
   
-  // Calculate how much to shift left based on tree depth
-  // As tree expands right, shift camera left to keep it centered
-  const treeWidth = maxDepth * HORIZONTAL_SPACING;
-  const shiftX = svgWidth / 2 - (treeWidth / 2);
+  // Calculate how much to shift right based on tree depth
+  // As tree expands right, shift camera right to make room
+  // This pushes the planet left and keeps the expanding tree visible
+  const shiftAmount = maxDepth * 120;  // Shift right by 120px per level
+  const shiftX = (svgWidth / 2) + shiftAmount;
   
   // Smooth transition to new camera position
   svg.transition()
