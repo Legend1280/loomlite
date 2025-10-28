@@ -197,10 +197,11 @@ function renderSolarSystem(svg, data) {
     .attr('cx', d => d.x)
     .attr('cy', d => d.y)
     .attr('r', d => d.nodeSize)
-    .attr('fill', 'none')  // All nodes hollow (including sun)
-    .attr('stroke', d => d.hierarchy_level === 0 ? '#ffffff' : '#ffffff')  // White for minimal theme
+    .attr('fill', 'transparent')  // Transparent fill makes entire circle clickable
+    .attr('stroke', d => d.hierarchy_level === 0 ? '#ffd700' : '#ffffff')  // Gold sun, white nodes
     .attr('stroke-width', d => d.hierarchy_level === 0 ? 3 : 1.5)
     .style('cursor', 'pointer')
+    .style('pointer-events', 'all')  // Ensure entire circle responds to events
     .each(function(d) {
       // Store element reference for animation
       d.element = this;
@@ -506,11 +507,24 @@ function showTooltip(event, d) {
     .style('z-index', '1000')
     .style('left', `${event.pageX + 10}px`)
     .style('top', `${event.pageY + 10}px`)
-    .html(`
-      <strong>${d.label}</strong><br>
-      <span style="color: #94a3b8;">Type: ${d.type}</span><br>
-      <span style="color: #94a3b8;">Confidence: ${Math.round((d.confidence || 0) * 100)}%</span>
-    `);
+    .html(() => {
+      // Show document summary for sun (hierarchy_level 0)
+      if (d.hierarchy_level === 0) {
+        return `
+          <strong>${d.label}</strong><br>
+          <span style="color: #94a3b8;">Document Summary</span><br>
+          <div style="margin-top: 6px; max-width: 300px; line-height: 1.4;">
+            ${d.summary || 'No summary available'}
+          </div>
+        `;
+      }
+      // Regular concept tooltip
+      return `
+        <strong>${d.label}</strong><br>
+        <span style="color: #94a3b8;">Type: ${d.type}</span><br>
+        <span style="color: #94a3b8;">Confidence: ${Math.round((d.confidence || 0) * 100)}%</span>
+      `;
+    });
 }
 
 /**
