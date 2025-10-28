@@ -245,12 +245,12 @@ function renderSolarSystem(svg, data) {
     d3.selectAll('.labels text').style('display', 'none');
   });
   
-  // Create collapsible summary card in top-left
+  // Create collapsible summary card in top-right
   const sunNode = layoutData.nodes.find(n => n.hierarchy_level === 0);
   if (sunNode) {
-    const cardX = 20;
-    const cardY = 20;
     const cardWidth = 320;
+    const cardX = width - cardWidth - 20;  // Right-aligned
+    const cardY = 20;
     let isExpanded = true;
     
     const cardGroup = g.append('g')
@@ -265,7 +265,7 @@ function renderSolarSystem(svg, data) {
       .attr('height', 140)
       .attr('fill', 'rgba(24, 24, 24, 0.95)')
       .attr('stroke', '#ffd700')
-      .attr('stroke-width', 1.5)
+      .attr('stroke-width', 1)
       .attr('rx', 6);
     
     // Title bar background
