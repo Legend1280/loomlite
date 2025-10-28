@@ -2,7 +2,7 @@
 Helper functions for calculating document provenance status
 """
 
-from backend.provenance import get_provenance_events
+from provenance import get_provenance_events
 
 def get_provenance_status(db_path: str, doc_id: str) -> str:
     """

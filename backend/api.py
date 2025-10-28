@@ -18,15 +18,15 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 # Import modules
-from backend.models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
-from backend.reader import read_document
-from backend.extractor import extract_ontology_from_text, store_ontology
-from backend.semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
-from backend.analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
-from backend.file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
-from backend.provenance import log_provenance_event, get_provenance_events, get_provenance_summary
-from backend.provenance_status import get_provenance_status, add_provenance_status
-from backend.embedding_service import add_document_embedding, add_concept_embedding
+from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
+from reader import read_document
+from extractor import extract_ontology_from_text, store_ontology
+from semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
+from analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
+from file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
+from provenance import log_provenance_event, get_provenance_events, get_provenance_summary
+from provenance_status import get_provenance_status, add_provenance_status
+from embedding_service import add_document_embedding, add_concept_embedding
 
 app = FastAPI(
     title="Loom Lite Unified API",
