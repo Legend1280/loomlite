@@ -191,6 +191,40 @@
       font-weight: 500;
       z-index: 10;
       pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .toggle-labels-btn {
+      padding: 4px;
+      background: transparent;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #9b9b9b;
+      cursor: pointer;
+      transition: all 0.2s;
+      pointer-events: all;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .toggle-labels-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: #666;
+      color: #fff;
+    }
+    
+    .toggle-labels-btn.active {
+      background: rgba(0, 255, 204, 0.1);
+      border-color: #00ffcc;
+      color: #00ffcc;
+    }
+    
+    .toggle-labels-btn svg {
+      display: block;
+      stroke-width: 2;
     }
     
     .visualizer-container svg {
@@ -421,7 +455,15 @@
       
       <!-- Solar System View (Level 2: One Document) -->
       <div id="visualizer-top" class="visualizer-container" style="display: none;">
-        <div class="visualizer-label">SOLAR SYSTEM VIEW</div>
+        <div class="visualizer-label">
+          SOLAR SYSTEM VIEW
+          <button id="toggleLabelsBtn" class="toggle-labels-btn" title="Toggle Labels (Auto-show on search)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </button>
+        </div>
         <svg></svg>
       </div>
       

@@ -13,6 +13,8 @@ import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
 // Store current visualization state
 let currentSvg = null;
 let currentOntology = null;
+let labelsVisible = false; // Labels hidden by default
+let hasSearchResults = false; // Track if search is active
 
 export async function drawDualVisualizer(docId) {
   try {
@@ -248,11 +250,14 @@ function renderSolarSystem(svg, data) {
     .attr('fill', '#ffffff')
     .attr('text-anchor', 'middle')
     .style('pointer-events', 'none')
-    .style('opacity', 0.8)
+    .style('opacity', labelsVisible ? 0.8 : 0) // Start hidden unless toggled
     .each(function(d) {
       // Store label element reference for animation
       d.labelElement = this;
     });
+  
+  // Setup label toggle button
+  setupLabelToggle();
   
   // Store references for search highlighting
   svg.selectAll('.node').data(layoutData.nodes);
@@ -260,6 +265,32 @@ function renderSolarSystem(svg, data) {
   
   // Start orbital animation
   startOrbitalAnimation(layoutData.nodes, centerX, centerY, orbitConfigs);
+}
+
+/**
+ * Setup label toggle button functionality
+ */
+function setupLabelToggle() {
+  const toggleBtn = document.getElementById('toggleLabelsBtn');
+  if (!toggleBtn) return;
+  
+  // Set initial state
+  if (labelsVisible) {
+    toggleBtn.classList.add('active');
+  }
+  
+  // Remove old listeners
+  const newBtn = toggleBtn.cloneNode(true);
+  toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
+  
+  // Add click listener
+  newBtn.addEventListener('click', () => {
+    labelsVisible = !labelsVisible;
+    newBtn.classList.toggle('active', labelsVisible);
+    
+    // Update all label opacities
+    d3.selectAll('.labels text').style('opacity', labelsVisible ? 0.8 : 0);
+  });
 }
 
 /**
@@ -527,6 +558,13 @@ function hideTooltip() {
 function highlightSearchResultsInSolar(results) {
   if (!currentSvg || !currentOntology) return;
   
+  // Auto-show labels when search is active
+  hasSearchResults = true;
+  labelsVisible = true;
+  const toggleBtn = document.getElementById('toggleLabelsBtn');
+  if (toggleBtn) toggleBtn.classList.add('active');
+  d3.selectAll('.labels text').style('opacity', 0.8);
+  
   // Extract concept IDs from new v1.6 response format
   const matchedConceptIds = new Set();
   
@@ -597,6 +635,9 @@ function highlightSearchResultsInSolar(results) {
  */
 function resetSolarSearchHighlight() {
   if (!currentSvg) return;
+  
+  // Clear search state but keep manual toggle state
+  hasSearchResults = false;
   
   console.log('Resetting Solar System View search filter');
   
