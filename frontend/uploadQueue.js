@@ -43,16 +43,21 @@ class UploadQueue {
    * @param {string} uploadId - Unique identifier for this upload
    * @param {string} fileName - Name of the file being uploaded
    * @param {number} fileSize - Size of the file in bytes
+   * @param {string} jobId - Backend job ID for status polling
    */
-  addUpload(uploadId, fileName, fileSize) {
+  addUpload(uploadId, fileName, fileSize, jobId = null) {
     const upload = {
       id: uploadId,
       fileName,
       fileSize,
+      jobId,
       status: 'uploading', // uploading, processing, complete, failed
+      progress: null,
       startTime: Date.now(),
       elapsedSeconds: 0,
-      timerInterval: null
+      timerInterval: null,
+      pollInterval: null,
+      docId: null
     };
 
     this.uploads.set(uploadId, upload);
@@ -68,7 +73,83 @@ class UploadQueue {
   }
 
   /**
-   * Update upload status
+   * Start polling job status
+   * @param {string} uploadId
+   * @param {string} jobId - Backend job ID
+   */
+  startPolling(uploadId, jobId) {
+    const upload = this.uploads.get(uploadId);
+    if (!upload) return;
+
+    upload.jobId = jobId;
+    upload.status = 'processing';
+    
+    // Poll every 2 seconds
+    upload.pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`https://loomlite-production.up.railway.app/api/jobs/${jobId}`);
+        if (!response.ok) {
+          console.error(`Failed to fetch job status: ${response.status}`);
+          return;
+        }
+        
+        const jobData = await response.json();
+        
+        // Update upload with job data
+        upload.progress = jobData.progress;
+        
+        if (jobData.status === 'completed') {
+          upload.status = 'complete';
+          upload.docId = jobData.doc_id;
+          this.stopPolling(uploadId);
+          
+          // Refresh document tree
+          if (window.refreshDocumentTree) {
+            window.refreshDocumentTree();
+          }
+          
+          // Auto-remove after 5 seconds
+          setTimeout(() => {
+            this.removeUpload(uploadId);
+          }, 5000);
+        } else if (jobData.status === 'failed') {
+          upload.status = 'failed';
+          upload.error = jobData.error;
+          this.stopPolling(uploadId);
+          
+          // Auto-remove after 10 seconds (longer for errors)
+          setTimeout(() => {
+            this.removeUpload(uploadId);
+          }, 10000);
+        } else {
+          upload.status = 'processing';
+        }
+        
+        this.render();
+      } catch (error) {
+        console.error('Error polling job status:', error);
+      }
+    }, 2000);
+    
+    this.render();
+  }
+  
+  /**
+   * Stop polling job status
+   * @param {string} uploadId
+   */
+  stopPolling(uploadId) {
+    const upload = this.uploads.get(uploadId);
+    if (!upload) return;
+    
+    if (upload.pollInterval) {
+      clearInterval(upload.pollInterval);
+      upload.pollInterval = null;
+    }
+  }
+  
+  /**
+   * Update upload status (legacy method, kept for compatibility)
    * @param {string} uploadId
    * @param {string} status - 'uploading', 'processing', 'complete', 'failed'
    * @param {string} docId - Document ID when complete
@@ -83,6 +164,7 @@ class UploadQueue {
     if (status === 'complete' || status === 'failed') {
       clearInterval(upload.timerInterval);
       upload.timerInterval = null;
+      this.stopPolling(uploadId);
       
       // Auto-remove after 5 seconds
       setTimeout(() => {
@@ -130,8 +212,13 @@ class UploadQueue {
    */
   removeUpload(uploadId) {
     const upload = this.uploads.get(uploadId);
-    if (upload && upload.timerInterval) {
-      clearInterval(upload.timerInterval);
+    if (upload) {
+      if (upload.timerInterval) {
+        clearInterval(upload.timerInterval);
+      }
+      if (upload.pollInterval) {
+        clearInterval(upload.pollInterval);
+      }
     }
     this.uploads.delete(uploadId);
     
@@ -188,8 +275,12 @@ class UploadQueue {
   /**
    * Get status text
    */
-  getStatusText(status) {
-    switch (status) {
+  getStatusText(upload) {
+    if (upload.progress) {
+      return upload.progress;
+    }
+    
+    switch (upload.status) {
       case 'uploading':
         return 'Uploading...';
       case 'processing':
@@ -197,7 +288,7 @@ class UploadQueue {
       case 'complete':
         return 'Complete';
       case 'failed':
-        return 'Failed';
+        return upload.error || 'Failed';
       default:
         return '';
     }
@@ -275,8 +366,8 @@ class UploadQueue {
                       ${this.formatFileSize(upload.fileSize)}
                     </div>
                     <div style="color: #666;">•</div>
-                    <div style="color: #9a9a9a; font-size: 10px;">
-                      ${this.getStatusText(upload.status)}
+                    <div style="color: #9a9a9a; font-size: 10px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.getStatusText(upload)}">
+                      ${this.getStatusText(upload)}
                     </div>
                   </div>
                   

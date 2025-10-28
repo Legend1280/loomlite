@@ -311,18 +311,10 @@
                   const result = await response.json();
                   console.log(`Uploaded ${file.name}: ${result.job_id}`);
                   
-                  // Update status to processing
-                  if (window.uploadQueue) {
-                    window.uploadQueue.updateStatus(uploadId, 'processing');
+                  // Start polling job status
+                  if (window.uploadQueue && result.job_id) {
+                    window.uploadQueue.startPolling(uploadId, result.job_id);
                   }
-                  
-                  // Poll for completion (simplified - will enhance with proper queue system)
-                  // For now, mark as complete after upload succeeds
-                  setTimeout(() => {
-                    if (window.uploadQueue) {
-                      window.uploadQueue.updateStatus(uploadId, 'complete', result.doc_id || result.job_id);
-                    }
-                  }, 2000);
                   
                   successCount++;
                 } catch (error) {
@@ -341,10 +333,8 @@
               console.log(`   Success: ${successCount}`);
               console.log(`   Failed: ${failCount}`);
               
-              // Refresh document list after all uploads complete
-              if (successCount > 0) {
-                setTimeout(() => location.reload(), 6000); // Wait for queue to show completion
-              }
+              // No need to reload - upload queue will refresh tree automatically
+              // when jobs complete
               
               // Reset file input for next upload
               fileInput.value = '';

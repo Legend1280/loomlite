@@ -456,4 +456,5 @@ window.initGalaxyView = initGalaxyView;
 window.resizeGalaxyView = resizeGalaxyView;
 window.highlightSearchResults = highlightSearchResults;
 window.resetSearchHighlight = resetSearchHighlight;
+window.refreshDocumentTree = loadDocuments; // Expose for upload queue
 
