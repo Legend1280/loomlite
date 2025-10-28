@@ -390,6 +390,97 @@ async def get_doc_text(doc_id: str):
         "spans": [{"id": s["id"], "start": s["start"], "end": s["end"], "text": s["text"], "concept_id": s["concept_id"]} for s in spans]
     }
 
+@app.get("/doc/{doc_id}/provenance")
+async def get_doc_provenance(doc_id: str):
+    """
+    Get document provenance data including origin, transformation lineage, and semantic integrity
+    """
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Get document metadata
+    doc_row = cur.execute(
+        "SELECT id, title, source_uri, checksum, created_at, mime FROM documents WHERE id = ?",
+        (doc_id,)
+    ).fetchone()
+    
+    if not doc_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    doc = dict(doc_row)
+    
+    # Get concept provenance (models used, prompt versions)
+    concept_provenance = cur.execute("""
+        SELECT model_name, prompt_ver, COUNT(*) as count
+        FROM concepts
+        WHERE doc_id = ? AND (model_name IS NOT NULL OR prompt_ver IS NOT NULL)
+        GROUP BY model_name, prompt_ver
+    """, (doc_id,)).fetchall()
+    
+    # Get span provenance (extractors used)
+    span_provenance = cur.execute("""
+        SELECT extractor, quality, COUNT(*) as count
+        FROM spans
+        WHERE doc_id = ? AND extractor IS NOT NULL
+        GROUP BY extractor, quality
+    """, (doc_id,)).fetchall()
+    
+    # Calculate semantic integrity (average concept confidence)
+    integrity_row = cur.execute("""
+        SELECT AVG(confidence) as avg_confidence, COUNT(*) as concept_count
+        FROM concepts
+        WHERE doc_id = ?
+    """, (doc_id,)).fetchone()
+    
+    conn.close()
+    
+    # Build lineage from provenance data
+    lineage = []
+    
+    # Document ingestion event
+    if doc.get("created_at"):
+        lineage.append({
+            "event": "ingested",
+            "by": "DocumentReader",
+            "time": doc["created_at"],
+            "details": f"Source: {doc.get('source_uri', 'unknown')}"
+        })
+    
+    # Text extraction events
+    for sp in span_provenance:
+        if sp["extractor"]:
+            lineage.append({
+                "event": "text_extracted",
+                "by": sp["extractor"],
+                "time": doc.get("created_at", ""),
+                "details": f"Quality: {sp['quality']:.2f}, Spans: {sp['count']}"
+            })
+    
+    # Concept extraction events
+    for cp in concept_provenance:
+        if cp["model_name"]:
+            lineage.append({
+                "event": "concepts_extracted",
+                "by": cp["model_name"],
+                "time": doc.get("created_at", ""),
+                "details": f"Prompt: {cp['prompt_ver']}, Concepts: {cp['count']}"
+            })
+    
+    return {
+        "doc_id": doc["id"],
+        "title": doc["title"],
+        "origin": {
+            "source": doc.get("source_uri", "unknown"),
+            "timestamp": doc.get("created_at", ""),
+            "checksum": doc.get("checksum", ""),
+            "mime_type": doc.get("mime", "unknown")
+        },
+        "lineage": lineage,
+        "semantic_integrity": integrity_row["avg_confidence"] if integrity_row and integrity_row["avg_confidence"] else 0.0,
+        "concept_count": integrity_row["concept_count"] if integrity_row else 0
+    }
+
 @app.get("/search")
 async def search(q: str = "", types: str = "", tags: str = ""):
     """
