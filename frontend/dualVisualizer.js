@@ -245,54 +245,91 @@ function renderSolarSystem(svg, data) {
     d3.selectAll('.labels text').style('display', 'none');
   });
   
-  // Create static summary card next to sun
+  // Create collapsible summary card in top-left
   const sunNode = layoutData.nodes.find(n => n.hierarchy_level === 0);
   if (sunNode) {
-    const cardX = centerX + 40;  // Position to the right of sun
-    const cardY = centerY - 30;
+    const cardX = 20;
+    const cardY = 20;
+    const cardWidth = 320;
+    let isExpanded = true;
     
-    // Card background
-    g.append('rect')
+    const cardGroup = g.append('g')
+      .attr('class', 'summary-card')
+      .style('cursor', 'pointer');
+    
+    // Card background (will resize on toggle)
+    const cardBg = cardGroup.append('rect')
       .attr('x', cardX)
       .attr('y', cardY)
-      .attr('width', 200)
-      .attr('height', 80)
-      .attr('fill', '#1e1e1e')
+      .attr('width', cardWidth)
+      .attr('height', 140)
+      .attr('fill', 'rgba(24, 24, 24, 0.95)')
       .attr('stroke', '#ffd700')
-      .attr('stroke-width', 1)
-      .attr('rx', 4);
+      .attr('stroke-width', 1.5)
+      .attr('rx', 6);
+    
+    // Title bar background
+    cardGroup.append('rect')
+      .attr('x', cardX)
+      .attr('y', cardY)
+      .attr('width', cardWidth)
+      .attr('height', 36)
+      .attr('fill', 'rgba(255, 215, 0, 0.1)')
+      .attr('rx', 6);
     
     // Document title
-    g.append('text')
-      .attr('x', cardX + 10)
-      .attr('y', cardY + 20)
+    cardGroup.append('text')
+      .attr('x', cardX + 12)
+      .attr('y', cardY + 23)
       .attr('fill', '#ffd700')
-      .attr('font-size', 12)
-      .attr('font-weight', 'bold')
-      .text(sunNode.label.length > 25 ? sunNode.label.substring(0, 25) + '...' : sunNode.label);
+      .attr('font-size', 13)
+      .attr('font-weight', '600')
+      .text(sunNode.label.length > 35 ? sunNode.label.substring(0, 35) + '...' : sunNode.label);
     
-    // Summary text (wrapped)
+    // Chevron icon
+    const chevron = cardGroup.append('text')
+      .attr('x', cardX + cardWidth - 20)
+      .attr('y', cardY + 23)
+      .attr('fill', '#ffd700')
+      .attr('font-size', 16)
+      .attr('text-anchor', 'middle')
+      .text('▼');
+    
+    // Summary content group (collapsible)
+    const summaryGroup = cardGroup.append('g')
+      .attr('class', 'summary-content');
+    
+    // Summary text with proper wrapping
     const summaryText = sunNode.summary || 'No summary available';
-    const words = summaryText.split(' ');
-    let line = '';
-    let lineY = cardY + 40;
-    const maxWidth = 180;
+    const foreignObject = summaryGroup.append('foreignObject')
+      .attr('x', cardX + 12)
+      .attr('y', cardY + 45)
+      .attr('width', cardWidth - 24)
+      .attr('height', 85);
     
-    g.append('text')
-      .attr('x', cardX + 10)
-      .attr('y', lineY)
-      .attr('fill', '#9b9b9b')
-      .attr('font-size', 10)
-      .selectAll('tspan')
-      .data(words)
-      .join('tspan')
-      .attr('x', cardX + 10)
-      .attr('dy', (d, i) => i === 0 ? 0 : 12)
-      .text((d, i) => {
-        if (i < 10) return d + ' ';  // Only show first ~10 words
-        if (i === 10) return '...';
-        return '';
-      });
+    foreignObject.append('xhtml:div')
+      .style('color', '#cbd5e1')
+      .style('font-size', '11px')
+      .style('line-height', '1.5')
+      .style('font-family', 'system-ui, -apple-system, sans-serif')
+      .style('overflow', 'hidden')
+      .style('text-overflow', 'ellipsis')
+      .text(summaryText);
+    
+    // Toggle function
+    cardGroup.on('click', function() {
+      isExpanded = !isExpanded;
+      
+      if (isExpanded) {
+        cardBg.transition().duration(300).attr('height', 140);
+        summaryGroup.transition().duration(300).style('opacity', 1).style('display', 'block');
+        chevron.transition().duration(300).attr('transform', 'rotate(0)');
+      } else {
+        cardBg.transition().duration(300).attr('height', 36);
+        summaryGroup.transition().duration(300).style('opacity', 0).style('display', 'none');
+        chevron.transition().duration(300).attr('transform', `rotate(-90) translate(${cardX + cardWidth - 20}, ${cardY + 23})`);
+      }
+    });
   }
   
   // Store references for search highlighting
