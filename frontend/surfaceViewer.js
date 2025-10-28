@@ -1261,8 +1261,20 @@ async function renderProvenanceMode(docId) {
   if (!content) return;
   
   try {
+    // Fetch both legacy provenance and new vector provenance
     const response = await fetch(`${BACKEND_URL}/doc/${docId}/provenance`);
     const provenance = await response.json();
+    
+    // Fetch vector provenance data from new API
+    let vectorProvenance = null;
+    try {
+      const vectorResponse = await fetch(`${BACKEND_URL}/api/provenance/object/${docId}`);
+      if (vectorResponse.ok) {
+        vectorProvenance = await vectorResponse.json();
+      }
+    } catch (e) {
+      console.warn('Vector provenance not available:', e);
+    }
     
     // Format timestamp
     const timestamp = provenance.origin.timestamp ? new Date(provenance.origin.timestamp).toLocaleString() : 'Unknown';
@@ -1331,23 +1343,72 @@ async function renderProvenanceMode(docId) {
           
           ${provenance.lineage && provenance.lineage.length > 0 ? `
             <div style="display: flex; flex-direction: column; gap: 12px;">
-              ${provenance.lineage.map((event, idx) => `
+              ${provenance.lineage.map((event, idx) => {
+                // Find matching vector provenance event
+                const vectorEvent = vectorProvenance?.events?.find(ve => ve.event_type === event.event);
+                return `
                 <div style="padding: 12px; background: #111111; border-radius: 6px; border-left: 2px solid #10b981;">
                   <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                     <div style="width: 24px; height: 24px; border-radius: 50%; background: #10b981; color: #000; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">${idx + 1}</div>
                     <div style="color: #e6e6e6; font-size: 13px; font-weight: 500;">${event.event}</div>
+                    ${vectorEvent?.verified ? '<div style="margin-left: auto; color: #10b981; font-size: 10px;">✓ Verified</div>' : ''}
                   </div>
                   <div style="color: #9a9a9a; font-size: 11px; margin-left: 32px;">
                     <div>By: <span style="color: #10b981;">${event.by}</span></div>
                     ${event.details ? `<div style="margin-top: 4px;">${event.details}</div>` : ''}
+                    ${vectorEvent?.vector_hash ? `
+                      <div style="margin-top: 6px; padding: 6px; background: #0a0a0a; border-radius: 4px; font-family: monospace; font-size: 10px;">
+                        <div style="color: #9a9a9a; margin-bottom: 2px;">Vector Hash:</div>
+                        <div style="color: #3b82f6;">${vectorEvent.vector_hash.substring(0, 16)}...</div>
+                      </div>
+                    ` : ''}
                   </div>
                 </div>
-              `).join('')}
+              `}).join('')}
             </div>
           ` : `
             <div style="color: #9a9a9a; font-size: 13px; font-style: italic;">No transformation events recorded</div>
           `}
         </div>
+        
+        <!-- Vector Provenance Section -->
+        ${vectorProvenance ? `
+          <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid #8b5cf6;">
+            <div style="color: #8b5cf6; font-size: 12px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; font-weight: 600;">Vector Provenance</div>
+            
+            <div style="display: grid; gap: 12px;">
+              <div>
+                <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Hash Chain Status</div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; ${
+                    vectorProvenance.chain_verified
+                      ? 'background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);'
+                      : 'background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);'
+                  }">
+                    ${vectorProvenance.chain_verified ? '✓ Chain Verified' : '✗ Chain Broken'}
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Event Count</div>
+                <div style="color: #e6e6e6; font-size: 13px;">${vectorProvenance.summary?.event_count || 0} events logged</div>
+              </div>
+              
+              <div>
+                <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Embedding Model</div>
+                <div style="color: #e6e6e6; font-size: 13px; font-family: monospace;">all-MiniLM-L6-v2</div>
+              </div>
+              
+              ${vectorProvenance.summary?.avg_integrity ? `
+                <div>
+                  <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Average Integrity</div>
+                  <div style="color: #e6e6e6; font-size: 13px;">${(vectorProvenance.summary.avg_integrity * 100).toFixed(1)}%</div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
         
         <!-- Semantic Integrity Section -->
         <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #3b82f6;">
