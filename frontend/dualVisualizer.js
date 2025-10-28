@@ -13,8 +13,6 @@ import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
 // Store current visualization state
 let currentSvg = null;
 let currentOntology = null;
-let labelsVisible = true; // Labels visible by default (user can toggle off)
-let hasSearchResults = false; // Track if search is active
 
 export async function drawDualVisualizer(docId) {
   try {
@@ -69,17 +67,11 @@ export async function drawDualVisualizer(docId) {
  * @param {Object} data - Ontology data with concepts and relations
  */
 function renderSolarSystem(svg, data) {
-  console.log('🚀 renderSolarSystem called');
-  console.log('📊 Data received:', data);
-  console.log('📐 SVG element:', svg.node());
-  
   // Clear ALL previous elements completely
   svg.selectAll('*').remove();
   
   const width = svg.node().parentElement.clientWidth;
   const height = svg.node().parentElement.clientHeight;
-  
-  console.log('📏 SVG dimensions:', width, 'x', height);
   
   svg.attr('width', width).attr('height', height);
   
@@ -110,11 +102,9 @@ function renderSolarSystem(svg, data) {
   };
   
   // Apply polar layout (includes document node)
-  console.log('🔧 Calling calculatePolarLayout with', concepts.length + 1, 'nodes');
   const layoutData = calculatePolarLayout([documentNode, ...concepts], centerX, centerY);
   
   console.log('📊 Layout nodes:', layoutData.nodes.length);
-  console.log('📊 Layout data:', layoutData);
   console.log('☀️ Document node:', layoutData.nodes.find(n => n.hierarchy_level === 0));
   console.log('🪐 Planet nodes:', layoutData.nodes.filter(n => n.hierarchy_level > 0).length);
   
@@ -122,9 +112,7 @@ function renderSolarSystem(svg, data) {
   const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level ?? 4);
   
   // Create container groups
-  console.log('📦 Creating container group');
   const g = svg.append('g');
-  console.log('📦 Container group created:', g.node());
   
   // Add zoom behavior
   const zoom = d3.zoom()
@@ -201,7 +189,6 @@ function renderSolarSystem(svg, data) {
     .attr('stroke-opacity', d => d.confidence * 0.4);
   
   // Draw nodes (top layer)
-  console.log('🎨 Drawing', layoutData.nodes.length, 'nodes');
   const node = g.append('g')
     .attr('class', 'nodes')
     .selectAll('circle')
@@ -247,8 +234,6 @@ function renderSolarSystem(svg, data) {
       hideTooltip();
     });
   
-  console.log('🎨 Nodes created:', node.size());
-  
   // Add labels for all nodes (will be updated in animation)
   const label = g.append('g')
     .attr('class', 'labels')
@@ -263,55 +248,18 @@ function renderSolarSystem(svg, data) {
     .attr('fill', '#ffffff')
     .attr('text-anchor', 'middle')
     .style('pointer-events', 'none')
-    .style('opacity', labelsVisible ? 0.8 : 0) // Start hidden unless toggled
+    .style('opacity', 0.8)
     .each(function(d) {
       // Store label element reference for animation
       d.labelElement = this;
     });
-  
-  // Setup label toggle button
-  setupLabelToggle();
   
   // Store references for search highlighting
   svg.selectAll('.node').data(layoutData.nodes);
   svg.selectAll('.link').data(relations);
   
   // Start orbital animation
-  console.log('🌀 Starting orbital animation');
-  try {
-    startOrbitalAnimation(layoutData.nodes, centerX, centerY, orbitConfigs);
-    console.log('✅ Orbital animation started successfully');
-  } catch (error) {
-    console.error('❌ Error starting animation:', error);
-  }
-  
-  console.log('✅ renderSolarSystem completed');
-}
-
-/**
- * Setup label toggle button functionality
- */
-function setupLabelToggle() {
-  const toggleBtn = document.getElementById('toggleLabelsBtn');
-  if (!toggleBtn) return;
-  
-  // Set initial state
-  if (labelsVisible) {
-    toggleBtn.classList.add('active');
-  }
-  
-  // Remove old listeners
-  const newBtn = toggleBtn.cloneNode(true);
-  toggleBtn.parentNode.replaceChild(newBtn, toggleBtn);
-  
-  // Add click listener
-  newBtn.addEventListener('click', () => {
-    labelsVisible = !labelsVisible;
-    newBtn.classList.toggle('active', labelsVisible);
-    
-    // Update all label opacities
-    d3.selectAll('.labels text').style('opacity', labelsVisible ? 0.8 : 0);
-  });
+  startOrbitalAnimation(layoutData.nodes, centerX, centerY, orbitConfigs);
 }
 
 /**
@@ -370,16 +318,10 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
       
       // Update label position to follow node
       if (node.labelElement) {
-        // Calculate label opacity based on toggle state and depth
-        let labelOpacity = 0; // Hidden by default
-        if (labelsVisible) {
-          labelOpacity = node.hierarchy_level === 0 ? 1 : opacity * 0.8;
-        }
-        
         d3.select(node.labelElement)
           .attr('x', x)
           .attr('y', y + (node.hierarchy_level === 0 ? 35 : 20))
-          .style('opacity', labelOpacity);
+          .style('opacity', node.hierarchy_level === 0 ? 1 : opacity * 0.8);
       }
     });
     
@@ -585,13 +527,6 @@ function hideTooltip() {
 function highlightSearchResultsInSolar(results) {
   if (!currentSvg || !currentOntology) return;
   
-  // Auto-show labels when search is active
-  hasSearchResults = true;
-  labelsVisible = true;
-  const toggleBtn = document.getElementById('toggleLabelsBtn');
-  if (toggleBtn) toggleBtn.classList.add('active');
-  d3.selectAll('.labels text').style('opacity', 0.8);
-  
   // Extract concept IDs from new v1.6 response format
   const matchedConceptIds = new Set();
   
@@ -662,9 +597,6 @@ function highlightSearchResultsInSolar(results) {
  */
 function resetSolarSearchHighlight() {
   if (!currentSvg) return;
-  
-  // Clear search state but keep manual toggle state
-  hasSearchResults = false;
   
   console.log('Resetting Solar System View search filter');
   
