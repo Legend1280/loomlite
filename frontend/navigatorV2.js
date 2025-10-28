@@ -353,9 +353,21 @@ function createDocumentItem(doc, options = {}) {
   }
   
   item.onclick = () => {
-    console.log(`Document selected: ${doc.title} (${doc.id})`);
-    bus.emit('viewModeChanged', { mode: 'split' });
-    bus.emit('documentFocus', { docId: doc.id });
+    console.log(`📄 Top Hit clicked: "${doc.title}" (ID: ${doc.id})`);
+    console.log('  → Switching to split view...');
+    console.log('  → Loading document...');
+    
+    try {
+      // Switch to split view to show the document
+      bus.emit('viewModeChanged', { mode: 'split' });
+      
+      // Load the document
+      bus.emit('documentFocus', { docId: doc.id });
+      
+      console.log('  ✅ Document load initiated');
+    } catch (error) {
+      console.error('  ❌ Error loading document:', error);
+    }
   };
   
   return item;
