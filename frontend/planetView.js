@@ -10,7 +10,7 @@ import { bus } from './eventBus.js';
 
 const API_BASE = 'https://loomlite-production.up.railway.app';
 
-let svg, g, tree, root;
+let svg, g, tree, root, zoom;
 let currentDocId = null;
 let currentOntology = null;
 
@@ -341,7 +341,7 @@ function createMindMapVisualization(container) {
     .attr('transform', `translate(${centerX}, ${centerY})`);
   
   // Add zoom behavior (no bounds - let camera shift freely)
-  const zoom = d3.zoom()
+  zoom = d3.zoom()
     .scaleExtent([0.1, 2])
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
@@ -430,11 +430,12 @@ function shiftCameraForExpansion() {
   
   console.log('🎥 Camera shift:', { maxDepth, targetX, targetY, svgWidth, svgHeight });
   
-  // Smoothly transition the g element to the new position
-  g.transition()
+  // Smoothly transition using D3's zoom transform (not direct attr)
+  // This keeps zoom state in sync and prevents jumping
+  svg.transition()
     .duration(600)
     .ease(d3.easeCubicInOut)
-    .attr('transform', `translate(${targetX}, ${targetY})`);
+    .call(zoom.transform, d3.zoomIdentity.translate(targetX, targetY).scale(1));
 }
 
 /**
