@@ -46,6 +46,17 @@ export async function initGalaxyView() {
     resetSearchHighlight();
   });
   
+  // Listen for thread selection
+  bus.on('threadSelected', ({ threadId, documents }) => {
+    if (threadId && documents && documents.length > 0) {
+      console.log(`Galaxy View: Filtering to thread "${threadId}" with ${documents.length} documents`);
+      highlightThreadDocuments(documents);
+    } else {
+      console.log('Galaxy View: Clearing thread filter');
+      resetThreadHighlight();
+    }
+  });
+  
   console.log('Galaxy View initialized');
 }
 
@@ -466,6 +477,48 @@ function highlightSearchResults(results) {
       .duration(500)
       .attr('r', d => getNodeRadius(d));
   }
+}
+
+/**
+ * Highlight documents in a thread (v1.6)
+ */
+function highlightThreadDocuments(docIds) {
+  if (!g) return;
+  
+  const docIdSet = new Set(docIds);
+  
+  console.log(`Highlighting ${docIds.length} thread documents in Galaxy View`);
+  
+  g.selectAll('g')
+    .transition()
+    .duration(400)
+    .style('opacity', d => docIdSet.has(d.id) ? 1 : 0.05);
+  
+  g.selectAll('circle')
+    .transition()
+    .duration(400)
+    .attr('stroke', d => docIdSet.has(d.id) ? '#22c55e' : 'rgba(250, 214, 67, 0.3)')
+    .attr('stroke-width', d => docIdSet.has(d.id) ? 3 : 1.5);
+}
+
+/**
+ * Reset thread highlight (v1.6)
+ */
+function resetThreadHighlight() {
+  if (!g) return;
+  
+  console.log('Resetting Galaxy View thread filter');
+  
+  g.selectAll('g')
+    .transition()
+    .duration(400)
+    .style('opacity', 1);
+  
+  g.selectAll('circle')
+    .transition()
+    .duration(400)
+    .attr('stroke', 'rgba(250, 214, 67, 0.3)')
+    .attr('stroke-width', 1.5);
 }
 
 /**
