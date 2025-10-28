@@ -428,8 +428,8 @@ function shiftCameraForExpansion() {
   
   // Calculate target X position based on tree depth
   // Start at center (width/2), shift camera LEFT as tree expands right
-  // Each level of depth shifts the camera 100px to the left (making tree appear to move right)
-  const targetX = (svgWidth / 2) - (maxDepth * 100);
+  // Each level of depth shifts the camera 220px to the left (making tree appear to move right)
+  const targetX = (svgWidth / 2) - (maxDepth * 220);
   const targetY = svgHeight / 2;
   
   console.log('🎥 Camera shift:', { maxDepth, targetX, targetY, svgWidth, svgHeight });
