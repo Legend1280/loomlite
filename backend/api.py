@@ -26,6 +26,7 @@ from analytics import track_folder_view, track_pin_event, update_dwell_time, get
 from file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
 from provenance import log_provenance_event, get_provenance_events, get_provenance_summary
 from provenance_status import get_provenance_status, add_provenance_status
+from embedding_service import add_document_embedding, add_concept_embedding
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -276,6 +277,53 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
             import traceback
             traceback.print_exc()
         
+        # Generate embeddings for document and concepts
+        jobs[job_id]["progress"] = "Generating embeddings..."
+        try:
+            # Add document embedding
+            add_document_embedding(
+                doc_id=doc_id,
+                title=title,
+                content=doc_data["text"][:5000],  # First 5000 chars for better performance
+                metadata={
+                    "filename": filename,
+                    "mime": doc_data["mime"]
+                }
+            )
+            
+            # Add concept embeddings
+            for concept in ontology["concepts"]:
+                try:
+                    concept_id = concept.get("id", "")
+                    label = concept.get("label", "")
+                    if concept_id and label:
+                        add_concept_embedding(
+                            concept_id=concept_id,
+                            label=label,
+                            doc_id=doc_id,
+                            metadata={
+                                "type": concept.get("type", "")
+                            }
+                        )
+                except Exception as e:
+                    print(f"Warning: Failed to embed concept {concept.get('label', 'unknown')}: {e}")
+            
+            # Log provenance: Embeddings generated
+            log_provenance_event(
+                db_path=DB_PATH,
+                doc_id=doc_id,
+                event_type="embeddings_generated",
+                actor="all-MiniLM-L6-v2",
+                metadata={
+                    "document_embedded": True,
+                    "concepts_embedded": len(ontology["concepts"])
+                }
+            )
+        except Exception as e:
+            print(f"⚠️  Embedding generation failed: {e}")
+            import traceback
+            traceback.print_exc()
+        
         # Clean up temp file
         os.unlink(tmp_path)
         
@@ -505,10 +553,16 @@ async def get_doc_provenance(doc_id: str):
     }
 
 @app.get("/search")
-async def search(q: str = "", types: str = "", tags: str = ""):
+async def search(q: str = "", types: str = "", tags: str = "", semantic: bool = True):
     """
-    Hybrid search with fuzzy matching and multi-word support (v5.1)
+    Hybrid search with fuzzy matching, multi-word support, and semantic search (v5.1)
     Returns documents ranked by relevance with matching concepts
+    
+    Parameters:
+    - q: Search query
+    - types: Filter by concept types (comma-separated)
+    - tags: Filter by tags (comma-separated)
+    - semantic: Enable semantic search (default: True)
     """
     if not q:
         # Empty query - return empty results
@@ -619,8 +673,22 @@ async def search(q: str = "", types: str = "", tags: str = ""):
             doc_concept_map[doc_id] = []
         doc_concept_map[doc_id].append(concept_dict)
     
-    # Step 5: Combine title scores and concept scores
-    all_doc_ids = set(doc_title_scores.keys()) | set(doc_concept_map.keys())
+    # Step 4.5: Add semantic search results if enabled
+    semantic_doc_scores = {}
+    if semantic:
+        try:
+            from embedding_service import search_documents_semantic
+            semantic_results = search_documents_semantic(q, n_results=20)
+            for result in semantic_results:
+                doc_id = result['doc_id']
+                semantic_score = result['score']
+                semantic_doc_scores[doc_id] = semantic_score
+            print(f"[SEARCH DEBUG] Found {len(semantic_doc_scores)} semantic matches")
+        except Exception as e:
+            print(f"[SEARCH DEBUG] Semantic search failed: {e}")
+    
+    # Step 5: Combine title scores, concept scores, and semantic scores
+    all_doc_ids = set(doc_title_scores.keys()) | set(doc_concept_map.keys()) | set(semantic_doc_scores.keys())
     document_scores = {}
     results = []
     
@@ -637,16 +705,23 @@ async def search(q: str = "", types: str = "", tags: str = ""):
         title_score = doc_title_scores.get(doc_id, 0.0)
         concepts = doc_concept_map.get(doc_id, [])
         concept_score = max([c.get('confidence', 0.0) for c in concepts]) if concepts else 0.0
+        semantic_score = semantic_doc_scores.get(doc_id, 0.0)
         
-        # Weighted fusion: 0.6 title + 0.4 concept
-        final_score = (0.6 * title_score) + (0.4 * concept_score)
+        # Weighted fusion: 40% title + 20% concept + 40% semantic
+        if semantic and semantic_score > 0:
+            final_score = (0.4 * title_score) + (0.2 * concept_score) + (0.4 * semantic_score)
+        else:
+            # Fallback to lexical only: 60% title + 40% concept
+            final_score = (0.6 * title_score) + (0.4 * concept_score)
         
         # Only include documents above threshold
         if final_score >= threshold:
             document_scores[doc_id] = final_score
             
             # Determine match type
-            if title_score > concept_score:
+            if semantic_score > title_score and semantic_score > concept_score:
+                match_type = "semantic"
+            elif title_score > concept_score:
                 match_type = "title"
             elif concept_score > 0:
                 match_type = "concept"
@@ -680,6 +755,22 @@ async def search(q: str = "", types: str = "", tags: str = ""):
         "count": len(results),
         "threshold": threshold
     }
+
+@app.get("/api/embeddings/stats")
+async def get_embedding_stats():
+    """Get statistics about ChromaDB embeddings"""
+    try:
+        from embedding_service import get_collection_stats
+        stats = get_collection_stats()
+        return {
+            "status": "enabled",
+            "stats": stats
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
 
 @app.get("/jump")
 async def jump(doc_id: str, concept_id: str):

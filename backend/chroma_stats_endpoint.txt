@@ -1,0 +1,17 @@
+# Add this endpoint to api.py after the search endpoint
+
+@app.get("/api/embeddings/stats")
+async def get_embedding_stats():
+    """Get statistics about ChromaDB embeddings"""
+    try:
+        from embedding_service import get_collection_stats
+        stats = get_collection_stats()
+        return {
+            "status": "enabled",
+            "stats": stats
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
