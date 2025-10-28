@@ -98,6 +98,10 @@ function renderSolarSystem(svg, data) {
   // Apply polar layout (includes document node)
   const layoutData = calculatePolarLayout([documentNode, ...concepts], centerX, centerY);
   
+  console.log('📊 Layout nodes:', layoutData.nodes.length);
+  console.log('☀️ Document node:', layoutData.nodes.find(n => n.hierarchy_level === 0));
+  console.log('🪐 Planet nodes:', layoutData.nodes.filter(n => n.hierarchy_level > 0).length);
+  
   // Group by hierarchy for orbit rings
   const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level || 4);
   
@@ -120,6 +124,8 @@ function renderSolarSystem(svg, data) {
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
   const orbitAngles = [30, 60, 90]; // Different tilt angles for each level
   
+  console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
+  
   let angleIndex = 0;
   orbitLevels.forEach((nodes, level) => {
     if (level === 0) return; // Skip sun
@@ -129,6 +135,8 @@ function renderSolarSystem(svg, data) {
     angleIndex++;
     
     // Create ellipse with perspective tilt
+    console.log(`🛸 Creating orbit at level ${level}, radius ${radius}, tilt ${tiltAngle}°`);
+    
     const ellipseGroup = orbitRings.append('g')
       .attr('transform', `translate(${centerX}, ${centerY}) rotate(${tiltAngle})`);
     
