@@ -399,8 +399,8 @@ function toggle(d) {
  * Shift camera to keep tree centered as it expands
  */
 function shiftCameraForExpansion() {
-  if (!svg || !root) {
-    console.log('❌ No svg or root');
+  if (!svg || !root || !g) {
+    console.log('❌ No svg, root, or g');
     return;
   }
   
@@ -418,26 +418,19 @@ function shiftCameraForExpansion() {
   const svgWidth = svg.node().clientWidth;
   const svgHeight = svg.node().clientHeight;
   
-  // Calculate how much to shift right based on tree depth
-  // As tree expands right, shift camera right to make room
-  // This pushes the planet left and keeps the expanding tree visible
-  const shiftAmount = maxDepth * 120;  // Shift right by 120px per level
-  const shiftX = (svgWidth / 2) + shiftAmount;
+  // Calculate target X position based on tree depth
+  // Start at center (width/2), shift left as tree expands right
+  // Each level of depth shifts the planet 100px to the left
+  const targetX = (svgWidth / 2) - (maxDepth * 100);
+  const targetY = svgHeight / 2;
   
-  console.log('🎥 Camera shift:', { maxDepth, shiftAmount, shiftX, svgWidth, svgHeight });
+  console.log('🎥 Camera shift:', { maxDepth, targetX, targetY, svgWidth, svgHeight });
   
-  // Get the zoom behavior from the SVG
-  const zoom = d3.zoom()
-    .scaleExtent([0.1, 2])
-    .on('zoom', (event) => {
-      g.attr('transform', event.transform);
-    });
-  
-  // Apply the transform
-  svg.transition()
+  // Smoothly transition the g element to the new position
+  g.transition()
     .duration(600)
     .ease(d3.easeCubicInOut)
-    .call(zoom.transform, d3.zoomIdentity.translate(shiftX, svgHeight / 2));
+    .attr('transform', `translate(${targetX}, ${targetY})`);
 }
 
 /**
