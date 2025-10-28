@@ -1,8 +1,13 @@
-"""
+"""  
 Embedding Service for LoomLite v5.1
 Handles vector embeddings using sentence-transformers and ChromaDB
 """
 import os
+
+# Set up persistent cache directories for faster deployments
+os.environ.setdefault("HF_HOME", "/app/cache")
+os.environ.setdefault("TRANSFORMERS_CACHE", "/app/cache")
+os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", "/app/cache")
 from typing import List, Dict, Optional, Tuple
 from sentence_transformers import SentenceTransformer
 import chromadb
@@ -14,7 +19,9 @@ from vector_utils import serialize_vector, generate_vector_fingerprint
 
 # Model configuration
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # 384 dimensions, fast, good quality
-CHROMA_PATH = os.environ.get("CHROMA_PATH", "./chroma_db")
+
+# Use persistent volume for ChromaDB to avoid reinitialization on every deploy
+CHROMA_PATH = os.environ.get("CHROMA_PATH", "/app/chroma_data")
 
 # Initialize model (lazy loading)
 _model = None
