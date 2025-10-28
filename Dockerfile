@@ -26,6 +26,10 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 # Copy application code
 COPY . .
 
+# Copy and set up startup script
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
 # Create directory for ChromaDB persistence
 RUN mkdir -p /app/chroma_db
 
@@ -36,5 +40,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/tree || exit 1
 
-# Run the application
-CMD uvicorn backend.api:app --host 0.0.0.0 --port ${PORT:-8000}
+# Run the application with migration
+CMD ["/app/startup.sh"]
