@@ -17,21 +17,9 @@ let currentOntology = null;
 // Configuration
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 40;
-const BASE_VERTICAL_SPACING = 50;
-const BASE_HORIZONTAL_SPACING = 280;
+const VERTICAL_SPACING = 50;
+const HORIZONTAL_SPACING = 280;
 const ANIMATION_DURATION = 400;
-
-// Dynamic spacing calculation
-function calculateDynamicSpacing(nodeCount) {
-  // Vertical spacing scales with node count to prevent overlap
-  const verticalSpacing = BASE_VERTICAL_SPACING;
-  
-  // Horizontal spacing increases slightly with more nodes for visual balance
-  // Formula from spec: baseDistance + (numNodes * 0.05 * baseDistance)
-  const horizontalSpacing = BASE_HORIZONTAL_SPACING + (nodeCount * 0.05 * BASE_HORIZONTAL_SPACING);
-  
-  return { verticalSpacing, horizontalSpacing };
-}
 
 /**
  * Initialize Planet View
@@ -345,32 +333,25 @@ function createMindMapVisualization(container) {
     .attr('stop-color', '#f59e0b')
     .attr('stop-opacity', 1);
   
-  // Create zoom group - center planet initially
-  const initialX = width * 0.25;  // 25% from left edge (gives room to expand right)
-  const initialY = height / 2;    // Vertically centered
+  // Create zoom group - start centered
+  const centerX = width / 2;
+  const centerY = height / 2;
   
   g = svg.append('g')
-    .attr('transform', `translate(${initialX}, ${initialY})`);
+    .attr('transform', `translate(${centerX}, ${centerY})`);
   
-  // Add zoom behavior with bounded panning
+  // Add zoom behavior
   const zoom = d3.zoom()
-    .scaleExtent([0.3, 1.5])  // Tighter zoom range for better control
-    .translateExtent([[-width * 2, -height * 2], [width * 3, height * 3]])  // Prevent dragging too far off-screen
-    .extent([[0, 0], [width, height]])  // Viewport bounds
+    .scaleExtent([0.1, 2])
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
     });
   
-  svg.call(zoom)
-    .on('dblclick.zoom', null);  // Disable double-click zoom for cleaner UX
+  svg.call(zoom);
   
-  // Create tree layout with dynamic spacing
-  // Calculate spacing based on total visible nodes
-  const visibleNodeCount = root ? root.descendants().filter(d => !d._children).length : 10;
-  const spacing = calculateDynamicSpacing(visibleNodeCount);
-  
+  // Create tree layout
   tree = d3.tree()
-    .nodeSize([spacing.verticalSpacing, spacing.horizontalSpacing])
+    .nodeSize([VERTICAL_SPACING, HORIZONTAL_SPACING])
     .separation((a, b) => (a.parent === b.parent ? 1 : 1.2));
   
   // Build hierarchy
@@ -415,58 +396,35 @@ function toggle(d) {
 }
 
 /**
- * Auto-center camera on node and its children
- * @param {Object} node - The node to center on
+ * Shift camera to keep tree centered as it expands
  */
-function autoCenterOnNode(node) {
-  if (!node || !svg) return;
+function shiftCameraForExpansion() {
+  if (!svg || !root) return;
   
-  // Get all visible descendants of this node
-  const descendants = node.descendants().filter(d => d.children || d === node);
-  
-  if (descendants.length === 0) return;
-  
-  // Calculate bounding box of visible nodes
-  let minX = Infinity, maxX = -Infinity;
-  let minY = Infinity, maxY = -Infinity;
-  
-  descendants.forEach(d => {
-    if (d.x !== undefined && d.y !== undefined) {
-      minX = Math.min(minX, d.x);
-      maxX = Math.max(maxX, d.x);
-      minY = Math.min(minY, d.y);
-      maxY = Math.max(maxY, d.y);
+  // Calculate the depth of the tree (how many columns)
+  let maxDepth = 0;
+  root.descendants().forEach(d => {
+    if (d.children && d.depth > maxDepth) {
+      maxDepth = d.depth;
     }
   });
-  
-  // Calculate center point and scale
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  const width = maxY - minY + 400;  // Add padding
-  const height = maxX - minX + 200;  // Add padding
   
   // Get SVG dimensions
   const svgWidth = svg.node().clientWidth;
   const svgHeight = svg.node().clientHeight;
   
-  // Calculate scale to fit
-  const scale = Math.min(
-    svgWidth / width,
-    svgHeight / height,
-    1.2  // Max zoom in
-  );
+  // Calculate how much to shift left based on tree depth
+  // As tree expands right, shift camera left to keep it centered
+  const treeWidth = maxDepth * HORIZONTAL_SPACING;
+  const shiftX = svgWidth / 2 - (treeWidth / 2);
   
-  // Calculate translation to center
-  const translateX = svgWidth / 2 - centerY * scale;
-  const translateY = svgHeight / 2 - centerX * scale;
-  
-  // Smooth transition to new view
+  // Smooth transition to new camera position
   svg.transition()
-    .duration(750)
+    .duration(600)
     .ease(d3.easeCubicInOut)
     .call(
       d3.zoom().transform,
-      d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+      d3.zoomIdentity.translate(shiftX, svgHeight / 2)
     );
 }
 
@@ -474,13 +432,6 @@ function autoCenterOnNode(node) {
  * Update visualization
  */
 function update(source) {
-  // Recalculate dynamic spacing based on currently visible nodes
-  const visibleNodes = root.descendants().filter(d => d.children || d === root);
-  const spacing = calculateDynamicSpacing(visibleNodes.length);
-  
-  // Update tree layout with new spacing
-  tree.nodeSize([spacing.verticalSpacing, spacing.horizontalSpacing]);
-  
   // Compute new tree layout
   const treeData = tree(root);
   const nodes = treeData.descendants();
@@ -705,9 +656,9 @@ function handleNodeClick(d) {
   toggle(d);
   update(d);
   
-  // Auto-center camera on the expanded/collapsed node
+  // Shift camera to keep tree centered
   setTimeout(() => {
-    autoCenterOnNode(d);
+    shiftCameraForExpansion();
   }, 50);  // Small delay to let layout compute
 }
 
