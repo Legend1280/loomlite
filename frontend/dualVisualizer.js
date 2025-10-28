@@ -436,5 +436,5 @@ function centerSolarView() {
 // Export for global access
 window.drawDualVisualizer = drawDualVisualizer;
 window.highlightSearchResultsInSolar = highlightSearchResultsInSolar;
-window.clearSearchHighlightsInSolar = clearSearchHighlightsInSolar;
+window.resetSolarSearchHighlight = resetSolarSearchHighlight;
 
