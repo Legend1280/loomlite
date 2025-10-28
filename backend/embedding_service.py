@@ -10,7 +10,7 @@ from chromadb.config import Settings
 import numpy as np
 import sqlite3
 from datetime import datetime
-from vector_utils import serialize_vector, generate_vector_fingerprint
+from backend.vector_utils import serialize_vector, generate_vector_fingerprint
 
 # Model configuration
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # 384 dimensions, fast, good quality
