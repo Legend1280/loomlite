@@ -802,12 +802,29 @@ function clearSearchHighlights() {
   
   console.log('Resetting Planet View search filter');
   
+  // Reset rectangles (concept nodes)
   g.selectAll('g.node')
     .select('rect')
     .transition()
     .duration(400)
     .attr('stroke', d => getNodeStrokeColor(d.data.type))
     .attr('stroke-width', 2)
+    .style('opacity', 1);
+  
+  // Reset circles (planet/document node)
+  g.selectAll('g.node')
+    .select('circle')
+    .transition()
+    .duration(400)
+    .attr('stroke', '#94a3b8')
+    .attr('stroke-width', 2)
+    .style('opacity', 1);
+  
+  // Reset text opacity
+  g.selectAll('g.node')
+    .select('text')
+    .transition()
+    .duration(400)
     .style('opacity', 1);
 }
 
