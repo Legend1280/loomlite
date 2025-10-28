@@ -1848,40 +1848,51 @@ def add_critical_indexes():
         cur.execute("SELECT name FROM sqlite_master WHERE type='index'")
         existing_indexes = {row[0] for row in cur.fetchall()}
         
+        # Detect table naming convention (capitalized vs lowercase)
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('Mention', 'mentions')")
+        table_check = cur.fetchone()
+        use_caps = table_check and table_check[0] == 'Mention' if table_check else False
+        
+        # Use appropriate table names
+        mention_table = 'Mention' if use_caps else 'mentions'
+        relation_table = 'Relation' if use_caps else 'relations'
+        span_table = 'Span' if use_caps else 'spans'
+        concept_table = 'Concept' if use_caps else 'concepts'
+        
         indexes_to_create = [
             {
                 'name': 'idx_mention_concept_id',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_mention_concept_id ON Mention(concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_mention_concept_id ON {mention_table}(concept_id)',
                 'description': 'Speed up concept → document lookups'
             },
             {
                 'name': 'idx_mention_doc_id',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_mention_doc_id ON Mention(doc_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_mention_doc_id ON {mention_table}(doc_id)',
                 'description': 'Speed up document → concept lookups'
             },
             {
                 'name': 'idx_relation_src_concept_id',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_relation_src_concept_id ON Relation(src_concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_src_concept_id ON {relation_table}(src_concept_id)',
                 'description': 'Speed up relation lookups by source'
             },
             {
                 'name': 'idx_relation_dst_concept_id',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_relation_dst_concept_id ON Relation(dst_concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_dst_concept_id ON {relation_table}(dst_concept_id)',
                 'description': 'Speed up relation lookups by destination'
             },
             {
                 'name': 'idx_relation_src_dst',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_relation_src_dst ON Relation(src_concept_id, dst_concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_src_dst ON {relation_table}(src_concept_id, dst_concept_id)',
                 'description': 'Speed up bidirectional relation queries'
             },
             {
                 'name': 'idx_span_doc_id',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_span_doc_id ON Span(doc_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_span_doc_id ON {span_table}(doc_id)',
                 'description': 'Speed up span lookups by document'
             },
             {
                 'name': 'idx_concept_type',
-                'sql': 'CREATE INDEX IF NOT EXISTS idx_concept_type ON Concept(type)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_concept_type ON {concept_table}(type)',
                 'description': 'Speed up concept filtering by type'
             }
         ]
@@ -1900,8 +1911,12 @@ def add_critical_indexes():
                 })
         
         # Analyze tables to update query planner
-        for table in ['Concept', 'Relation', 'Mention', 'Span', 'Document']:
-            cur.execute(f"ANALYZE {table}")
+        tables_to_analyze = [concept_table, relation_table, mention_table, span_table]
+        for table in tables_to_analyze:
+            try:
+                cur.execute(f"ANALYZE {table}")
+            except:
+                pass  # Skip if table doesn't exist
         
         conn.commit()
         
@@ -1911,9 +1926,12 @@ def add_critical_indexes():
         
         # Get table stats
         stats = {}
-        for table in ['Document', 'Concept', 'Relation', 'Mention', 'Span']:
-            cur.execute(f"SELECT COUNT(*) FROM {table}")
-            stats[table] = cur.fetchone()[0]
+        for table in [concept_table, relation_table, mention_table, span_table]:
+            try:
+                cur.execute(f"SELECT COUNT(*) FROM {table}")
+                stats[table] = cur.fetchone()[0]
+            except:
+                stats[table] = 0
         
         conn.close()
         
