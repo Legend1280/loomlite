@@ -9,6 +9,7 @@
  */
 
 import { bus, setCurrentConceptId } from './eventBus.js';
+import { createListenerManager, registerManager } from './eventListenerManager.js';
 
 // Global state
 let currentMode = 'ontology'; // 'ontology' or 'document' - default to ontology to show summaries
@@ -25,6 +26,7 @@ let analyticsVisible = false;
 let currentFolder = null;
 let viewStartTime = null;
 const BACKEND_URL = 'https://loomlite-production.up.railway.app';
+const listeners = createListenerManager(); // Event listener manager
 
 /**
  * Initialize surface viewer
@@ -44,8 +46,11 @@ export function initSurfaceViewer() {
   // Render content area
   renderContentArea(surfaceViewer);
   
+  // Cleanup previous listeners
+  listeners.cleanup();
+  
   // Listen for conceptSelected events via event bus
-  bus.on('conceptSelected', (event) => {
+  listeners.add('conceptSelected', (event) => {
     const { concept, conceptId, nodeType, hierarchyLevel, summary } = event.detail;
     
     console.log(`Surface Viewer received selection:`, { conceptId, nodeType, hierarchyLevel });
@@ -70,7 +75,7 @@ export function initSurfaceViewer() {
   });
   
   // Listen for folderSelected events from Dynamic Folders Panel
-  bus.on('folderSelected', (event) => {
+  listeners.add('folderSelected', (event) => {
     const { folder, document, doc_id, title, score } = event.detail;
     
     console.log(`📁 Folder selection received:`, { folder, title, score });
@@ -94,7 +99,7 @@ export function initSurfaceViewer() {
   });
   
   // Listen for documentFocus events to load document
-  bus.on('documentFocus', async (event) => {
+  listeners.add('documentFocus', async (event) => {
     const { docId, doc_id } = event.detail;
     currentDocId = docId || doc_id;
     
@@ -106,6 +111,9 @@ export function initSurfaceViewer() {
     // Update content based on current mode
     updateContent();
   });
+  
+  // Register for global cleanup
+  registerManager(listeners);
   
   console.log('Enhanced Surface Viewer v3.0b initialized');
 }

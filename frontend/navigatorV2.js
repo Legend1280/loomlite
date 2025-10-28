@@ -12,6 +12,7 @@ import { bus } from './eventBus.js';
 import { initModeSwitch } from './navigatorModeSwitch.js';
 import { initDynamicPane } from './navigatorDynamicPane.js';
 import { initActiveThreads } from './navigatorActiveThreads.js';
+import { createListenerManager, registerManager } from './eventListenerManager.js';
 
 const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 
@@ -22,6 +23,7 @@ let pinnedFolders = [];
 let collapsedSections = loadCollapsedState();
 let isSearchActive = false; // Track if search is active
 let searchTimeout = null; // Short-lived search buffer
+const listeners = createListenerManager(); // Event listener manager
 
 /**
  * Initialize Navigator
@@ -39,22 +41,25 @@ export function initFileSystemSidebar() {
   loadStaticTiers();
   
   // Listen for document upload events to refresh
-  bus.on('documentUploaded', () => {
+  listeners.add('documentUploaded', () => {
     console.log('Document uploaded, refreshing Navigator...');
     loadStaticTiers();
   });
   
   // Listen for search results to update Top Hits dynamically
-  bus.on('searchResults', (event) => {
+  listeners.add('searchResults', (event) => {
     console.log('Search results received, updating Top Hits...');
     updateTopHitsFromSearch(event.detail);
   });
   
   // Listen for search cleared to restore original Top Hits
-  bus.on('searchCleared', () => {
+  listeners.add('searchCleared', () => {
     console.log('Search cleared, restoring original Top Hits...');
     restoreOriginalTopHits();
   });
+  
+  // Register for global cleanup
+  registerManager(listeners);
 }
 
 /**

@@ -10,12 +10,14 @@
  */
 
 import { bus } from './eventBus.js';
+import { createListenerManager, registerManager } from './eventListenerManager.js';
 
 const API_BASE = 'https://loomlite-production.up.railway.app';
 
 let svg, g, simulation;
 let documents = [];
 let sharedConcepts = [];
+const listeners = createListenerManager(); // Event listener manager
 
 /**
  * Initialize Galaxy View
@@ -35,19 +37,22 @@ export async function initGalaxyView() {
   // Create visualization
   createGalaxyVisualization(container);
   
+  // Cleanup previous listeners
+  listeners.cleanup();
+  
   // Listen for search results
-  bus.on('searchResults', (event) => {
+  listeners.add('searchResults', (event) => {
     const { results } = event.detail;
     highlightSearchResults(results);
   });
   
   // Listen for search cleared
-  bus.on('searchCleared', () => {
+  listeners.add('searchCleared', () => {
     resetSearchHighlight();
   });
   
   // Listen for thread selection
-  bus.on('threadSelected', ({ threadId, documents }) => {
+  listeners.add('threadSelected', ({ threadId, documents }) => {
     if (threadId && documents && documents.length > 0) {
       console.log(`Galaxy View: Filtering to thread "${threadId}" with ${documents.length} documents`);
       highlightThreadDocuments(documents);
@@ -56,6 +61,9 @@ export async function initGalaxyView() {
       resetThreadHighlight();
     }
   });
+  
+  // Register for global cleanup
+  registerManager(listeners);
   
   console.log('Galaxy View initialized');
 }

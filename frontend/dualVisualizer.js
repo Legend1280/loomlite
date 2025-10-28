@@ -10,6 +10,7 @@
  */
 
 import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
+import { createListenerManager, registerManager } from './eventListenerManager.js';
 
 /**
  * Initialize and render the Solar System visualization
@@ -18,6 +19,8 @@ import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
 // Store current visualization state
 let currentSvg = null;
 let currentOntology = null;
+let animationId = null; // Track animation frame for cleanup
+const listeners = createListenerManager(); // Event listener manager
 
 export async function drawDualVisualizer(docId) {
   try {
@@ -44,21 +47,31 @@ export async function drawDualVisualizer(docId) {
     // Render mind map in bottom panel (placeholder for now)
     renderMindMapPlaceholder(svgBottom, ontology);
     
+    // Cleanup previous listeners and animations
+    listeners.cleanup();
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+    
     // Listen for search results
-    bus.on('searchResults', (event) => {
+    listeners.add('searchResults', (event) => {
       const { results } = event.detail;
       highlightSearchResultsInSolar(results);
     });
     
     // Listen for search cleared
-    bus.on('searchCleared', () => {
+    listeners.add('searchCleared', () => {
       resetSolarSearchHighlight();
     });
     
     // Listen for center command (triple-click)
-    bus.on('centerSolarSystem', () => {
+    listeners.add('centerSolarSystem', () => {
       centerSolarView();
     });
+    
+    // Register for global cleanup
+    registerManager(listeners);
   } catch (error) {
     console.error('Error rendering dual visualizer:', error);
   }
@@ -409,9 +422,21 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
   // Start animation
   animate();
   
-  // Store animation ID for cleanup
-  if (typeof window !== 'undefined') {
-    window.solarAnimationId = animationId;
+  // Store animation ID for cleanup (already stored in module scope)
+  console.log('[DualVisualizer] Animation started');
+  
+  // Stop animation when tab is hidden to save resources
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+        console.log('[DualVisualizer] Animation paused (tab hidden)');
+      } else if (!document.hidden && !animationId) {
+        animate();
+        console.log('[DualVisualizer] Animation resumed (tab visible)');
+      }
+    });
   }
 }
 
