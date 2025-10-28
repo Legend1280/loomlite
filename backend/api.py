@@ -420,6 +420,13 @@ async def search(q: str = "", types: str = "", tags: str = ""):
     
     matching_concepts = conn.execute(concept_query, concept_params).fetchall()
     
+    # Debug: Log matching concepts
+    print(f"[SEARCH DEBUG] Query: '{q}'")
+    print(f"[SEARCH DEBUG] Found {len(matching_concepts)} matching concepts:")
+    for concept in matching_concepts[:10]:  # Show first 10
+        concept_dict = dict(concept)
+        print(f"  - {concept_dict.get('label', 'N/A')} (doc: {concept_dict.get('doc_id', 'N/A')})")
+    
     # Step 2: Group concepts by document and calculate scores
     doc_concept_map = {}
     for concept in matching_concepts:
