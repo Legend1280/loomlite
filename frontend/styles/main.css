@@ -1,0 +1,347 @@
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      overflow: hidden;
+      height: 100vh;
+      font-size: 13px;
+    }
+    
+    /* TOOLBAR */
+    #toolbar {
+      height: 56px;
+      background: #0c0c0c;
+      border-bottom: 1px solid rgba(42, 42, 42, 0.4);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    
+    /* VIEW MODE BUTTONS */
+    #viewModeButtons {
+      flex: 1;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    
+    .view-mode-btn {
+      padding: 8px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: #e6e6e6;
+      cursor: pointer;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .view-mode-btn:hover {
+      background: rgba(250, 214, 67, 0.2);
+      color: #fad643;
+    }
+    
+    .view-mode-btn.active {
+      color: #fad643;
+      filter: drop-shadow(0 0 4px rgba(250, 214, 67, 0.3));
+    }
+    
+    .view-mode-btn svg {
+      display: block;
+      stroke-width: 2;
+    }
+    
+    /* UPLOAD BUTTON */
+    .upload-btn {
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid #fad643;
+      border-radius: 6px;
+      color: #fad643;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .upload-btn:hover {
+      background: rgba(250, 214, 67, 0.1);
+    }
+    
+    .upload-btn:active {
+      background: #fad643;
+      color: #0c0c0c;
+    }
+    
+    /* THREE-PANEL LAYOUT */
+    #app {
+      display: flex;
+      height: calc(100vh - 60px);
+    }
+    
+    /* LEFT SIDEBAR */
+    #sidebar {
+      width: 16rem;
+      background: #181818;
+      border-right: 1px solid rgba(42, 42, 42, 0.5);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    
+    #sidebar.collapsed {
+      width: 3.5rem;
+    }
+    
+    /* CENTER PANEL - DUAL VISUALIZER */
+    #center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 8px;
+      background: #0a0a0a;
+      min-width: 0;
+    }
+    
+    .visualizer-container {
+      flex: 1;
+      background: #181818;
+      border: 1px solid rgba(42, 42, 42, 0.5);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+    }
+    
+    /* RESIZABLE DIVIDERS */
+    .resize-handle {
+      background: rgba(42, 42, 42, 0.5);
+      position: relative;
+      z-index: 100;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .resize-handle:hover {
+      background: rgba(250, 214, 67, 0.1);
+    }
+    
+    .resize-handle-horizontal {
+      height: 8px;
+      cursor: ns-resize;
+      margin: 0;
+    }
+    
+    .resize-handle-vertical {
+      width: 8px;
+      cursor: ew-resize;
+      flex-shrink: 0;
+    }
+    
+    .resize-handle-horizontal::before,
+    .resize-handle-vertical::before {
+      content: '';
+      position: absolute;
+      background: #2a2a2a;
+      border-radius: 2px;
+    }
+    
+    .resize-handle-horizontal::before {
+      width: 40px;
+      height: 3px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .resize-handle-vertical::before {
+      width: 3px;
+      height: 40px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    .visualizer-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #9b9b9b;
+      font-weight: 500;
+      z-index: 10;
+      pointer-events: none;
+    }
+    
+    .visualizer-container svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* VIEW MODE CLASSES */
+    #app.split-mode #visualizer-top,
+    #app.split-mode #visualizer-bottom {
+      display: flex;
+    }
+    
+    #app.solar-only #visualizer-top {
+      flex: 1;
+    }
+    
+    #app.solar-only #visualizer-bottom {
+      display: none;
+    }
+    
+    #app.mind-only #visualizer-top {
+      display: none;
+    }
+    
+    #app.mind-only #visualizer-bottom {
+      flex: 1;
+    }
+    
+    /* RIGHT PANEL - SURFACE VIEWER */
+    #surface-viewer {
+      width: 28rem;
+      background: #181818;
+      border-left: 1px solid rgba(42, 42, 42, 0.5);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+      #surface-viewer {
+        width: 20rem;
+      }
+    }
+    
+    @media (max-width: 900px) {
+      #app {
+        flex-direction: column;
+      }
+      
+      #sidebar,
+      #surface-viewer {
+        width: 100%;
+        height: auto;
+      }
+    }
+    
+    /* SYSTEM STATUS DASHBOARD */    #systemStatus {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #181818;
+      border: 1px solid rgba(42, 42, 42, 0.5);
+      border-radius: 8px;
+      padding: 0;
+      min-width: 250px;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 9999;
+    }  font-size: 12px;
+    }
+    
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: #111111;
+      border-bottom: 1px solid rgba(42, 42, 42, 0.5);
+      border-radius: 8px 8px 0 0;
+      cursor: move;
+    }
+    
+    .status-title {
+      font-weight: 500;
+      color: #e6e6e6;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-toggle {
+      background: none;
+      border: none;
+      color: #9a9a9a;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.15s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .status-toggle:hover {
+      background: rgba(250, 214, 67, 0.1);
+      color: #fad643;
+    }
+    
+    .status-content {
+      padding: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .status-section {
+      margin-bottom: 12px;
+    }
+    
+    .status-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .status-section-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: #9a9a9a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+      transition: opacity 0.2s;
+    }
+    
+    .status-icon {
+      font-size: 14px;
+      width: 18px;
+      text-align: center;
+    }
+    
+    .status-label {
+      flex: 1;
+      color: #e6e6e6;
+      font-size: 11px;
+    }
+    
+    .status-value {
+      color: #fad643;
+      font-weight: 500;
+      font-size: 11px;
+    }
+    
+    /* Glowing threads (static, no animation for performance) */
+    .thread {
+      /* No animation - just static glow via SVG filter */
+    }
