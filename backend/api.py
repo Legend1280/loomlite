@@ -2420,6 +2420,106 @@ async def migrate_v5_2_vector_integration():
             "traceback": traceback.format_exc()
         }
 
+@app.post("/admin/migrate-v5.2-alt")
+def migrate_v5_2_alt():
+    """
+    Alternative v5.2 migration endpoint - uses direct SQL
+    Temporary workaround for Railway deployment issues
+    """
+    import sqlite3
+    import os
+    
+    try:
+        db_path = os.environ.get("DB_PATH", "/app/backend/loom_lite.db")
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        
+        migrations_applied = []
+        migrations_skipped = []
+        
+        # Check Document table columns
+        doc_columns = [col[1] for col in cur.execute("PRAGMA table_info(Document)").fetchall()]
+        
+        # Add vector columns to Document
+        if 'vector' not in doc_columns:
+            cur.execute("ALTER TABLE Document ADD COLUMN vector BLOB")
+            migrations_applied.append("Document.vector")
+        else:
+            migrations_skipped.append("Document.vector")
+        
+        if 'vector_model' not in doc_columns:
+            cur.execute("ALTER TABLE Document ADD COLUMN vector_model TEXT DEFAULT 'all-MiniLM-L6-v2'")
+            migrations_applied.append("Document.vector_model")
+        else:
+            migrations_skipped.append("Document.vector_model")
+        
+        if 'vector_fingerprint' not in doc_columns:
+            cur.execute("ALTER TABLE Document ADD COLUMN vector_fingerprint TEXT")
+            migrations_applied.append("Document.vector_fingerprint")
+        else:
+            migrations_skipped.append("Document.vector_fingerprint")
+        
+        if 'vector_dimension' not in doc_columns:
+            cur.execute("ALTER TABLE Document ADD COLUMN vector_dimension INTEGER DEFAULT 384")
+            migrations_applied.append("Document.vector_dimension")
+        else:
+            migrations_skipped.append("Document.vector_dimension")
+        
+        # Check Concept table columns
+        concept_columns = [col[1] for col in cur.execute("PRAGMA table_info(Concept)").fetchall()]
+        
+        # Add vector columns to Concept
+        if 'vector' not in concept_columns:
+            cur.execute("ALTER TABLE Concept ADD COLUMN vector BLOB")
+            migrations_applied.append("Concept.vector")
+        else:
+            migrations_skipped.append("Concept.vector")
+        
+        if 'vector_model' not in concept_columns:
+            cur.execute("ALTER TABLE Concept ADD COLUMN vector_model TEXT DEFAULT 'all-MiniLM-L6-v2'")
+            migrations_applied.append("Concept.vector_model")
+        else:
+            migrations_skipped.append("Concept.vector_model")
+        
+        if 'vector_fingerprint' not in concept_columns:
+            cur.execute("ALTER TABLE Concept ADD COLUMN vector_fingerprint TEXT")
+            migrations_applied.append("Concept.vector_fingerprint")
+        else:
+            migrations_skipped.append("Concept.vector_fingerprint")
+        
+        if 'vector_dimension' not in concept_columns:
+            cur.execute("ALTER TABLE Concept ADD COLUMN vector_dimension INTEGER DEFAULT 384")
+            migrations_applied.append("Concept.vector_dimension")
+        else:
+            migrations_skipped.append("Concept.vector_dimension")
+        
+        conn.commit()
+        
+        # Get stats
+        doc_count = cur.execute("SELECT COUNT(*) FROM Document").fetchone()[0]
+        concept_count = cur.execute("SELECT COUNT(*) FROM Concept").fetchone()[0]
+        
+        conn.close()
+        
+        return {
+            "status": "success",
+            "message": "v5.2 Vector Integration migration completed (alt endpoint)",
+            "migrations_applied": migrations_applied,
+            "migrations_skipped": migrations_skipped,
+            "database_stats": {
+                "documents": doc_count,
+                "concepts": concept_count
+            }
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
