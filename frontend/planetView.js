@@ -17,9 +17,21 @@ let currentOntology = null;
 // Configuration
 const NODE_WIDTH = 240;
 const NODE_HEIGHT = 40;
-const VERTICAL_SPACING = 50;
-const HORIZONTAL_SPACING = 280;
+const BASE_VERTICAL_SPACING = 50;
+const BASE_HORIZONTAL_SPACING = 280;
 const ANIMATION_DURATION = 400;
+
+// Dynamic spacing calculation
+function calculateDynamicSpacing(nodeCount) {
+  // Vertical spacing scales with node count to prevent overlap
+  const verticalSpacing = BASE_VERTICAL_SPACING;
+  
+  // Horizontal spacing increases slightly with more nodes for visual balance
+  // Formula from spec: baseDistance + (numNodes * 0.05 * baseDistance)
+  const horizontalSpacing = BASE_HORIZONTAL_SPACING + (nodeCount * 0.05 * BASE_HORIZONTAL_SPACING);
+  
+  return { verticalSpacing, horizontalSpacing };
+}
 
 /**
  * Initialize Planet View
@@ -337,18 +349,25 @@ function createMindMapVisualization(container) {
   g = svg.append('g')
     .attr('transform', `translate(60, ${height / 2})`);
   
-  // Add zoom behavior
+  // Add zoom behavior with bounded panning
   const zoom = d3.zoom()
-    .scaleExtent([0.1, 2])
+    .scaleExtent([0.3, 1.5])  // Tighter zoom range for better control
+    .translateExtent([[-width * 2, -height * 2], [width * 3, height * 3]])  // Prevent dragging too far off-screen
+    .extent([[0, 0], [width, height]])  // Viewport bounds
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
     });
   
-  svg.call(zoom);
+  svg.call(zoom)
+    .on('dblclick.zoom', null);  // Disable double-click zoom for cleaner UX
   
-  // Create tree layout
+  // Create tree layout with dynamic spacing
+  // Calculate spacing based on total visible nodes
+  const visibleNodeCount = root ? root.descendants().filter(d => !d._children).length : 10;
+  const spacing = calculateDynamicSpacing(visibleNodeCount);
+  
   tree = d3.tree()
-    .nodeSize([VERTICAL_SPACING, HORIZONTAL_SPACING])
+    .nodeSize([spacing.verticalSpacing, spacing.horizontalSpacing])
     .separation((a, b) => (a.parent === b.parent ? 1 : 1.2));
   
   // Build hierarchy
@@ -393,9 +412,72 @@ function toggle(d) {
 }
 
 /**
+ * Auto-center camera on node and its children
+ * @param {Object} node - The node to center on
+ */
+function autoCenterOnNode(node) {
+  if (!node || !svg) return;
+  
+  // Get all visible descendants of this node
+  const descendants = node.descendants().filter(d => d.children || d === node);
+  
+  if (descendants.length === 0) return;
+  
+  // Calculate bounding box of visible nodes
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  
+  descendants.forEach(d => {
+    if (d.x !== undefined && d.y !== undefined) {
+      minX = Math.min(minX, d.x);
+      maxX = Math.max(maxX, d.x);
+      minY = Math.min(minY, d.y);
+      maxY = Math.max(maxY, d.y);
+    }
+  });
+  
+  // Calculate center point and scale
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const width = maxY - minY + 400;  // Add padding
+  const height = maxX - minX + 200;  // Add padding
+  
+  // Get SVG dimensions
+  const svgWidth = svg.node().clientWidth;
+  const svgHeight = svg.node().clientHeight;
+  
+  // Calculate scale to fit
+  const scale = Math.min(
+    svgWidth / width,
+    svgHeight / height,
+    1.2  // Max zoom in
+  );
+  
+  // Calculate translation to center
+  const translateX = svgWidth / 2 - centerY * scale;
+  const translateY = svgHeight / 2 - centerX * scale;
+  
+  // Smooth transition to new view
+  svg.transition()
+    .duration(750)
+    .ease(d3.easeCubicInOut)
+    .call(
+      d3.zoom().transform,
+      d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+    );
+}
+
+/**
  * Update visualization
  */
 function update(source) {
+  // Recalculate dynamic spacing based on currently visible nodes
+  const visibleNodes = root.descendants().filter(d => d.children || d === root);
+  const spacing = calculateDynamicSpacing(visibleNodes.length);
+  
+  // Update tree layout with new spacing
+  tree.nodeSize([spacing.verticalSpacing, spacing.horizontalSpacing]);
+  
   // Compute new tree layout
   const treeData = tree(root);
   const nodes = treeData.descendants();
@@ -619,6 +701,11 @@ function handleNodeClick(d) {
   // Toggle expansion
   toggle(d);
   update(d);
+  
+  // Auto-center camera on the expanded/collapsed node
+  setTimeout(() => {
+    autoCenterOnNode(d);
+  }, 50);  // Small delay to let layout compute
 }
 
 /**
