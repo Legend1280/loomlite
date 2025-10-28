@@ -263,8 +263,8 @@ function createDocumentItem(doc) {
   
   // Document icon
   const icon = document.createElement('span');
-  icon.textContent = '📄';
-  icon.style.cssText = 'font-size: 14px;';
+  icon.textContent = '▫';
+  icon.style.cssText = 'font-size: 12px; color: #9a9a9a;';
   
   // Document title
   const titleEl = document.createElement('span');

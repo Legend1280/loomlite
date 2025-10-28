@@ -296,8 +296,8 @@ function createDocumentItem(doc, options = {}) {
   };
   
   const iconEl = document.createElement('span');
-  iconEl.textContent = '📄';
-  iconEl.style.cssText = 'font-size: 14px;';
+  iconEl.textContent = '▫';
+  iconEl.style.cssText = 'font-size: 12px; color: #9a9a9a;';
   
   const titleEl = document.createElement('span');
   titleEl.textContent = truncateText(doc.title, 25);
@@ -355,8 +355,8 @@ function createPinnedItem(pin) {
   };
   
   const iconEl = document.createElement('span');
-  iconEl.textContent = pin.type === 'document' ? '📄' : '📁';
-  iconEl.style.cssText = 'font-size: 14px;';
+  iconEl.textContent = pin.type === 'document' ? '▫' : '■';
+  iconEl.style.cssText = 'font-size: 12px; color: #9a9a9a;';
   
   const labelEl = document.createElement('span');
   labelEl.textContent = truncateText(pin.label, 25);

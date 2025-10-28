@@ -191,16 +191,15 @@ function createGalaxyVisualization(container) {
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collision', d3.forceCollide().radius(d => getNodeRadius(d) + 20));
   
-  // Draw links (glowing threads - static glow, no animation)
+  // Draw links (simple lines, no glow)
   const link = g.append('g')
     .selectAll('line')
     .data(links)
     .join('line')
     .attr('class', 'thread')
-    .attr('stroke', '#60a5fa')
-    .attr('stroke-opacity', 0.4)
-    .attr('stroke-width', d => Math.sqrt(d.strength))
-    .attr('filter', 'url(#thread-glow)');
+    .attr('stroke', '#666666')
+    .attr('stroke-opacity', 0.3)
+    .attr('stroke-width', 1);
   
   // Draw nodes (solar systems)
   const node = g.append('g')
@@ -214,36 +213,23 @@ function createGalaxyVisualization(container) {
       drillDownToSolarSystem(d);
     });
   
-  // Add glow effect for each solar system
-  node.append('circle')
-    .attr('r', d => getNodeRadius(d) + 10)
-    .attr('fill', 'url(#solar-glow)')
-    .attr('opacity', 0.3);
-  
-  // Add main star circle (gradient fades to transparent = no hard edge)
+  // Add simple circle node (no glow, no gradient)
   node.append('circle')
     .attr('r', d => getNodeRadius(d))
-    .attr('fill', 'url(#star-glow)');
+    .attr('fill', '#ffffff')
+    .attr('stroke', '#666666')
+    .attr('stroke-width', 1.5);
   
   // Add document title
   node.append('text')
     .attr('dy', d => getNodeRadius(d) + 20)
     .attr('text-anchor', 'middle')
-    .attr('fill', '#e2e8f0')
-    .attr('font-size', '12px')
-    .attr('font-weight', '600')
+    .attr('fill', '#cccccc')
+    .attr('font-size', '11px')
+    .attr('font-weight', '400')
     .text(d => truncateTitle(d.title, 30));
   
-  // Add concept count
-  node.append('text')
-    .attr('dy', d => getNodeRadius(d) + 35)
-    .attr('text-anchor', 'middle')
-    .attr('fill', '#94a3b8')
-    .attr('font-size', '10px')
-    .text(d => `${d.conceptCount} concepts`);
-  
-  // Add gradients
-  addGradients(svg);
+  // No gradients needed for minimal design
   
   // Update positions on tick
   simulation.on('tick', () => {
@@ -258,82 +244,17 @@ function createGalaxyVisualization(container) {
 }
 
 /**
- * Create starfield background
+ * Create starfield background (disabled for performance)
  */
 function createStarfield(svg, width, height) {
-  const stars = d3.range(200).map(() => ({
-    x: Math.random() * width,
-    y: Math.random() * height,
-    r: Math.random() * 1.5
-  }));
-  
-  svg.append('g')
-    .selectAll('circle')
-    .data(stars)
-    .join('circle')
-    .attr('cx', d => d.x)
-    .attr('cy', d => d.y)
-    .attr('r', d => d.r)
-    .attr('fill', '#ffffff')
-    .attr('opacity', d => 0.3 + Math.random() * 0.7);
+  // Starfield disabled for performance
 }
 
 /**
- * Add SVG gradients
+ * Add SVG gradients (disabled for performance)
  */
 function addGradients(svg) {
-  const defs = svg.append('defs');
-  
-  // Solar glow gradient (outer halo)
-  const solarGlow = defs.append('radialGradient')
-    .attr('id', 'solar-glow');
-  
-  solarGlow.append('stop')
-    .attr('offset', '0%')
-    .attr('stop-color', '#fbbf24')
-    .attr('stop-opacity', 0.8);
-  
-  solarGlow.append('stop')
-    .attr('offset', '100%')
-    .attr('stop-color', '#f59e0b')
-    .attr('stop-opacity', 0);
-  
-  // Star glow gradient (for main node - fades to transparent)
-  const starGlow = defs.append('radialGradient')
-    .attr('id', 'star-glow');
-  
-  starGlow.append('stop')
-    .attr('offset', '0%')
-    .attr('stop-color', '#ffffff')
-    .attr('stop-opacity', 1);
-  
-  starGlow.append('stop')
-    .attr('offset', '30%')
-    .attr('stop-color', '#fbbf24')
-    .attr('stop-opacity', 0.8);
-  
-  starGlow.append('stop')
-    .attr('offset', '100%')
-    .attr('stop-color', '#fbbf24')
-    .attr('stop-opacity', 0);
-  
-  // Thread glow filter (for glowing connections)
-  const threadGlow = defs.append('filter')
-    .attr('id', 'thread-glow')
-    .attr('x', '-50%')
-    .attr('y', '-50%')
-    .attr('width', '200%')
-    .attr('height', '200%');
-  
-  threadGlow.append('feGaussianBlur')
-    .attr('stdDeviation', '2')
-    .attr('result', 'blur');
-  
-  threadGlow.append('feMerge')
-    .call(merge => {
-      merge.append('feMergeNode').attr('in', 'blur');
-      merge.append('feMergeNode').attr('in', 'SourceGraphic');
-    });
+  // Gradients disabled for performance
 }
 
 /**
@@ -440,47 +361,21 @@ function highlightSearchResults(results) {
       if (!d || !d.id) return 1;
       // Fade non-matching to 0.05, keep matching at 1.0
       return matchedDocIds.has(d.id) ? 1.0 : 0.05;
-    });
-  
-  // Update node circles
+    });  // Update node circles (simplified, no pulse)
   g.selectAll('circle')
     .filter(function() {
-      // Only main circles with data bound
       return this.parentNode.tagName === 'g' && this.__data__;
     })
     .transition()
-    .duration(300)
+    .duration(200)
     .attr('stroke', d => {
-      // Defensive check for data
-      if (!d || !d.id) return '#f59e0b';
-      return matchedDocIds.has(d.id) ? '#10b981' : '#f59e0b';
+      if (!d || !d.id) return '#666666';
+      return matchedDocIds.has(d.id) ? '#000000' : '#666666';
     })
     .attr('stroke-width', d => {
-      // Defensive check for data
-      if (!d || !d.id) return 2;
-      return matchedDocIds.has(d.id) ? 4 : 2;
-    });
-  
-  // Pulse effect for matched documents
-  if (matchedDocIds.size > 0) {
-    g.selectAll('g')
-      .filter(function() {
-        // Only select top-level node groups with data
-        const d = this.__data__;
-        return this.parentNode === g.node() && d && d.id && matchedDocIds.has(d.id);
-      })
-      .selectAll('circle')
-      .transition()
-      .duration(500)
-      .attr('r', d => getNodeRadius(d) + 5)
-      .transition()
-      .duration(500)
-      .attr('r', d => getNodeRadius(d));
-  }
-}
-
-/**
- * Highlight documents in a thread (v1.6)
+      if (!d || !d.id) return 1.5;
+      return matchedDocIds.has(d.id) ? 2.5 : 1.5;
+    }); Highlight documents in a thread (v1.6)
  */
 function highlightThreadDocuments(docIds) {
   if (!g) return;

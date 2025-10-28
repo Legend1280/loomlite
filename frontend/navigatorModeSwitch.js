@@ -51,19 +51,19 @@ function createModeSwitchBar() {
     {
       id: 'standard',
       label: 'Standard',
-      icon: '📁',
+      icon: '■',
       tooltip: 'File organization (Recent, PDF, etc.)'
     },
     {
       id: 'meaning',
       label: 'Meaning',
-      icon: '🧠',
+      icon: '●',
       tooltip: 'Ontology-based clusters (Projects, Concepts, etc.)'
     },
     {
       id: 'time',
       label: 'Time',
-      icon: '🕓',
+      icon: '◷',
       tooltip: 'Chronological groups (Today, This Week, etc.)'
     }
   ];
