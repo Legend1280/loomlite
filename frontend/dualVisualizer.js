@@ -533,38 +533,46 @@ function typeColor(type) {
  * @param {Object} d - Node data
  */
 function showTooltip(event, d) {
+  // Debug: Log what data we have
+  console.log('Solar tooltip data:', {
+    label: d.label,
+    type: d.type,
+    hierarchy_level: d.hierarchy_level,
+    summary: d.summary,
+    allData: d
+  });
+  
   const tooltip = d3.select('body')
     .append('div')
     .attr('class', 'node-tooltip')
     .style('position', 'absolute')
-    .style('background', '#1e293b')
-    .style('color', '#e2e8f0')
-    .style('padding', '8px 12px')
-    .style('border-radius', '6px')
-    .style('border', '1px solid #334155')
+    .style('background', '#181818')
+    .style('color', '#e6e6e6')
+    .style('padding', '10px 14px')
+    .style('border-radius', '8px')
     .style('font-size', '12px')
+    .style('font-family', 'system-ui, -apple-system, sans-serif')
     .style('pointer-events', 'none')
-    .style('z-index', '1000')
-    .style('left', `${event.pageX + 10}px`)
-    .style('top', `${event.pageY + 10}px`)
-    .html(() => {
-      // Show document summary for sun (hierarchy_level 0)
-      if (d.hierarchy_level === 0) {
-        return `
-          <strong>${d.label}</strong><br>
-          <span style="color: #94a3b8;">Document Summary</span><br>
-          <div style="margin-top: 6px; max-width: 300px; line-height: 1.4;">
-            ${d.summary || 'No summary available'}
-          </div>
-        `;
-      }
-      // Regular concept tooltip
-      return `
-        <strong>${d.label}</strong><br>
-        <span style="color: #94a3b8;">Type: ${d.type}</span><br>
-        <span style="color: #94a3b8;">Confidence: ${Math.round((d.confidence || 0) * 100)}%</span>
-      `;
-    });
+    .style('z-index', '10000')
+    .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.3)')
+    .style('max-width', '400px')
+    .style('left', `${event.pageX + 15}px`)
+    .style('top', `${event.pageY + 15}px`);
+  
+  let content = `<strong style="font-size: 13px;">${d.label}</strong><br>`;
+  content += `<span style="color: #94a3b8;">Type: ${d.type}</span>`;
+  
+  // Show document summary for sun (hierarchy_level 0)
+  if (d.hierarchy_level === 0 && d.summary) {
+    content += `<br><br><span style="color: #cbd5e1; line-height: 1.5;">${d.summary}</span>`;
+  }
+  
+  // Show confidence for concepts
+  if (d.hierarchy_level > 0 && d.confidence) {
+    content += `<br><span style="color: #94a3b8;">Confidence: ${Math.round(d.confidence * 100)}%</span>`;
+  }
+  
+  tooltip.html(content);
 }
 
 /**
