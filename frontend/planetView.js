@@ -349,8 +349,7 @@ function createMindMapVisualization(container) {
   const initialX = width * 0.25;  // 25% from left edge (gives room to expand right)
   const initialY = height / 2;    // Vertically centered
   
-  g = svg.append('g')
-    .attr('transform', `translate(${initialX}, ${initialY})`);
+  g = svg.append('g');
   
   // Add zoom behavior
   zoom = d3.zoom()
@@ -361,6 +360,9 @@ function createMindMapVisualization(container) {
   
   svg.call(zoom)
     .on('dblclick.zoom', null);  // Disable double-click zoom for cleaner UX
+  
+  // Set initial position through zoom transform (keeps zoom state in sync)
+  svg.call(zoom.transform, d3.zoomIdentity.translate(initialX, initialY).scale(1));
   
   // Create tree layout with dynamic spacing
   // Calculate spacing based on total visible nodes
