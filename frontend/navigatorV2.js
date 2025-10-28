@@ -17,8 +17,10 @@ const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 
 // Global state
 let topHits = [];
+let originalTopHits = []; // Store original engagement-based top hits
 let pinnedFolders = [];
 let collapsedSections = loadCollapsedState();
+let isSearchActive = false; // Track if search is active
 
 /**
  * Initialize Navigator
@@ -39,6 +41,18 @@ export function initFileSystemSidebar() {
   bus.on('documentUploaded', () => {
     console.log('Document uploaded, refreshing Navigator...');
     loadStaticTiers();
+  });
+  
+  // Listen for search results to update Top Hits dynamically
+  bus.on('searchResults', (data) => {
+    console.log('Search results received, updating Top Hits...');
+    updateTopHitsFromSearch(data);
+  });
+  
+  // Listen for search cleared to restore original Top Hits
+  bus.on('searchCleared', () => {
+    console.log('Search cleared, restoring original Top Hits...');
+    restoreOriginalTopHits();
   });
 }
 
@@ -66,10 +80,12 @@ async function loadTopHits() {
     const response = await fetch(`${BACKEND_URL}/api/files/top-hits?limit=6`);
     const data = await response.json();
     topHits = data.top_hits || [];
+    originalTopHits = [...topHits]; // Store original for restoration
     console.log(`Loaded ${topHits.length} top hits`);
   } catch (error) {
     console.error('Error loading top hits:', error);
     topHits = [];
+    originalTopHits = [];
   }
 }
 
@@ -423,5 +439,153 @@ function saveCollapsedState() {
   } catch (error) {
     console.error('Error saving collapsed state:', error);
   }
+}
+
+/**
+ * Update Top Hits based on search results
+ */
+async function updateTopHitsFromSearch(searchData) {
+  isSearchActive = true;
+  const { query, results, documentScores } = searchData;
+  
+  if (!results || results.length === 0) {
+    topHits = [];
+    updateTopHitsSection();
+    return;
+  }
+  
+  // Fetch all documents to match against
+  try {
+    const response = await fetch(`${BACKEND_URL}/documents`);
+    const allDocs = await response.json();
+    
+    // Create a map of document scores from search results
+    const docScoreMap = new Map();
+    
+    // Handle new format with document_scores
+    if (documentScores) {
+      Object.entries(documentScores).forEach(([docId, score]) => {
+        docScoreMap.set(docId, score);
+      });
+    }
+    
+    // Also extract from results array if available
+    if (Array.isArray(results)) {
+      results.forEach(result => {
+        if (result.doc_id && result.score) {
+          const currentScore = docScoreMap.get(result.doc_id) || 0;
+          docScoreMap.set(result.doc_id, Math.max(currentScore, result.score));
+        }
+      });
+    }
+    
+    // Score documents based on title matching and semantic search
+    const scoredDocs = allDocs.map(doc => {
+      let score = 0;
+      const titleLower = doc.title.toLowerCase();
+      const queryLower = query.toLowerCase();
+      
+      // Title matching (primary scoring)
+      if (titleLower.includes(queryLower)) {
+        // Exact match gets highest score
+        if (titleLower === queryLower) {
+          score += 1.0;
+        } else if (titleLower.startsWith(queryLower)) {
+          score += 0.8;
+        } else {
+          // Partial match - score based on position and length
+          const position = titleLower.indexOf(queryLower);
+          const matchRatio = queryLower.length / titleLower.length;
+          score += 0.5 * matchRatio * (1 - position / titleLower.length);
+        }
+      }
+      
+      // Add semantic search score if available
+      const semanticScore = docScoreMap.get(doc.id) || 0;
+      score += semanticScore * 0.5; // Weight semantic score at 50%
+      
+      return {
+        ...doc,
+        search_score: score
+      };
+    });
+    
+    // Filter and sort by score
+    topHits = scoredDocs
+      .filter(doc => doc.search_score > 0)
+      .sort((a, b) => b.search_score - a.search_score)
+      .slice(0, 6);
+    
+    console.log(`Updated Top Hits with ${topHits.length} search results`);
+    updateTopHitsSection();
+    
+  } catch (error) {
+    console.error('Error updating Top Hits from search:', error);
+  }
+}
+
+/**
+ * Restore original engagement-based Top Hits
+ */
+function restoreOriginalTopHits() {
+  isSearchActive = false;
+  topHits = [...originalTopHits];
+  console.log(`Restored ${topHits.length} original Top Hits`);
+  updateTopHitsSection();
+}
+
+/**
+ * Update only the Top Hits section without re-rendering entire sidebar
+ */
+function updateTopHitsSection() {
+  const container = document.getElementById('file-system-sidebar');
+  if (!container) return;
+  
+  // Find existing Top Hits section
+  const sections = container.children;
+  let topHitsHeaderIndex = -1;
+  let topHitsContentIndex = -1;
+  
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
+    if (section.textContent && section.textContent.includes('Top Hits')) {
+      topHitsHeaderIndex = i;
+      topHitsContentIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (topHitsHeaderIndex === -1) {
+    console.warn('Top Hits section not found');
+    return;
+  }
+  
+  // Remove old header and content
+  const oldHeader = sections[topHitsHeaderIndex];
+  const oldContent = sections[topHitsContentIndex];
+  
+  // Create new section
+  const section = createSection('Top Hits', '▲', topHits.length);
+  
+  // Populate content
+  if (topHits.length === 0) {
+    section.content.innerHTML = '<div style="padding: 8px 12px; font-size: 11px; color: #64748b; font-style: italic;">No matching documents</div>';
+  } else {
+    topHits.forEach(hit => {
+      const scoreLabel = isSearchActive 
+        ? `${(hit.search_score * 100).toFixed(0)}%`
+        : `${(hit.engagement_score * 100).toFixed(0)}%`;
+      
+      const item = createDocumentItem(hit, {
+        showScore: true,
+        scoreLabel: scoreLabel
+      });
+      section.content.appendChild(item);
+    });
+  }
+  
+  // Replace in DOM
+  container.replaceChild(section.header, oldHeader);
+  container.replaceChild(section.content, oldContent);
 }
 
