@@ -126,12 +126,12 @@ function renderSolarSystem(svg, data) {
   // Draw orbit rings (bottom layer) - tilted ellipses for 3D effect
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
   
-  // Orbit configurations - subtle tilts like real planetary orbits (within ±25°)
+  // Orbit configurations - flatter ecliptic plane (within ±10°)
   const orbitConfigs = [
-    { tilt: 5, rotation: 0, flatten: 0.88 },      // Level 1: 5° tilt, nearly circular
-    { tilt: 12, rotation: 30, flatten: 0.82 },    // Level 2: 12° tilt, slight oval
-    { tilt: 18, rotation: 60, flatten: 0.76 },    // Level 3: 18° tilt, more oval
-    { tilt: 25, rotation: 90, flatten: 0.70 }     // Level 4: 25° tilt, most oval
+    { tilt: 3, rotation: 0, flatten: 0.92 },      // Level 1: 3° tilt, nearly circular
+    { tilt: 6, rotation: 30, flatten: 0.86 },     // Level 2: 6° tilt, slight oval
+    { tilt: 8, rotation: 60, flatten: 0.78 },     // Level 3: 8° tilt, more oval
+    { tilt: 10, rotation: 90, flatten: 0.72 }     // Level 4: 10° tilt, most elliptical
   ];
   
   console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
@@ -157,10 +157,10 @@ function renderSolarSystem(svg, data) {
       .attr('rx', radius)
       .attr('ry', radius * config.flatten) // Variable flattening for depth
       .attr('fill', 'none')
-      .attr('stroke', '#4a4a4a')  // Lighter gray for visibility
-      .attr('stroke-width', 1)
-      .attr('stroke-dasharray', '4,4')
-      .attr('opacity', 0.5);  // Increased opacity
+      .attr('stroke', '#444444')  // Light gray for minimal aesthetic
+      .attr('stroke-width', 0.5)
+      .attr('stroke-dasharray', '3,3')
+      .attr('opacity', 0.4);
   });
   
   // Debug: Check if ellipses were actually created
@@ -194,9 +194,9 @@ function renderSolarSystem(svg, data) {
     .attr('cx', d => d.x)
     .attr('cy', d => d.y)
     .attr('r', d => d.nodeSize)
-    .attr('fill', d => d.hierarchy_level === 0 ? '#ffd700' : 'none')  // Sun is solid gold
-    .attr('stroke', d => d.hierarchy_level === 0 ? 'none' : solarTypeColor(d.type))
-    .attr('stroke-width', d => d.hierarchy_level === 0 ? 0 : 1.5)
+    .attr('fill', 'none')  // All nodes hollow (including sun)
+    .attr('stroke', d => d.hierarchy_level === 0 ? '#ffffff' : '#ffffff')  // White for minimal theme
+    .attr('stroke-width', d => d.hierarchy_level === 0 ? 3 : 1.5)
     .style('cursor', 'pointer')
     .each(function(d) {
       // Store original data for animation
@@ -210,39 +210,42 @@ function renderSolarSystem(svg, data) {
       });
       setCurrentConceptId(d.id, d.doc_id);
       
-      // Visual feedback
-      node.attr('stroke', n => n.id === d.id ? '#4a90e2' : (n.hierarchy_level === 0 ? 'none' : solarTypeColor(n.type)))
-          .attr('stroke-width', n => n.id === d.id ? 2.5 : (n.hierarchy_level === 0 ? 0 : 1.5));
+      // Visual feedback with cyan highlight
+      node.attr('stroke', n => n.id === d.id ? '#00ffcc' : '#ffffff')
+          .attr('stroke-width', n => n.id === d.id ? 3 : (n.hierarchy_level === 0 ? 3 : 1.5));
     })
     .on('mouseover', function(event, d) {
       d3.select(this)
-        .attr('stroke-width', d.hierarchy_level === 0 ? 0 : 2.5)
+        .attr('stroke', '#00ffcc')
+        .attr('stroke-width', d.hierarchy_level === 0 ? 3 : 2.5)
         .attr('stroke-opacity', 1.0);
       
       showTooltip(event, d);
     })
     .on('mouseout', function(event, d) {
       d3.select(this)
-        .attr('stroke-width', d.hierarchy_level === 0 ? 0 : 1.5)
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', d.hierarchy_level === 0 ? 3 : 1.5)
         .attr('stroke-opacity', 1.0);
       
       hideTooltip();
     });
   
-  // Add labels (only for sun and on hover for others)
+  // Add labels for all nodes (visible at zoom > 0.5)
   const label = g.append('g')
     .attr('class', 'labels')
     .selectAll('text')
-    .data(layoutData.nodes.filter(d => d.hierarchy_level === 0))
+    .data(layoutData.nodes)
     .join('text')
     .text(d => d.label)
     .attr('x', d => d.x)
-    .attr('y', d => d.y + 35)
-    .attr('font-size', 14)
-    .attr('font-weight', 'bold')
-    .attr('fill', '#e6e6e6')
+    .attr('y', d => d.y + (d.hierarchy_level === 0 ? 35 : 20))
+    .attr('font-size', d => d.hierarchy_level === 0 ? 12 : 10)
+    .attr('font-weight', d => d.hierarchy_level === 0 ? 'bold' : 'normal')
+    .attr('fill', '#ffffff')
     .attr('text-anchor', 'middle')
-    .style('pointer-events', 'none');
+    .style('pointer-events', 'none')
+    .style('opacity', 0.8);
   
   // Store references for search highlighting
   svg.selectAll('.node').data(layoutData.nodes);
@@ -364,7 +367,7 @@ function renderMindMapPlaceholder(svg, data) {
  */
 function calculatePolarLayout(concepts, centerX, centerY) {
   const baseRadius = 150;
-  const baseSize = 8;  // Increased from 4 to 8 for visibility
+  const baseSize = 12;  // Increased to 12 for better visibility
   const maxConnections = Math.max(...concepts.map(c => 
     concepts.filter(other => 
       concepts.some(r => (r.src === c.id && r.dst === other.id) || (r.src === other.id && r.dst === c.id))
@@ -385,7 +388,7 @@ function calculatePolarLayout(concepts, centerX, centerY) {
           x: centerX,
           y: centerY,
           orbitRadius: 0,
-          nodeSize: 25,  // Increased sun size from 20 to 25
+          nodeSize: 20,  // Sun size
           connections: 0
         });
       });
@@ -404,18 +407,18 @@ function calculatePolarLayout(concepts, centerX, centerY) {
         // Base radius for this hierarchy level
         const levelRadius = baseRadius * level;
         
-        // Add variance based on confidence and connections
-        const confidenceVariance = (1 - confidence) * 0.3; // 0 to 0.3
-        const connectionVariance = (connections / maxConnections) * 0.2; // 0 to 0.2
-        const randomVariance = (Math.random() - 0.5) * 0.15; // -0.075 to +0.075
+        // Add variance based on confidence and connections (±12% total)
+        const confidenceVariance = (1 - confidence) * 0.08; // 0 to 0.08
+        const connectionVariance = (connections / maxConnections) * 0.08; // 0 to 0.08
+        const randomVariance = (Math.random() - 0.5) * 0.12; // -0.06 to +0.06
         
-        // Final radius with variance (can be ±40% from base)
+        // Final radius with variance (can be ±12% from base)
         const radiusMultiplier = 1 + confidenceVariance - connectionVariance + randomVariance;
         const orbitRadius = levelRadius * radiusMultiplier;
         
         const angle = i * angleStep;
         
-        const nodeSize = baseSize + (connections / maxConnections) * 10;  // Increased range from 6 to 10
+        const nodeSize = baseSize * (1 + 0.3 * (connections / maxConnections));  // Scale with connections
         
         nodes.push({
           ...node,
