@@ -241,7 +241,7 @@
     /* SYSTEM STATUS DASHBOARD */    #systemStatus {
       position: fixed;
       bottom: 20px;
-      left: 20px;
+      right: 20px;
       background: #181818;
       border: 1px solid rgba(42, 42, 42, 0.5);
       border-radius: 8px;
