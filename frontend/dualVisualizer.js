@@ -69,11 +69,17 @@ export async function drawDualVisualizer(docId) {
  * @param {Object} data - Ontology data with concepts and relations
  */
 function renderSolarSystem(svg, data) {
+  console.log('🚀 renderSolarSystem called');
+  console.log('📊 Data received:', data);
+  console.log('📐 SVG element:', svg.node());
+  
   // Clear ALL previous elements completely
   svg.selectAll('*').remove();
   
   const width = svg.node().parentElement.clientWidth;
   const height = svg.node().parentElement.clientHeight;
+  
+  console.log('📏 SVG dimensions:', width, 'x', height);
   
   svg.attr('width', width).attr('height', height);
   
@@ -104,9 +110,11 @@ function renderSolarSystem(svg, data) {
   };
   
   // Apply polar layout (includes document node)
+  console.log('🔧 Calling calculatePolarLayout with', concepts.length + 1, 'nodes');
   const layoutData = calculatePolarLayout([documentNode, ...concepts], centerX, centerY);
   
   console.log('📊 Layout nodes:', layoutData.nodes.length);
+  console.log('📊 Layout data:', layoutData);
   console.log('☀️ Document node:', layoutData.nodes.find(n => n.hierarchy_level === 0));
   console.log('🪐 Planet nodes:', layoutData.nodes.filter(n => n.hierarchy_level > 0).length);
   
@@ -114,7 +122,9 @@ function renderSolarSystem(svg, data) {
   const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level ?? 4);
   
   // Create container groups
+  console.log('📦 Creating container group');
   const g = svg.append('g');
+  console.log('📦 Container group created:', g.node());
   
   // Add zoom behavior
   const zoom = d3.zoom()
@@ -191,6 +201,7 @@ function renderSolarSystem(svg, data) {
     .attr('stroke-opacity', d => d.confidence * 0.4);
   
   // Draw nodes (top layer)
+  console.log('🎨 Drawing', layoutData.nodes.length, 'nodes');
   const node = g.append('g')
     .attr('class', 'nodes')
     .selectAll('circle')
@@ -236,6 +247,8 @@ function renderSolarSystem(svg, data) {
       hideTooltip();
     });
   
+  console.log('🎨 Nodes created:', node.size());
+  
   // Add labels for all nodes (will be updated in animation)
   const label = g.append('g')
     .attr('class', 'labels')
@@ -264,7 +277,15 @@ function renderSolarSystem(svg, data) {
   svg.selectAll('.link').data(relations);
   
   // Start orbital animation
-  startOrbitalAnimation(layoutData.nodes, centerX, centerY, orbitConfigs);
+  console.log('🌀 Starting orbital animation');
+  try {
+    startOrbitalAnimation(layoutData.nodes, centerX, centerY, orbitConfigs);
+    console.log('✅ Orbital animation started successfully');
+  } catch (error) {
+    console.error('❌ Error starting animation:', error);
+  }
+  
+  console.log('✅ renderSolarSystem completed');
 }
 
 /**
