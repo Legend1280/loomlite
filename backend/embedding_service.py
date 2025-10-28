@@ -34,6 +34,10 @@ def get_chroma_client():
     global _chroma_client
     if _chroma_client is None:
         print(f"Initializing ChromaDB at: {CHROMA_PATH}")
+        
+        # Suppress telemetry errors (known ChromaDB bug)
+        os.environ["CHROMA_TELEMETRY_DISABLED"] = "1"
+        
         _chroma_client = chromadb.PersistentClient(
             path=CHROMA_PATH,
             settings=Settings(
