@@ -75,15 +75,28 @@ function renderSolarSystem(svg, data) {
   // Prepare data
   const concepts = data.concepts || [];
   const relations = data.relations || [];
+  const document = data.doc || data.document || {};
   
   console.log(`Rendering Solar System: ${concepts.length} concepts, ${relations.length} relations`);
+  console.log('Document:', document);
   
   // Calculate center point
   const centerX = width / 2;
   const centerY = height / 2;
   
-  // Apply polar layout
-  const layoutData = calculatePolarLayout(concepts, centerX, centerY);
+  // Create document summary node for center
+  const documentNode = {
+    id: 'doc-' + (document.id || 'root'),
+    label: document.title || document.filename || 'Document',
+    summary: document.summary || 'Document summary',
+    type: 'Document',
+    hierarchy_level: 0,
+    confidence: 1.0,
+    doc_id: document.id
+  };
+  
+  // Apply polar layout (includes document node)
+  const layoutData = calculatePolarLayout([documentNode, ...concepts], centerX, centerY);
   
   // Group by hierarchy for orbit rings
   const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level || 4);
@@ -103,16 +116,27 @@ function renderSolarSystem(svg, data) {
   // Create node lookup for relations
   const nodeById = new Map(layoutData.nodes.map(n => [n.id, n]));
   
-  // Draw orbit rings (bottom layer)
+  // Draw orbit rings (bottom layer) - tilted ellipses for 3D effect
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
+  const orbitAngles = [30, 60, 90]; // Different tilt angles for each level
+  
+  let angleIndex = 0;
   orbitLevels.forEach((nodes, level) => {
     if (level === 0) return; // Skip sun
     
     const radius = nodes[0].orbitRadius; // All nodes at same level have same orbit
-    orbitRings.append('circle')
-      .attr('cx', centerX)
-      .attr('cy', centerY)
-      .attr('r', radius)
+    const tiltAngle = orbitAngles[angleIndex % orbitAngles.length];
+    angleIndex++;
+    
+    // Create ellipse with perspective tilt
+    const ellipseGroup = orbitRings.append('g')
+      .attr('transform', `translate(${centerX}, ${centerY}) rotate(${tiltAngle})`);
+    
+    ellipseGroup.append('ellipse')
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('rx', radius)
+      .attr('ry', radius * 0.4) // Flatten for perspective
       .attr('fill', 'none')
       .attr('stroke', '#2a2a2a')
       .attr('stroke-width', 0.5)
