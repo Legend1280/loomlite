@@ -474,76 +474,85 @@ async function updateTopHitsFromSearch(searchData) {
       });
     }
     
-    // Helper function for fuzzy matching
-    const fuzzyMatch = (text, query) => {
+    // Helper function to calculate match score for a single term
+    const calculateTermScore = (text, term) => {
       const textLower = text.toLowerCase();
-      const queryLower = query.toLowerCase();
+      const termLower = term.toLowerCase();
+      
+      // Exact match
+      if (textLower === termLower) return 1.0;
+      
+      // Starts with term
+      if (textLower.startsWith(termLower)) return 0.9;
       
       // Direct substring match
-      if (textLower.includes(queryLower)) return true;
+      if (textLower.includes(termLower)) {
+        const position = textLower.indexOf(termLower);
+        const matchRatio = termLower.length / textLower.length;
+        return 0.7 * matchRatio * (1 - position / textLower.length);
+      }
       
-      // Check if query matches word boundaries (e.g., "pillar" matches "pillars")
+      // Check word boundaries (e.g., "pillar" matches "pillars")
       const words = textLower.split(/[\s_.-]+/);
       for (const word of words) {
-        if (word.startsWith(queryLower) || queryLower.startsWith(word)) {
-          return true;
-        }
+        if (word.startsWith(termLower)) return 0.6;
+        if (termLower.startsWith(word) && word.length >= 3) return 0.5;
       }
       
       // Fuzzy character matching (allows for minor typos)
-      let queryIndex = 0;
-      for (let i = 0; i < textLower.length && queryIndex < queryLower.length; i++) {
-        if (textLower[i] === queryLower[queryIndex]) {
-          queryIndex++;
+      let termIndex = 0;
+      for (let i = 0; i < textLower.length && termIndex < termLower.length; i++) {
+        if (textLower[i] === termLower[termIndex]) {
+          termIndex++;
         }
       }
-      return queryIndex === queryLower.length;
+      if (termIndex === termLower.length) return 0.3;
+      
+      return 0; // No match
     };
+    
+    // Split query into terms for multi-word search
+    const queryTerms = query.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
     
     // Score documents based on title matching and semantic search
     const scoredDocs = allDocs.map(doc => {
-      let score = 0;
+      let titleScore = 0;
       const titleLower = doc.title.toLowerCase();
-      const queryLower = query.toLowerCase();
       
-      // Title matching (primary scoring) with fuzzy logic
-      if (fuzzyMatch(doc.title, query)) {
-        // Exact match gets highest score
-        if (titleLower === queryLower) {
-          score += 1.0;
-        } else if (titleLower.startsWith(queryLower)) {
-          score += 0.9;
-        } else if (titleLower.includes(queryLower)) {
-          // Direct substring match
-          const position = titleLower.indexOf(queryLower);
-          const matchRatio = queryLower.length / titleLower.length;
-          score += 0.7 * matchRatio * (1 - position / titleLower.length);
+      if (queryTerms.length === 0) {
+        return { ...doc, search_score: 0 };
+      }
+      
+      // Multi-word search logic
+      if (queryTerms.length === 1) {
+        // Single term search
+        titleScore = calculateTermScore(doc.title, queryTerms[0]);
+      } else {
+        // Multi-term search: score each term and combine
+        const termScores = queryTerms.map(term => calculateTermScore(doc.title, term));
+        const matchingTerms = termScores.filter(s => s > 0).length;
+        
+        if (matchingTerms === 0) {
+          titleScore = 0;
+        } else if (matchingTerms === queryTerms.length) {
+          // All terms match - highest score (AND logic bonus)
+          const avgScore = termScores.reduce((a, b) => a + b, 0) / termScores.length;
+          titleScore = avgScore * 1.5; // 50% bonus for matching all terms
         } else {
-          // Word boundary or fuzzy match
-          const words = titleLower.split(/[\s_.-]+/);
-          for (const word of words) {
-            if (word.startsWith(queryLower)) {
-              score += 0.6;
-              break;
-            } else if (queryLower.startsWith(word)) {
-              score += 0.5;
-              break;
-            }
-          }
-          // If still no score, give fuzzy match a lower score
-          if (score === 0) {
-            score += 0.3;
-          }
+          // Some terms match - partial score (OR logic)
+          const avgScore = termScores.reduce((a, b) => a + b, 0) / termScores.length;
+          const matchRatio = matchingTerms / queryTerms.length;
+          titleScore = avgScore * matchRatio; // Weight by how many terms matched
         }
       }
       
       // Add semantic search score if available
       const semanticScore = docScoreMap.get(doc.id) || 0;
-      score += semanticScore * 0.5; // Weight semantic score at 50%
+      const finalScore = titleScore + (semanticScore * 0.5); // Weight semantic score at 50%
       
       return {
         ...doc,
-        search_score: score
+        search_score: finalScore
       };
     });
     
@@ -553,19 +562,17 @@ async function updateTopHitsFromSearch(searchData) {
       .sort((a, b) => b.search_score - a.search_score)
       .slice(0, 6);
     
-    // If no results found, keep the last valid search results
-    if (newTopHits.length === 0 && lastValidSearchHits.length > 0) {
-      console.log('No new matches, keeping last valid search results');
-      topHits = lastValidSearchHits;
-    } else if (newTopHits.length > 0) {
-      // Store as last valid results
-      lastValidSearchHits = newTopHits;
-      topHits = newTopHits;
-      console.log(`Updated Top Hits with ${topHits.length} search results`);
+    // Always update with new results (don't persist old results)
+    topHits = newTopHits;
+    
+    if (newTopHits.length > 0) {
+      console.log(`Updated Top Hits with ${topHits.length} search results for query: "${query}"`);
+      // Log top result for debugging
+      if (topHits[0]) {
+        console.log(`  Top result: "${topHits[0].title}" (score: ${topHits[0].search_score.toFixed(3)})`);
+      }
     } else {
-      // No results at all
-      topHits = [];
-      console.log('No matching documents found');
+      console.log(`No matching documents found for query: "${query}"`);
     }
     
     updateTopHitsSection();
