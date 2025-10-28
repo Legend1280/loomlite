@@ -1206,6 +1206,42 @@ def api_folders_temporal():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/folders/semantic")
+def api_folders_semantic():
+    """
+    Get semantic folders for Meaning mode
+    Returns folders based on ontology clusters (Projects, Concepts, etc.)
+    """
+    try:
+        conn = get_db()
+        
+        # Define semantic categories
+        categories = ['projects', 'concepts', 'financial', 'research', 'ai_tech']
+        
+        folders = []
+        
+        for category in categories:
+            try:
+                folder_data = get_semantic_folder(conn, category)
+                
+                # Only include folders with items
+                if folder_data.get('items') and len(folder_data['items']) > 0:
+                    folders.append({
+                        "id": category,
+                        "title": folder_data["folder_name"],
+                        "docCount": len(folder_data["items"]),
+                        "items": folder_data["items"]
+                    })
+            except Exception as e:
+                # Skip categories that fail, don't break the whole response
+                print(f"[SEMANTIC FOLDERS] Skipping category {category}: {e}")
+                continue
+        
+        conn.close()
+        return {"folders": folders}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/threads")
 def api_threads():
     """

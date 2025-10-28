@@ -18,6 +18,7 @@ let foldersData = {
 };
 let container = null;
 let collapsedFolders = loadCollapsedState();
+let searchFilteredDocIds = null; // null = no filter, Set = filtered doc IDs
 
 /**
  * Initialize Dynamic Folder Pane
@@ -29,6 +30,18 @@ export function initDynamicPane(parentContainer) {
   bus.on('navigatorModeChanged', ({ mode }) => {
     currentMode = mode;
     renderFolders();
+  });
+  
+  // Listen for search results
+  bus.on('searchResults', (event) => {
+    const { results } = event.detail;
+    filterFoldersBySearch(results);
+  });
+  
+  // Listen for search cleared
+  bus.on('searchCleared', () => {
+    searchFilteredDocIds = null; // Clear filter
+    renderFolders(); // Reset to full list
   });
   
   // Load initial data for all modes (cache)
@@ -73,23 +86,9 @@ async function loadStandardMode() {
  */
 async function loadMeaningMode() {
   try {
-    const categories = ['projects', 'concepts', 'financial', 'research', 'ai_tech'];
-    
-    const responses = await Promise.all(
-      categories.map(cat => fetch(`${BACKEND_URL}/api/files/semantic/${cat}`))
-    );
-    
-    const folders = await Promise.all(responses.map(r => r.json()));
-    
-    // Format for Dynamic Pane
-    foldersData.meaning = folders
-      .filter(f => f.items && f.items.length > 0)
-      .map(f => ({
-        id: f.category,
-        title: f.folder_name,
-        docCount: f.items.length,
-        items: f.items
-      }));
+    const response = await fetch(`${BACKEND_URL}/api/folders/semantic`);
+    const data = await response.json();
+    foldersData.meaning = data.folders || [];
     
     console.log(`Loaded ${foldersData.meaning.length} meaning folders`);
   } catch (error) {
@@ -114,6 +113,30 @@ async function loadTimeMode() {
 }
 
 /**
+ * Filter folders by search results
+ */
+function filterFoldersBySearch(results) {
+  // Extract document IDs from search results
+  const docIds = new Set();
+  
+  // Handle both v1.5 (flat array) and v1.6 (document_scores) formats
+  if (Array.isArray(results)) {
+    results.forEach(r => {
+      if (r.doc_id) docIds.add(r.doc_id);
+    });
+  } else if (results.document_scores) {
+    results.document_scores.forEach(ds => {
+      if (ds.doc_id) docIds.add(ds.doc_id);
+    });
+  }
+  
+  console.log(`Filtering Dynamic Pane to ${docIds.size} matching documents`);
+  
+  searchFilteredDocIds = docIds.size > 0 ? docIds : null;
+  renderFolders();
+}
+
+/**
  * Render folders for current mode
  */
 function renderFolders() {
@@ -123,10 +146,22 @@ function renderFolders() {
   container.innerHTML = '';
   
   // Get folders for current mode
-  const folders = foldersData[currentMode] || [];
+  let folders = foldersData[currentMode] || [];
+  
+  // Apply search filter if active
+  if (searchFilteredDocIds) {
+    folders = folders.map(folder => {
+      const filteredItems = folder.items.filter(doc => searchFilteredDocIds.has(doc.id));
+      return {
+        ...folder,
+        items: filteredItems,
+        docCount: filteredItems.length
+      };
+    }).filter(folder => folder.docCount > 0); // Only show folders with matching docs
+  }
   
   if (folders.length === 0) {
-    // Show loading or empty state
+    // Show appropriate empty state
     const emptyState = document.createElement('div');
     emptyState.style.cssText = `
       padding: 16px 12px;
@@ -135,7 +170,16 @@ function renderFolders() {
       font-style: italic;
       text-align: center;
     `;
-    emptyState.textContent = 'Loading folders...';
+    
+    // Determine message based on state
+    if (foldersData[currentMode] === null) {
+      emptyState.textContent = 'Loading folders...';
+    } else if (searchFilteredDocIds) {
+      emptyState.textContent = 'No matching documents in this view';
+    } else {
+      emptyState.textContent = 'No folders found';
+    }
+    
     container.appendChild(emptyState);
     return;
   }
