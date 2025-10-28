@@ -34,7 +34,7 @@ export async function drawDualVisualizer(docId) {
     svgBottom.selectAll('*').remove();
     
     // Render force-directed graph in top panel
-    renderForceGraph(svgTop, ontology);
+    renderSolarSystem(svgTop, ontology);
     
     // Render mind map in bottom panel (placeholder for now)
     renderMindMapPlaceholder(svgBottom, ontology);
@@ -62,11 +62,11 @@ export async function drawDualVisualizer(docId) {
 }
 
 /**
- * Render force-directed graph visualization
+ * Render Solar System visualization with orbital hierarchy
  * @param {d3.Selection} svg - D3 selection of SVG element
  * @param {Object} data - Ontology data with concepts and relations
  */
-function renderForceGraph(svg, data) {
+function renderSolarSystem(svg, data) {
   const width = svg.node().parentElement.clientWidth;
   const height = svg.node().parentElement.clientHeight;
   
@@ -74,141 +74,124 @@ function renderForceGraph(svg, data) {
   
   // Prepare data
   const concepts = data.concepts || [];
+  const relations = data.relations || [];
   
-  // Transform relations: map 'src' -> 'source' and 'dst' -> 'target' for D3
-  const relations = (data.relations || []).map(r => ({
-    ...r,
-    source: r.src,
-    target: r.dst
-  }));
+  console.log(`Rendering Solar System: ${concepts.length} concepts, ${relations.length} relations`);
   
-  console.log(`Rendering ${concepts.length} concepts and ${relations.length} relations`);
+  // Calculate center point
+  const centerX = width / 2;
+  const centerY = height / 2;
   
-  // Create force simulation
-  const simulation = d3.forceSimulation(concepts)
-    .force('link', d3.forceLink(relations)
-      .id(d => d.id)
-      .distance(80))
-    .force('charge', d3.forceManyBody().strength(-150))
-    .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius(15));
+  // Apply polar layout
+  const layoutData = calculatePolarLayout(concepts, centerX, centerY);
+  
+  // Group by hierarchy for orbit rings
+  const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level || 4);
   
   // Create container groups
   const g = svg.append('g');
   
   // Add zoom behavior
   const zoom = d3.zoom()
-    .scaleExtent([0.1, 4])
+    .scaleExtent([0.3, 3])
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
     });
   
   svg.call(zoom);
   
-  // Draw links
+  // Create node lookup for relations
+  const nodeById = new Map(layoutData.nodes.map(n => [n.id, n]));
+  
+  // Draw orbit rings (bottom layer)
+  const orbitRings = g.append('g').attr('class', 'orbit-rings');
+  orbitLevels.forEach((nodes, level) => {
+    if (level === 0) return; // Skip sun
+    
+    const radius = nodes[0].orbitRadius; // All nodes at same level have same orbit
+    orbitRings.append('circle')
+      .attr('cx', centerX)
+      .attr('cy', centerY)
+      .attr('r', radius)
+      .attr('fill', 'none')
+      .attr('stroke', '#2a2a2a')
+      .attr('stroke-width', 0.5)
+      .attr('stroke-dasharray', '2,4')
+      .attr('opacity', 0.3);
+  });
+  
+  // Draw relation lines (middle layer)
   const link = g.append('g')
     .attr('class', 'links')
     .selectAll('line')
-    .data(relations)
-    .enter()
-    .append('line')
-    .attr('stroke', '#475569')
-    .attr('stroke-width', 1.5)
-    .attr('stroke-opacity', 0.6);
+    .data(relations.filter(r => r.confidence >= 0.3))
+    .join('line')
+    .attr('x1', d => nodeById.get(d.src)?.x || centerX)
+    .attr('y1', d => nodeById.get(d.src)?.y || centerY)
+    .attr('x2', d => nodeById.get(d.dst)?.x || centerX)
+    .attr('y2', d => nodeById.get(d.dst)?.y || centerY)
+    .attr('stroke', '#3a3a3a')
+    .attr('stroke-width', 0.5)
+    .attr('stroke-opacity', d => d.confidence * 0.4);
   
-  // Draw nodes
+  // Draw nodes (top layer)
   const node = g.append('g')
     .attr('class', 'nodes')
     .selectAll('circle')
-    .data(concepts)
-    .enter()
-    .append('circle')
-    .attr('r', 8)
-    .attr('fill', d => typeColor(d.type))
-    .attr('stroke', '#fff')
-    .attr('stroke-width', 1.5)
+    .data(layoutData.nodes)
+    .join('circle')
+    .attr('cx', d => d.x)
+    .attr('cy', d => d.y)
+    .attr('r', d => d.nodeSize)
+    .attr('fill', d => d.hierarchy_level === 0 ? '#ffd700' : 'none')  // Sun is solid gold
+    .attr('stroke', d => d.hierarchy_level === 0 ? 'none' : solarTypeColor(d.type))
+    .attr('stroke-width', d => d.hierarchy_level === 0 ? 0 : 1.5)
     .style('cursor', 'pointer')
     .on('click', (event, d) => {
-      // Emit concept selected event via event bus
       bus.emit('conceptSelected', { 
         conceptId: d.id, 
         docId: d.doc_id,
         concept: d
       });
-      
-      // Update state
       setCurrentConceptId(d.id, d.doc_id);
       
       // Visual feedback
-      node.attr('stroke', n => n.id === d.id ? '#fbbf24' : '#fff')
-          .attr('stroke-width', n => n.id === d.id ? 3 : 1.5);
+      node.attr('stroke', n => n.id === d.id ? '#4a90e2' : (n.hierarchy_level === 0 ? 'none' : solarTypeColor(n.type)))
+          .attr('stroke-width', n => n.id === d.id ? 2.5 : (n.hierarchy_level === 0 ? 0 : 1.5));
     })
     .on('mouseover', function(event, d) {
       d3.select(this)
-        .attr('stroke-width', 2.5);
+        .attr('stroke-width', d.hierarchy_level === 0 ? 0 : 2.5)
+        .attr('stroke-opacity', 1.0);
       
-      // Show tooltip
       showTooltip(event, d);
     })
     .on('mouseout', function(event, d) {
       d3.select(this)
-        .attr('stroke-width', n => n.id === d.id ? 3 : 1.5);
+        .attr('stroke-width', d.hierarchy_level === 0 ? 0 : 1.5)
+        .attr('stroke-opacity', 1.0);
       
       hideTooltip();
-    })
-    .call(d3.drag()
-      .on('start', dragstarted)
-      .on('drag', dragged)
-      .on('end', dragended));
+    });
   
-  // Add labels
+  // Add labels (only for sun and on hover for others)
   const label = g.append('g')
     .attr('class', 'labels')
     .selectAll('text')
-    .data(concepts)
-    .enter()
-    .append('text')
+    .data(layoutData.nodes.filter(d => d.hierarchy_level === 0))
+    .join('text')
     .text(d => d.label)
-    .attr('font-size', 11)
-    .attr('fill', '#cbd5e1')
+    .attr('x', d => d.x)
+    .attr('y', d => d.y + 35)
+    .attr('font-size', 14)
+    .attr('font-weight', 'bold')
+    .attr('fill', '#e6e6e6')
     .attr('text-anchor', 'middle')
-    .attr('dy', 20)
     .style('pointer-events', 'none');
   
-  // Update positions on tick
-  simulation.on('tick', () => {
-    link
-      .attr('x1', d => d.source.x)
-      .attr('y1', d => d.source.y)
-      .attr('x2', d => d.target.x)
-      .attr('y2', d => d.target.y);
-    
-    node
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y);
-    
-    label
-      .attr('x', d => d.x)
-      .attr('y', d => d.y);
-  });
-  
-  // Drag functions
-  function dragstarted(event, d) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    d.fx = d.x;
-    d.fy = d.y;
-  }
-  
-  function dragged(event, d) {
-    d.fx = event.x;
-    d.fy = event.y;
-  }
-  
-  function dragended(event, d) {
-    if (!event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
+  // Store references for search highlighting
+  svg.selectAll('.node').data(layoutData.nodes);
+  svg.selectAll('.link').data(relations);
 }
 
 /**
@@ -241,7 +224,95 @@ function renderMindMapPlaceholder(svg, data) {
 }
 
 /**
- * Get color for concept type
+ * Calculate polar layout for solar system visualization
+ * @param {Array} concepts - Array of concept objects
+ * @param {number} centerX - Center X coordinate
+ * @param {number} centerY - Center Y coordinate
+ * @returns {Object} Layout data with positioned nodes
+ */
+function calculatePolarLayout(concepts, centerX, centerY) {
+  const baseRadius = 150;
+  const baseSize = 4;
+  const maxConnections = Math.max(...concepts.map(c => 
+    concepts.filter(other => 
+      concepts.some(r => (r.src === c.id && r.dst === other.id) || (r.src === other.id && r.dst === c.id))
+    ).length
+  ), 1);
+  
+  // Group by hierarchy level
+  const grouped = d3.group(concepts, d => d.hierarchy_level || 4);
+  
+  const nodes = [];
+  
+  grouped.forEach((group, level) => {
+    if (level === 0) {
+      // Sun at center
+      group.forEach(node => {
+        nodes.push({
+          ...node,
+          x: centerX,
+          y: centerY,
+          orbitRadius: 0,
+          nodeSize: 20,
+          connections: 0
+        });
+      });
+    } else {
+      // Planets, moons, asteroids on orbits
+      const angleStep = (2 * Math.PI) / group.length;
+      
+      group.forEach((node, i) => {
+        const confidence = node.confidence || 0.7;
+        const orbitRadius = baseRadius * level * (1 / confidence);
+        const angle = i * angleStep;
+        
+        // Count connections for this node
+        const connections = concepts.filter(other => 
+          concepts.some(r => (r.src === node.id && r.dst === other.id) || (r.src === other.id && r.dst === node.id))
+        ).length;
+        
+        const nodeSize = baseSize + (connections / maxConnections) * 6;
+        
+        nodes.push({
+          ...node,
+          x: centerX + orbitRadius * Math.cos(angle),
+          y: centerY + orbitRadius * Math.sin(angle),
+          orbitRadius: orbitRadius,
+          nodeSize: nodeSize,
+          connections: connections,
+          angle: angle
+        });
+      });
+    }
+  });
+  
+  return { nodes };
+}
+
+/**
+ * Get desaturated color for solar system concept type
+ * @param {string} type - Concept type
+ * @returns {string} Color hex code
+ */
+function solarTypeColor(type) {
+  const colors = {
+    Topic: '#8ab4f8',      // Soft blue
+    Feature: '#81c995',    // Soft green
+    Technology: '#c58af9', // Soft purple
+    Project: '#f28b82',    // Soft red
+    Financial: '#fdd663',  // Soft yellow
+    Research: '#78d9c8',   // Soft teal
+    Person: '#f1b4f8',     // Soft pink
+    Date: '#a8dab5',       // Soft mint
+    Metric: '#91c3fd',     // Soft sky blue
+    Process: '#f5a97f',    // Soft orange
+    Team: '#a5a8f9'        // Soft lavender
+  };
+  return colors[type] || '#9aa0a6'; // Soft gray
+}
+
+/**
+ * Get color for concept type (Galaxy View - solid colors)
  * @param {string} type - Concept type
  * @returns {string} Color hex code
  */
