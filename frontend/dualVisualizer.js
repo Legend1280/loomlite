@@ -126,12 +126,12 @@ function renderSolarSystem(svg, data) {
   // Draw orbit rings (bottom layer) - tilted ellipses for 3D effect
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
   
-  // Different tilt configurations for each hierarchy level
+  // Orbit configurations - all on horizontal plane with varying eccentricity
   const orbitConfigs = [
-    { tilt: 15, rotation: 0, flatten: 0.3 },    // Level 1: slight tilt
-    { tilt: 35, rotation: 45, flatten: 0.4 },   // Level 2: medium tilt, rotated
-    { tilt: 55, rotation: 90, flatten: 0.5 },   // Level 3: steep tilt, perpendicular
-    { tilt: 70, rotation: 135, flatten: 0.6 }   // Level 4: very steep, diagonal
+    { rotation: 0, flatten: 0.85 },    // Level 1: slightly oval
+    { rotation: 0, flatten: 0.80 },    // Level 2: more oval
+    { rotation: 0, flatten: 0.75 },    // Level 3: even more oval
+    { rotation: 0, flatten: 0.70 }     // Level 4: most oval
   ];
   
   console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
@@ -296,11 +296,11 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
       const x = centerX + rotatedX;
       const y = centerY + rotatedY;
       
-      // Calculate depth (z-position) for perspective
-      // Nodes on far side (negative y in local space) are "behind"
-      const depth = Math.sin(currentAngle) * config.flatten;
-      const scale = 1 - (depth * 0.3); // Shrink nodes on far side
-      const opacity = 0.5 + (depth * 0.5); // Fade nodes on far side
+      // Calculate depth (z-position) for perspective on horizontal plane
+      // Nodes at top of screen (negative y) are "farther away"
+      const depth = -Math.sin(currentAngle); // -1 (far) to +1 (near)
+      const scale = 0.7 + (depth * 0.3); // Scale from 0.7 to 1.0
+      const opacity = 0.6 + (depth * 0.4); // Opacity from 0.6 to 1.0
       
       // Update node position and appearance
       if (node.element) {
@@ -362,7 +362,7 @@ function renderMindMapPlaceholder(svg, data) {
  */
 function calculatePolarLayout(concepts, centerX, centerY) {
   const baseRadius = 150;
-  const baseSize = 4;
+  const baseSize = 8;  // Increased from 4 to 8 for visibility
   const maxConnections = Math.max(...concepts.map(c => 
     concepts.filter(other => 
       concepts.some(r => (r.src === c.id && r.dst === other.id) || (r.src === other.id && r.dst === c.id))
@@ -383,7 +383,7 @@ function calculatePolarLayout(concepts, centerX, centerY) {
           x: centerX,
           y: centerY,
           orbitRadius: 0,
-          nodeSize: 20,
+          nodeSize: 25,  // Increased sun size from 20 to 25
           connections: 0
         });
       });
@@ -401,7 +401,7 @@ function calculatePolarLayout(concepts, centerX, centerY) {
           concepts.some(r => (r.src === node.id && r.dst === other.id) || (r.src === other.id && r.dst === node.id))
         ).length;
         
-        const nodeSize = baseSize + (connections / maxConnections) * 6;
+        const nodeSize = baseSize + (connections / maxConnections) * 10;  // Increased range from 6 to 10
         
         nodes.push({
           ...node,
