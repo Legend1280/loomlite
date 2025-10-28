@@ -4,7 +4,7 @@ Generates embeddings for all existing documents and concepts in the database
 """
 import sqlite3
 import os
-from embedding_service import (
+from backend.embedding_service import (
     add_document_embedding,
     add_concept_embedding,
     get_collection_stats
