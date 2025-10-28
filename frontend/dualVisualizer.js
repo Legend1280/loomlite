@@ -126,12 +126,12 @@ function renderSolarSystem(svg, data) {
   // Draw orbit rings (bottom layer) - tilted ellipses for 3D effect
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
   
-  // Orbit configurations - flatter ecliptic plane (within ±10°)
+  // Orbit configurations - completely flat horizontal ellipses (no tilt)
   const orbitConfigs = [
-    { tilt: 3, rotation: 0, flatten: 0.92 },      // Level 1: 3° tilt, nearly circular
-    { tilt: 6, rotation: 30, flatten: 0.86 },     // Level 2: 6° tilt, slight oval
-    { tilt: 8, rotation: 60, flatten: 0.78 },     // Level 3: 8° tilt, more oval
-    { tilt: 10, rotation: 90, flatten: 0.72 }     // Level 4: 10° tilt, most elliptical
+    { tilt: 0, rotation: 0, flatten: 0.35 },      // Level 1: flat, moderately elliptical
+    { tilt: 0, rotation: 0, flatten: 0.30 },      // Level 2: flat, more elliptical
+    { tilt: 0, rotation: 0, flatten: 0.25 },      // Level 3: flat, very elliptical
+    { tilt: 0, rotation: 0, flatten: 0.20 }       // Level 4: flat, extremely elliptical
   ];
   
   console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
@@ -147,9 +147,9 @@ function renderSolarSystem(svg, data) {
     // Create ellipse with subtle planetary tilt
     console.log(`🛸 Creating orbit at level ${level}, radius ${radius}, tilt ${config.tilt}°, rotation ${config.rotation}°`);
     
-    // Apply subtle 3D rotation: first rotate in plane, then tilt slightly
+    // Draw flat horizontal ellipse (no rotation or tilt)
     const ellipseGroup = orbitRings.append('g')
-      .attr('transform', `translate(${centerX}, ${centerY}) rotate(${config.rotation}) scale(1, ${Math.cos(config.tilt * Math.PI / 180)})`);
+      .attr('transform', `translate(${centerX}, ${centerY})`);
     
     ellipseGroup.append('ellipse')
       .attr('cx', 0)
@@ -283,29 +283,22 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
       // Calculate current angle
       const currentAngle = (node.angle || 0) + (elapsed * speed);
       
-      // Elliptical orbit parameters
+      // Elliptical orbit parameters - flat horizontal ellipse
       const rx = node.orbitRadius;
       const ry = node.orbitRadius * config.flatten;
-      const rotation = (config.rotation * Math.PI) / 180;
-      const tiltRad = (config.tilt * Math.PI) / 180;
       
-      // Calculate position on ellipse
-      const localX = rx * Math.cos(currentAngle);
-      const localY = ry * Math.sin(currentAngle);
-      
-      // Rotate the ellipse in plane
-      const rotatedX = localX * Math.cos(rotation) - localY * Math.sin(rotation);
-      const rotatedY = (localX * Math.sin(rotation) + localY * Math.cos(rotation)) * Math.cos(tiltRad);
+      // Calculate position on flat horizontal ellipse
+      const rotatedX = rx * Math.cos(currentAngle);
+      const rotatedY = ry * Math.sin(currentAngle);
       
       // Final position
       const x = centerX + rotatedX;
       const y = centerY + rotatedY;
       
-      // Calculate depth (z-position) for perspective
-      // Z-depth based on the vertical component of the tilted orbit
-      const zDepth = Math.sin(currentAngle) * Math.sin(tiltRad); // -1 (far) to +1 (near)
-      const scale = 0.75 + (zDepth * 0.25); // Scale from 0.75 to 1.0
-      const opacity = 0.65 + (zDepth * 0.35); // Opacity from 0.65 to 1.0
+      // Calculate depth for flat ellipse (top is far, bottom is near)
+      const yPosition = Math.sin(currentAngle); // -1 (top/far) to +1 (bottom/near)
+      const scale = 0.8 + (yPosition * 0.2); // Scale from 0.8 to 1.0
+      const opacity = 0.7 + (yPosition * 0.3); // Opacity from 0.7 to 1.0
       
       // Update node position and appearance
       if (node.element) {
