@@ -772,6 +772,237 @@ async def get_embedding_stats():
             "error": str(e)
         }
 
+@app.get("/api/similar/document/{doc_id}")
+async def find_similar_documents(doc_id: str, n: int = 10, threshold: float = 0.5):
+    """
+    Find similar documents by vector similarity
+    
+    Args:
+        doc_id: Document ID to find similar documents for
+        n: Number of results to return
+        threshold: Minimum similarity score (0-1)
+    
+    Returns:
+        List of similar documents with similarity scores
+    """
+    try:
+        from vector_utils import deserialize_vector, cosine_similarity
+        
+        conn = get_db()
+        
+        # Get query document vector
+        query_doc = conn.execute("""
+            SELECT id, title, vector, vector_fingerprint 
+            FROM Document 
+            WHERE id = ?
+        """, (doc_id,)).fetchone()
+        
+        if not query_doc or not query_doc['vector']:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Document not found or has no vector")
+        
+        query_vector = deserialize_vector(query_doc['vector'])
+        
+        # Get all other documents with vectors
+        candidates = conn.execute("""
+            SELECT id, title, vector, vector_fingerprint
+            FROM Document
+            WHERE id != ? AND vector IS NOT NULL
+        """, (doc_id,)).fetchall()
+        
+        conn.close()
+        
+        # Compute similarities
+        results = []
+        for candidate in candidates:
+            candidate_vector = deserialize_vector(candidate['vector'])
+            similarity = cosine_similarity(query_vector, candidate_vector)
+            
+            if similarity >= threshold:
+                results.append({
+                    "id": candidate['id'],
+                    "title": candidate['title'],
+                    "similarity": float(similarity),
+                    "match_type": "semantic",
+                    "vector_fingerprint": candidate['vector_fingerprint']
+                })
+        
+        # Sort by similarity descending
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        
+        return {
+            "query_id": doc_id,
+            "query_type": "document",
+            "query_title": query_doc['title'],
+            "results": results[:n],
+            "count": len(results),
+            "threshold": threshold
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/similar/concept/{concept_id}")
+async def find_similar_concepts(concept_id: str, n: int = 10, threshold: float = 0.5):
+    """
+    Find similar concepts by vector similarity
+    
+    Args:
+        concept_id: Concept ID to find similar concepts for
+        n: Number of results to return
+        threshold: Minimum similarity score (0-1)
+    
+    Returns:
+        List of similar concepts with similarity scores
+    """
+    try:
+        from vector_utils import deserialize_vector, cosine_similarity
+        
+        conn = get_db()
+        
+        # Get query concept vector
+        query_concept = conn.execute("""
+            SELECT id, label, type, vector, vector_fingerprint 
+            FROM Concept 
+            WHERE id = ?
+        """, (concept_id,)).fetchone()
+        
+        if not query_concept or not query_concept['vector']:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Concept not found or has no vector")
+        
+        query_vector = deserialize_vector(query_concept['vector'])
+        
+        # Get all other concepts with vectors
+        candidates = conn.execute("""
+            SELECT id, label, type, vector, vector_fingerprint
+            FROM Concept
+            WHERE id != ? AND vector IS NOT NULL
+        """, (concept_id,)).fetchall()
+        
+        conn.close()
+        
+        # Compute similarities
+        results = []
+        for candidate in candidates:
+            candidate_vector = deserialize_vector(candidate['vector'])
+            similarity = cosine_similarity(query_vector, candidate_vector)
+            
+            if similarity >= threshold:
+                results.append({
+                    "id": candidate['id'],
+                    "label": candidate['label'],
+                    "type": candidate['type'],
+                    "similarity": float(similarity),
+                    "match_type": "semantic",
+                    "vector_fingerprint": candidate['vector_fingerprint']
+                })
+        
+        # Sort by similarity descending
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        
+        return {
+            "query_id": concept_id,
+            "query_type": "concept",
+            "query_label": query_concept['label'],
+            "results": results[:n],
+            "count": len(results),
+            "threshold": threshold
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/similar/query")
+async def find_similar_by_query(q: str, type: str = "document", n: int = 10, threshold: float = 0.5):
+    """
+    Find similar objects by text query
+    
+    Args:
+        q: Text query
+        type: Object type ("document" or "concept")
+        n: Number of results to return
+        threshold: Minimum similarity score (0-1)
+    
+    Returns:
+        List of similar objects with similarity scores
+    """
+    try:
+        from embedding_service import generate_embedding
+        from vector_utils import deserialize_vector, cosine_similarity
+        import numpy as np
+        
+        # Generate query embedding
+        query_embedding_list = generate_embedding(q)
+        query_vector = np.array(query_embedding_list, dtype=np.float32)
+        
+        conn = get_db()
+        
+        if type == "document":
+            # Search documents
+            candidates = conn.execute("""
+                SELECT id, title, vector, vector_fingerprint
+                FROM Document
+                WHERE vector IS NOT NULL
+            """).fetchall()
+            
+            results = []
+            for candidate in candidates:
+                candidate_vector = deserialize_vector(candidate['vector'])
+                similarity = cosine_similarity(query_vector, candidate_vector)
+                
+                if similarity >= threshold:
+                    results.append({
+                        "id": candidate['id'],
+                        "title": candidate['title'],
+                        "similarity": float(similarity),
+                        "match_type": "semantic",
+                        "vector_fingerprint": candidate['vector_fingerprint']
+                    })
+        
+        elif type == "concept":
+            # Search concepts
+            candidates = conn.execute("""
+                SELECT id, label, type, vector, vector_fingerprint
+                FROM Concept
+                WHERE vector IS NOT NULL
+            """).fetchall()
+            
+            results = []
+            for candidate in candidates:
+                candidate_vector = deserialize_vector(candidate['vector'])
+                similarity = cosine_similarity(query_vector, candidate_vector)
+                
+                if similarity >= threshold:
+                    results.append({
+                        "id": candidate['id'],
+                        "label": candidate['label'],
+                        "type": candidate['type'],
+                        "similarity": float(similarity),
+                        "match_type": "semantic",
+                        "vector_fingerprint": candidate['vector_fingerprint']
+                    })
+        
+        else:
+            conn.close()
+            raise HTTPException(status_code=400, detail="Invalid type. Must be 'document' or 'concept'")
+        
+        conn.close()
+        
+        # Sort by similarity descending
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        
+        return {
+            "query": q,
+            "query_type": type,
+            "results": results[:n],
+            "count": len(results),
+            "threshold": threshold
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/jump")
 async def jump(doc_id: str, concept_id: str):
     """Get evidence spans for a concept"""

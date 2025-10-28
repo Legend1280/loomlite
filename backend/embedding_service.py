@@ -7,6 +7,10 @@ from typing import List, Dict, Optional, Tuple
 from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
+import numpy as np
+import sqlite3
+from datetime import datetime
+from vector_utils import serialize_vector, generate_vector_fingerprint
 
 # Model configuration
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # 384 dimensions, fast, good quality
@@ -60,37 +64,97 @@ def generate_embeddings_batch(texts: List[str]) -> List[List[float]]:
     embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=True)
     return [emb.tolist() for emb in embeddings]
 
-def add_document_embedding(doc_id: str, title: str, content: str, metadata: Optional[Dict] = None):
-    """Add document embedding to ChromaDB"""
+def add_document_embedding(doc_id: str, title: str, content: str, metadata: Optional[Dict] = None, db_path: str = "loom_lite.db"):
+    """Add document embedding to both ChromaDB and SQLite"""
     collection = get_or_create_collection("documents")
     
     # Combine title and content for better semantic representation
     text = f"{title}\n\n{content}"
-    embedding = generate_embedding(text)
+    embedding_list = generate_embedding(text)
+    embedding_np = np.array(embedding_list, dtype=np.float32)
+    
+    # Generate fingerprint
+    fingerprint = generate_vector_fingerprint(embedding_np, EMBEDDING_MODEL, len(embedding_np))
+    
+    # Store in SQLite
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE Document 
+            SET vector = ?,
+                vector_fingerprint = ?,
+                vector_model = ?,
+                vector_dimension = ?,
+                vector_generated_at = ?
+            WHERE id = ?
+        """, (
+            serialize_vector(embedding_np),
+            fingerprint,
+            EMBEDDING_MODEL,
+            len(embedding_np),
+            datetime.utcnow().isoformat(),
+            doc_id
+        ))
+        conn.commit()
+        conn.close()
+        print(f"✅ Stored vector for document {doc_id} in SQLite (fingerprint: {fingerprint})")
+    except Exception as e:
+        print(f"⚠️  Failed to store vector in SQLite: {e}")
     
     # Prepare metadata
     meta = metadata or {}
     meta.update({
         "doc_id": doc_id,
         "title": title,
-        "type": "document"
+        "type": "document",
+        "fingerprint": fingerprint
     })
     
-    # Add to collection
+    # Add to ChromaDB collection
     collection.add(
         ids=[doc_id],
-        embeddings=[embedding],
+        embeddings=[embedding_list],
         documents=[text],
         metadatas=[meta]
     )
     
-    return embedding
+    return embedding_list
 
-def add_concept_embedding(concept_id: str, label: str, doc_id: str, metadata: Optional[Dict] = None):
-    """Add concept embedding to ChromaDB"""
+def add_concept_embedding(concept_id: str, label: str, doc_id: str, metadata: Optional[Dict] = None, db_path: str = "loom_lite.db"):
+    """Add concept embedding to both ChromaDB and SQLite"""
     collection = get_or_create_collection("concepts")
     
-    embedding = generate_embedding(label)
+    embedding_list = generate_embedding(label)
+    embedding_np = np.array(embedding_list, dtype=np.float32)
+    
+    # Generate fingerprint
+    fingerprint = generate_vector_fingerprint(embedding_np, EMBEDDING_MODEL, len(embedding_np))
+    
+    # Store in SQLite
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE Concept 
+            SET vector = ?,
+                vector_fingerprint = ?,
+                vector_model = ?,
+                vector_dimension = ?,
+                vector_generated_at = ?
+            WHERE id = ?
+        """, (
+            serialize_vector(embedding_np),
+            fingerprint,
+            EMBEDDING_MODEL,
+            len(embedding_np),
+            datetime.utcnow().isoformat(),
+            concept_id
+        ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"⚠️  Failed to store concept vector in SQLite: {e}")
     
     # Prepare metadata
     meta = metadata or {}
@@ -98,18 +162,19 @@ def add_concept_embedding(concept_id: str, label: str, doc_id: str, metadata: Op
         "concept_id": concept_id,
         "doc_id": doc_id,
         "label": label,
-        "type": "concept"
+        "type": "concept",
+        "fingerprint": fingerprint
     })
     
-    # Add to collection
+    # Add to ChromaDB collection
     collection.add(
         ids=[concept_id],
-        embeddings=[embedding],
+        embeddings=[embedding_list],
         documents=[label],
         metadatas=[meta]
     )
     
-    return embedding
+    return embedding_list
 
 def search_documents_semantic(query: str, n_results: int = 10) -> List[Dict]:
     """
