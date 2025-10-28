@@ -756,6 +756,18 @@ function highlightSearchResults(results) {
   }
   
   console.log(`Filtering ${matchedIds.size} concepts in Planet View (v1.6)`);
+  console.log('Matched concept IDs:', Array.from(matchedIds));
+  
+  // Debug: Show all node IDs and labels for comparison
+  if (root) {
+    const allNodes = root.descendants().filter(d => d.data.concept);
+    console.log(`Total concept nodes in tree: ${allNodes.length}`);
+    console.log('Sample node data:', allNodes.slice(0, 5).map(d => ({
+      id: d.data.id,
+      label: d.data.name,
+      matched: matchedIds.has(d.data.id)
+    })));
+  }
   
   // Auto-expand nodes that contain matches
   root.descendants().forEach(d => {
