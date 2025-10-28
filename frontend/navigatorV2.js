@@ -45,9 +45,9 @@ export function initFileSystemSidebar() {
   });
   
   // Listen for search results to update Top Hits dynamically
-  bus.on('searchResults', (data) => {
+  bus.on('searchResults', (event) => {
     console.log('Search results received, updating Top Hits...');
-    updateTopHitsFromSearch(data);
+    updateTopHitsFromSearch(event.detail);
   });
   
   // Listen for search cleared to restore original Top Hits
