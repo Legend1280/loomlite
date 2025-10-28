@@ -399,7 +399,10 @@ function toggle(d) {
  * Shift camera to keep tree centered as it expands
  */
 function shiftCameraForExpansion() {
-  if (!svg || !root) return;
+  if (!svg || !root) {
+    console.log('❌ No svg or root');
+    return;
+  }
   
   // Calculate the depth of the tree (how many columns)
   let maxDepth = 0;
@@ -408,6 +411,8 @@ function shiftCameraForExpansion() {
       maxDepth = d.depth;
     }
   });
+  
+  console.log('📊 Tree depth:', maxDepth);
   
   // Get SVG dimensions
   const svgWidth = svg.node().clientWidth;
@@ -419,14 +424,20 @@ function shiftCameraForExpansion() {
   const shiftAmount = maxDepth * 120;  // Shift right by 120px per level
   const shiftX = (svgWidth / 2) + shiftAmount;
   
-  // Smooth transition to new camera position
+  console.log('🎥 Camera shift:', { maxDepth, shiftAmount, shiftX, svgWidth, svgHeight });
+  
+  // Get the zoom behavior from the SVG
+  const zoom = d3.zoom()
+    .scaleExtent([0.1, 2])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
+    });
+  
+  // Apply the transform
   svg.transition()
     .duration(600)
     .ease(d3.easeCubicInOut)
-    .call(
-      d3.zoom().transform,
-      d3.zoomIdentity.translate(shiftX, svgHeight / 2)
-    );
+    .call(zoom.transform, d3.zoomIdentity.translate(shiftX, svgHeight / 2));
 }
 
 /**
