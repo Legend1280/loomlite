@@ -103,7 +103,7 @@ function renderSolarSystem(svg, data) {
   console.log('🪐 Planet nodes:', layoutData.nodes.filter(n => n.hierarchy_level > 0).length);
   
   // Group by hierarchy for orbit rings
-  const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level || 4);
+  const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level ?? 4);
   
   // Create container groups
   const g = svg.append('g');
@@ -272,7 +272,7 @@ function calculatePolarLayout(concepts, centerX, centerY) {
   ), 1);
   
   // Group by hierarchy level
-  const grouped = d3.group(concepts, d => d.hierarchy_level || 4);
+  const grouped = d3.group(concepts, d => d.hierarchy_level ?? 4);
   
   const nodes = [];
   
