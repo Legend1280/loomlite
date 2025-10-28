@@ -18,10 +18,10 @@ const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 // Global state
 let topHits = [];
 let originalTopHits = []; // Store original engagement-based top hits
-let lastValidSearchHits = []; // Store last valid search results
 let pinnedFolders = [];
 let collapsedSections = loadCollapsedState();
 let isSearchActive = false; // Track if search is active
+let searchTimeout = null; // Short-lived search buffer
 
 /**
  * Initialize Navigator
@@ -443,143 +443,44 @@ function saveCollapsedState() {
 }
 
 /**
- * Update Top Hits based on search results
+ * Update Top Hits based on search results (simplified - backend does all scoring)
  */
 async function updateTopHitsFromSearch(searchData) {
   isSearchActive = true;
   const { query, results, documentScores } = searchData;
   
-  // Fetch all documents to match against
-  try {
-    const response = await fetch(`${BACKEND_URL}/documents`);
-    const allDocs = await response.json();
-    
-    // Create a map of document scores from search results
-    const docScoreMap = new Map();
-    
-    // Handle new format with document_scores
-    if (documentScores) {
-      Object.entries(documentScores).forEach(([docId, score]) => {
-        docScoreMap.set(docId, score);
-      });
-    }
-    
-    // Also extract from results array if available
-    if (Array.isArray(results)) {
-      results.forEach(result => {
-        if (result.doc_id && result.score) {
-          const currentScore = docScoreMap.get(result.doc_id) || 0;
-          docScoreMap.set(result.doc_id, Math.max(currentScore, result.score));
-        }
-      });
-    }
-    
-    // Helper function to calculate match score for a single term
-    const calculateTermScore = (text, term) => {
-      const textLower = text.toLowerCase();
-      const termLower = term.toLowerCase();
-      
-      // Exact match
-      if (textLower === termLower) return 1.0;
-      
-      // Starts with term
-      if (textLower.startsWith(termLower)) return 0.9;
-      
-      // Direct substring match
-      if (textLower.includes(termLower)) {
-        const position = textLower.indexOf(termLower);
-        const matchRatio = termLower.length / textLower.length;
-        return 0.7 * matchRatio * (1 - position / textLower.length);
-      }
-      
-      // Check word boundaries (e.g., "pillar" matches "pillars")
-      const words = textLower.split(/[\s_.-]+/);
-      for (const word of words) {
-        if (word.startsWith(termLower)) return 0.6;
-        if (termLower.startsWith(word) && word.length >= 3) return 0.5;
-      }
-      
-      // Fuzzy character matching (allows for minor typos)
-      let termIndex = 0;
-      for (let i = 0; i < textLower.length && termIndex < termLower.length; i++) {
-        if (textLower[i] === termLower[termIndex]) {
-          termIndex++;
-        }
-      }
-      if (termIndex === termLower.length) return 0.3;
-      
-      return 0; // No match
-    };
-    
-    // Split query into terms for multi-word search
-    const queryTerms = query.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
-    
-    // Score documents based on title matching and semantic search
-    const scoredDocs = allDocs.map(doc => {
-      let titleScore = 0;
-      const titleLower = doc.title.toLowerCase();
-      
-      if (queryTerms.length === 0) {
-        return { ...doc, search_score: 0 };
-      }
-      
-      // Multi-word search logic
-      if (queryTerms.length === 1) {
-        // Single term search
-        titleScore = calculateTermScore(doc.title, queryTerms[0]);
-      } else {
-        // Multi-term search: score each term and combine
-        const termScores = queryTerms.map(term => calculateTermScore(doc.title, term));
-        const matchingTerms = termScores.filter(s => s > 0).length;
-        
-        if (matchingTerms === 0) {
-          titleScore = 0;
-        } else if (matchingTerms === queryTerms.length) {
-          // All terms match - highest score (AND logic bonus)
-          const avgScore = termScores.reduce((a, b) => a + b, 0) / termScores.length;
-          titleScore = avgScore * 1.5; // 50% bonus for matching all terms
-        } else {
-          // Some terms match - partial score (OR logic)
-          const avgScore = termScores.reduce((a, b) => a + b, 0) / termScores.length;
-          const matchRatio = matchingTerms / queryTerms.length;
-          titleScore = avgScore * matchRatio; // Weight by how many terms matched
-        }
-      }
-      
-      // Add semantic search score if available
-      const semanticScore = docScoreMap.get(doc.id) || 0;
-      const finalScore = titleScore + (semanticScore * 0.5); // Weight semantic score at 50%
-      
-      return {
-        ...doc,
-        search_score: finalScore
-      };
-    });
-    
-    // Filter and sort by score
-    const newTopHits = scoredDocs
-      .filter(doc => doc.search_score > 0)
-      .sort((a, b) => b.search_score - a.search_score)
-      .slice(0, 6);
-    
-    // Always update with new results (don't persist old results)
-    topHits = newTopHits;
-    
-    if (newTopHits.length > 0) {
-      console.log(`Updated Top Hits with ${topHits.length} search results for query: "${query}"`);
-      // Log top result for debugging
-      if (topHits[0]) {
-        console.log(`  Top result: "${topHits[0].title}" (score: ${topHits[0].search_score.toFixed(3)})`);
-      }
-    } else {
-      console.log(`No matching documents found for query: "${query}"`);
-    }
-    
-    updateTopHitsSection();
-    
-  } catch (error) {
-    console.error('Error updating Top Hits from search:', error);
+  // Clear any existing search timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
   }
+  
+  // Backend already did all the fuzzy matching and scoring
+  // Just take the top 6 results directly
+  if (!results || results.length === 0) {
+    topHits = [];
+    console.log(`No matching documents found for query: "${query}"`);
+  } else {
+    // Map backend results to Top Hits format
+    topHits = results.slice(0, 6).map(result => ({
+      id: result.doc_id,
+      title: result.title,
+      search_score: result.score,
+      match_type: result.match_type
+    }));
+    
+    console.log(`Updated Top Hits with ${topHits.length} search results for query: "${query}"`);
+    if (topHits[0]) {
+      console.log(`  Top result: "${topHits[0].title}" (score: ${topHits[0].search_score.toFixed(3)}, type: ${topHits[0].match_type})`);
+    }
+  }
+  
+  updateTopHitsSection();
+  
+  // Set short-lived buffer (1 second) - after this, clear if no new search
+  searchTimeout = setTimeout(() => {
+    // If still on the same empty results after 1s, keep them
+    // This prevents flickering but doesn't persist across new searches
+  }, 1000);
 }
 
 /**
@@ -588,7 +489,13 @@ async function updateTopHitsFromSearch(searchData) {
 function restoreOriginalTopHits() {
   isSearchActive = false;
   topHits = [...originalTopHits];
-  lastValidSearchHits = []; // Clear last search results
+  
+  // Clear search timeout
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+    searchTimeout = null;
+  }
+  
   console.log(`Restored ${topHits.length} original Top Hits`);
   updateTopHitsSection();
 }

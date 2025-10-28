@@ -507,7 +507,7 @@ async def get_doc_provenance(doc_id: str):
 @app.get("/search")
 async def search(q: str = "", types: str = "", tags: str = ""):
     """
-    Semantic search with document-level scoring (v1.6)
+    Hybrid search with fuzzy matching and multi-word support (v5.1)
     Returns documents ranked by relevance with matching concepts
     """
     if not q:
@@ -517,15 +517,86 @@ async def search(q: str = "", types: str = "", tags: str = ""):
             "results": [],
             "document_scores": {},
             "count": 0,
-            "threshold": 0.25
+            "threshold": 0.15
         }
     
     conn = get_db()
-    threshold = 0.25
+    threshold = 0.15  # Lowered threshold for fuzzy matches
     
-    # Step 1: Find all matching concepts
-    concept_query = "SELECT * FROM concepts WHERE label LIKE ?"
-    concept_params = [f"%{q}%"]
+    # Split query into terms for multi-word search
+    query_terms = [term.strip().lower() for term in q.split() if term.strip()]
+    
+    # Step 1: Get ALL documents for title matching
+    all_docs = conn.execute("SELECT id, title FROM documents").fetchall()
+    
+    # Helper function to calculate fuzzy title match score for a single term
+    def calculate_term_score(title, term):
+        title_lower = title.lower()
+        term_lower = term.lower()
+        
+        # Exact match
+        if title_lower == term_lower:
+            return 1.0
+        # Starts with
+        if title_lower.startswith(term_lower):
+            return 0.9
+        # Contains (substring)
+        if term_lower in title_lower:
+            position = title_lower.index(term_lower)
+            match_ratio = len(term_lower) / len(title_lower)
+            return 0.7 * match_ratio * (1 - position / len(title_lower))
+        
+        # Word boundary matching
+        words = [w for w in title_lower.replace('_', ' ').replace('-', ' ').replace('.', ' ').split() if w]
+        for word in words:
+            if word.startswith(term_lower):
+                return 0.6
+            if term_lower.startswith(word) and len(word) >= 3:
+                return 0.5
+        
+        # Fuzzy character-by-character matching
+        term_idx = 0
+        for char in title_lower:
+            if term_idx < len(term_lower) and char == term_lower[term_idx]:
+                term_idx += 1
+        if term_idx == len(term_lower):
+            return 0.3
+        
+        return 0.0
+    
+    # Step 2: Score documents by title matching
+    doc_title_scores = {}
+    for doc_row in all_docs:
+        doc_dict = dict(doc_row)
+        doc_id = doc_dict['id']
+        title = doc_dict['title']
+        
+        if len(query_terms) == 1:
+            # Single term
+            title_score = calculate_term_score(title, query_terms[0])
+        else:
+            # Multi-term: calculate score for each term
+            term_scores = [calculate_term_score(title, term) for term in query_terms]
+            matching_terms = sum(1 for s in term_scores if s > 0)
+            
+            if matching_terms == 0:
+                title_score = 0.0
+            elif matching_terms == len(query_terms):
+                # All terms match - bonus
+                avg_score = sum(term_scores) / len(term_scores)
+                title_score = avg_score * 1.5  # 50% bonus
+            else:
+                # Partial match
+                avg_score = sum(term_scores) / len(term_scores)
+                match_ratio = matching_terms / len(query_terms)
+                title_score = avg_score * match_ratio
+        
+        if title_score > 0:
+            doc_title_scores[doc_id] = title_score
+    
+    # Step 3: Find matching concepts (for semantic layer)
+    concept_query = "SELECT * FROM concepts WHERE " + " OR ".join(["label LIKE ?" for _ in query_terms])
+    concept_params = [f"%{term}%" for term in query_terms]
     
     if types:
         type_list = types.split(",")
@@ -534,14 +605,12 @@ async def search(q: str = "", types: str = "", tags: str = ""):
     
     matching_concepts = conn.execute(concept_query, concept_params).fetchall()
     
-    # Debug: Log matching concepts
-    print(f"[SEARCH DEBUG] Query: '{q}'")
-    print(f"[SEARCH DEBUG] Found {len(matching_concepts)} matching concepts:")
-    for concept in matching_concepts[:10]:  # Show first 10
-        concept_dict = dict(concept)
-        print(f"  - {concept_dict.get('label', 'N/A')} (doc: {concept_dict.get('doc_id', 'N/A')})")
+    # Debug logging
+    print(f"[SEARCH DEBUG] Query: '{q}' (terms: {query_terms})")
+    print(f"[SEARCH DEBUG] Found {len(doc_title_scores)} docs with title matches")
+    print(f"[SEARCH DEBUG] Found {len(matching_concepts)} matching concepts")
     
-    # Step 2: Group concepts by document and calculate scores
+    # Step 4: Group concepts by document
     doc_concept_map = {}
     for concept in matching_concepts:
         concept_dict = dict(concept)
@@ -550,11 +619,12 @@ async def search(q: str = "", types: str = "", tags: str = ""):
             doc_concept_map[doc_id] = []
         doc_concept_map[doc_id].append(concept_dict)
     
-    # Step 3: Calculate document-level scores
+    # Step 5: Combine title scores and concept scores
+    all_doc_ids = set(doc_title_scores.keys()) | set(doc_concept_map.keys())
     document_scores = {}
     results = []
     
-    for doc_id, concepts in doc_concept_map.items():
+    for doc_id in all_doc_ids:
         # Get document metadata
         doc = conn.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
         if not doc:
@@ -563,32 +633,30 @@ async def search(q: str = "", types: str = "", tags: str = ""):
         doc_dict = dict(doc)
         title = doc_dict.get('title', '')
         
-        # Calculate composite score
-        # titleMatch: fuzzy match between query and title
-        title_lower = title.lower()
-        query_lower = q.lower()
-        title_match = 1.0 if query_lower in title_lower else 0.0
+        # Get scores
+        title_score = doc_title_scores.get(doc_id, 0.0)
+        concepts = doc_concept_map.get(doc_id, [])
+        concept_score = max([c.get('confidence', 0.0) for c in concepts]) if concepts else 0.0
         
-        # conceptSim: max confidence of matching concepts
-        concept_sim = max([c.get('confidence', 0.0) for c in concepts]) if concepts else 0.0
-        
-        # spanOverlap: simplified - if concepts match, assume span overlap
-        span_overlap = 0.5 if concepts else 0.0
-        
-        # Composite score: 0.4*title + 0.4*concept + 0.2*span
-        score = (0.4 * title_match) + (0.4 * concept_sim) + (0.2 * span_overlap)
+        # Weighted fusion: 0.6 title + 0.4 concept
+        final_score = (0.6 * title_score) + (0.4 * concept_score)
         
         # Only include documents above threshold
-        if score >= threshold:
-            document_scores[doc_id] = score
+        if final_score >= threshold:
+            document_scores[doc_id] = final_score
             
             # Determine match type
-            match_type = "title" if title_match > 0 else "concept"
+            if title_score > concept_score:
+                match_type = "title"
+            elif concept_score > 0:
+                match_type = "concept"
+            else:
+                match_type = "fuzzy"
             
             results.append({
                 "doc_id": doc_id,
                 "title": title,
-                "score": round(score, 3),
+                "score": round(final_score, 3),
                 "match_type": match_type,
                 "concepts": [
                     {
