@@ -20,7 +20,7 @@ let selectedConceptId = null;
 let allConcepts = []; // Store all concepts for hierarchy queries
 let allRelations = []; // Store all relations
 
-// Analytics state
+// Provenance state (legacy variable kept for compatibility)
 let analyticsVisible = false;
 let currentFolder = null;
 let viewStartTime = null;
@@ -153,7 +153,7 @@ function renderHeader(container) {
   const tabs = [
     { id: 'ontology', label: 'Ontology', icon: createShareIcon() },
     { id: 'document', label: 'Document', icon: createBookIcon() },
-    { id: 'analytics', label: 'Analytics', icon: createChartIcon() }
+    { id: 'provenance', label: 'Provenance', icon: createChartIcon() }
   ];
   
   tabs.forEach(tab => {
@@ -317,8 +317,8 @@ function updateContent() {
       }
     } else if (currentMode === 'document' && currentDocId) {
       renderDocumentMode(currentDocId);
-    } else if (currentMode === 'analytics' && currentDocId) {
-      renderAnalyticsMode(currentDocId);
+    } else if (currentMode === 'provenance' && currentDocId) {
+      renderProvenanceMode(currentDocId);
     } else {
       // Show default message
       content.innerHTML = `
@@ -1246,75 +1246,109 @@ async function trackDwellTime(folderName, docId, seconds) {
 }
 
 /**
- * Render analytics mode inline (not as overlay)
+ * Render provenance mode - show document lineage and transformation pipeline
  */
-async function renderAnalyticsMode(docId) {
+async function renderProvenanceMode(docId) {
   const content = document.getElementById('surface-viewer-content');
   if (!content) return;
   
   try {
-    const response = await fetch(`${BACKEND_URL}/document-stats/${docId}`);
-    const stats = await response.json();
+    const response = await fetch(`${BACKEND_URL}/doc/${docId}/provenance`);
+    const provenance = await response.json();
     
-    // Calculate relative time
-    const lastOpened = stats.last_opened ? getRelativeTime(stats.last_opened) : 'Never';
+    // Format timestamp
+    const timestamp = provenance.origin.timestamp ? new Date(provenance.origin.timestamp).toLocaleString() : 'Unknown';
+    
+    // Format checksum (first 12 characters)
+    const checksumShort = provenance.origin.checksum ? provenance.origin.checksum.substring(0, 12) + '...' : 'N/A';
+    
+    // Calculate integrity percentage
+    const integrityPercent = (provenance.semantic_integrity * 100).toFixed(1);
     
     content.innerHTML = `
       <div style="padding: 24px; background: #111111;">
-        <h3 style="font-size: 18px; color: #e6e6e6; margin-bottom: 24px; font-weight: 600;">Document Analytics</h3>
+        <h3 style="font-size: 18px; color: #e6e6e6; margin-bottom: 24px; font-weight: 600;">Document Provenance</h3>
         
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-          <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
-            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">TOTAL VIEWS</div>
-            <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${stats.total_views}</div>
-          </div>
+        <!-- Origin Section -->
+        <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid #fad643;">
+          <div style="color: #fad643; font-size: 12px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; font-weight: 600;">Origin</div>
           
-          <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
-            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">PINS</div>
-            <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${stats.total_pins}</div>
-          </div>
-          
-          <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #fad643;">
-            <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">AVG DWELL TIME</div>
-            <div style="color: #e6e6e6; font-size: 28px; font-weight: 600;">${formatDwellTime(stats.avg_dwell_time)}</div>
+          <div style="display: grid; gap: 12px;">
+            <div>
+              <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Source</div>
+              <div style="color: #e6e6e6; font-size: 13px; font-family: monospace;">${provenance.origin.source}</div>
+            </div>
+            
+            <div>
+              <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Timestamp</div>
+              <div style="color: #e6e6e6; font-size: 13px;">${timestamp}</div>
+            </div>
+            
+            <div>
+              <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">Checksum</div>
+              <div style="color: #e6e6e6; font-size: 13px; font-family: monospace;">${checksumShort}</div>
+            </div>
+            
+            <div>
+              <div style="color: #9a9a9a; font-size: 11px; margin-bottom: 4px;">MIME Type</div>
+              <div style="color: #e6e6e6; font-size: 13px;">${provenance.origin.mime_type}</div>
+            </div>
           </div>
         </div>
         
-        <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
-          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">LAST OPENED</div>
-          <div style="color: #e6e6e6; font-size: 14px;">${lastOpened}</div>
-        </div>
-        
-        <div style="background: #181818; padding: 20px; border-radius: 8px;">
-          <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">FOLDERS</div>
-          <div style="color: #e6e6e6; font-size: 14px; margin-bottom: 16px;">${stats.folder_count} folder(s)</div>
+        <!-- Transformation Log Section -->
+        <div style="background: #181818; padding: 20px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid #10b981;">
+          <div style="color: #10b981; font-size: 12px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; font-weight: 600;">Transformation Log</div>
           
-          ${stats.folders && stats.folders.length > 0 ? `
-            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(42, 42, 42, 0.5);">
-              <div style="color: #9a9a9a; font-size: 11px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px;">FOLDER BREAKDOWN</div>
-              ${stats.folders.map(f => `
-                <div style="margin-bottom: 12px; padding: 12px; background: #111111; border-radius: 6px; border-left: 2px solid #fad643;">
-                  <div style="color: #e6e6e6; font-size: 13px; font-weight: 500; margin-bottom: 6px;">${f.folder_name}</div>
-                  <div style="color: #9a9a9a; font-size: 11px; display: flex; gap: 12px;">
-                    <span>${f.view_count} views</span>
-                    <span>•</span>
-                    <span>${f.pin_count} pins</span>
-                    <span>•</span>
-                    <span>${Math.floor(f.dwell_time / 60)}m dwell</span>
+          ${provenance.lineage && provenance.lineage.length > 0 ? `
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              ${provenance.lineage.map((event, idx) => `
+                <div style="padding: 12px; background: #111111; border-radius: 6px; border-left: 2px solid #10b981;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #10b981; color: #000; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">${idx + 1}</div>
+                    <div style="color: #e6e6e6; font-size: 13px; font-weight: 500;">${event.event}</div>
+                  </div>
+                  <div style="color: #9a9a9a; font-size: 11px; margin-left: 32px;">
+                    <div>By: <span style="color: #10b981;">${event.by}</span></div>
+                    ${event.details ? `<div style="margin-top: 4px;">${event.details}</div>` : ''}
                   </div>
                 </div>
               `).join('')}
             </div>
-          ` : ''}
+          ` : `
+            <div style="color: #9a9a9a; font-size: 13px; font-style: italic;">No transformation events recorded</div>
+          `}
+        </div>
+        
+        <!-- Semantic Integrity Section -->
+        <div style="background: #181818; padding: 20px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+          <div style="color: #3b82f6; font-size: 12px; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; font-weight: 600;">Semantic Integrity</div>
+          
+          <div style="margin-bottom: 12px;">
+            <div style="height: 8px; background: #111111; border-radius: 4px; overflow: hidden;">
+              <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); width: ${integrityPercent}%; transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="color: #e6e6e6; font-size: 24px; font-weight: 600;">${integrityPercent}%</div>
+              <div style="color: #9a9a9a; font-size: 11px;">Average Confidence</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="color: #e6e6e6; font-size: 18px; font-weight: 500;">${provenance.concept_count}</div>
+              <div style="color: #9a9a9a; font-size: 11px;">Concepts Extracted</div>
+            </div>
+          </div>
         </div>
       </div>
     `;
   } catch (error) {
-    console.error('Error loading analytics:', error);
+    console.error('Error loading provenance:', error);
     content.innerHTML = `
       <div style="padding: 24px; background: #111111;">
         <div style="color: #ef4444; padding: 20px; background: #1e1b1b; border-radius: 8px; border: 1px solid #7f1d1d;">
-          <div style="font-weight: 600; margin-bottom: 8px;">Error Loading Analytics</div>
+          <div style="font-weight: 600; margin-bottom: 8px;">Error Loading Provenance</div>
           <div style="font-size: 12px; color: #fca5a5;">${error.message}</div>
         </div>
       </div>
