@@ -344,6 +344,36 @@ function createDocumentItem(doc, options = {}) {
     item.appendChild(provenanceEl);
   }
   
+  // Find Similar button (always show, but subtle)
+  const similarBtn = document.createElement('button');
+  similarBtn.innerHTML = '🔍';
+  similarBtn.title = 'Find similar documents';
+  similarBtn.style.cssText = `
+    background: none;
+    border: none;
+    color: #9a9a9a;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 4px;
+    opacity: 0.5;
+    transition: all 0.2s;
+  `;
+  similarBtn.onmouseover = (e) => {
+    e.stopPropagation();
+    similarBtn.style.opacity = '1';
+    similarBtn.style.color = '#fad643';
+  };
+  similarBtn.onmouseout = (e) => {
+    e.stopPropagation();
+    similarBtn.style.opacity = '0.5';
+    similarBtn.style.color = '#9a9a9a';
+  };
+  similarBtn.onclick = (e) => {
+    e.stopPropagation(); // Don't trigger document click
+    window.findSimilarDocuments(doc.id, doc.title);
+  };
+  item.appendChild(similarBtn);
+  
   if (options.showScore && options.scoreLabel) {
     const scoreEl = document.createElement('span');
     scoreEl.textContent = options.scoreLabel;
@@ -572,3 +602,58 @@ function updateTopHitsSection() {
   container.replaceChild(section.content, oldContent);
 }
 
+
+/**
+ * Find similar documents and display in Top Hits
+ */
+window.findSimilarDocuments = async function(docId, docTitle) {
+  console.log(`🔍 Finding documents similar to: "${docTitle}" (${docId})`);
+  
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/similar/document/${docId}?n=10&threshold=0.3`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.similar_documents || data.similar_documents.length === 0) {
+      console.log('No similar documents found');
+      alert('No similar documents found');
+      return;
+    }
+    
+    console.log(`Found ${data.similar_documents.length} similar documents`);
+    
+    // Store original top hits if not already stored
+    if (!originalTopHits || originalTopHits.length === 0) {
+      originalTopHits = [...topHits];
+    }
+    
+    // Map similar documents to Top Hits format with similarity scores
+    topHits = data.similar_documents.map(doc => ({
+      id: doc.id,
+      title: doc.title,
+      type: doc.type || 'file',
+      provenance_status: doc.provenance_status,
+      search_score: doc.similarity, // Use similarity as score
+      engagement_score: doc.similarity
+    }));
+    
+    // Update Top Hits section with similar documents
+    updateTopHitsSection();
+    
+    console.log(`✅ Top Hits updated with ${topHits.length} similar documents`);
+    
+    // Add a "Clear" button or timeout to restore original
+    setTimeout(() => {
+      console.log('Restoring original Top Hits after 30 seconds...');
+      restoreOriginalTopHits();
+    }, 30000); // Auto-restore after 30 seconds
+    
+  } catch (error) {
+    console.error('Error finding similar documents:', error);
+    alert(`Failed to find similar documents: ${error.message}`);
+  }
+};

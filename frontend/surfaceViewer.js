@@ -499,12 +499,22 @@ function renderFullOntology(docId, ontologyData) {
               </div>
               <div style="padding: 12px 16px;">
                 ${items.map((concept, idx) => `
-                  <div style="padding: 8px 0; border-bottom: ${idx < items.length - 1 ? '1px solid rgba(42, 42, 42, 0.4)' : 'none'};">
-                    <div style="color: #e6e6e6; font-size: 13px; margin-bottom: 4px; font-weight: 500;">${concept.label}</div>
-                    <div style="display: flex; gap: 12px; font-size: 11px; color: #9a9a9a;">
-                      ${concept.confidence ? `<span>${(concept.confidence * 100).toFixed(0)}% confident</span>` : ''}
-                      ${concept.hierarchy_level !== undefined ? `<span>${hierarchyLabel(concept.hierarchy_level)}</span>` : ''}
+                  <div style="padding: 8px 0; border-bottom: ${idx < items.length - 1 ? '1px solid rgba(42, 42, 42, 0.4)' : 'none'}; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                      <div style="color: #e6e6e6; font-size: 13px; margin-bottom: 4px; font-weight: 500;">${concept.label}</div>
+                      <div style="display: flex; gap: 12px; font-size: 11px; color: #9a9a9a;">
+                        ${concept.confidence ? `<span>${(concept.confidence * 100).toFixed(0)}% confident</span>` : ''}
+                        ${concept.hierarchy_level !== undefined ? `<span>${hierarchyLabel(concept.hierarchy_level)}</span>` : ''}
+                      </div>
                     </div>
+                    <button 
+                      onclick="window.findSimilarConcepts('${concept.id}', '${concept.label.replace(/'/g, "\\'")}')"
+                      style="background: rgba(250, 214, 67, 0.1); border: 1px solid rgba(250, 214, 67, 0.3); color: #fad643; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.2s;"
+                      onmouseover="this.style.background='rgba(250, 214, 67, 0.2)'; this.style.borderColor='#fad643'"
+                      onmouseout="this.style.background='rgba(250, 214, 67, 0.1)'; this.style.borderColor='rgba(250, 214, 67, 0.3)'"
+                    >
+                      🔍 Find Similar
+                    </button>
                   </div>
                 `).join('')}
               </div>
