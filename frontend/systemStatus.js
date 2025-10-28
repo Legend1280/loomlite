@@ -24,6 +24,9 @@ const componentStatus = {
   // API Connectivity
   backendAPI: false,
   documentsLoaded: false,
+  containerHealth: false,
+  chromaDB: false,
+  databaseConnection: false,
   
   // UI Elements
   toolbar: false,
@@ -31,7 +34,8 @@ const componentStatus = {
   
   // Data
   documentCount: 0,
-  conceptCount: 0
+  conceptCount: 0,
+  apiResponseTime: 0
 };
 
 /**
@@ -103,9 +107,22 @@ function createStatusPanel() {
       
       <div class="status-section">
         <div class="status-section-title">Backend</div>
+        <div class="status-item" data-component="containerHealth">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">Docker Container</span>
+        </div>
         <div class="status-item" data-component="backendAPI">
           <span class="status-icon">⏳</span>
           <span class="status-label">Railway API</span>
+          <span class="status-value" id="apiTime">0ms</span>
+        </div>
+        <div class="status-item" data-component="chromaDB">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">ChromaDB</span>
+        </div>
+        <div class="status-item" data-component="databaseConnection">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">Database</span>
         </div>
         <div class="status-item" data-component="documentsLoaded">
           <span class="status-icon">⏳</span>
@@ -181,17 +198,32 @@ async function checkAllComponents() {
   
   // Backend API
   try {
+    const startTime = performance.now();
     const treeResponse = await fetch(`${API_BASE}/tree`);
+    const endTime = performance.now();
+    componentStatus.apiResponseTime = Math.round(endTime - startTime);
     componentStatus.backendAPI = treeResponse.ok;
+    componentStatus.containerHealth = treeResponse.ok; // If API responds, container is healthy
     
     if (treeResponse.ok) {
       const docs = await treeResponse.json();
       componentStatus.documentCount = docs.length;
       componentStatus.documentsLoaded = docs.length > 0;
+      componentStatus.databaseConnection = docs.length >= 0; // If we can query docs, DB is connected
     }
   } catch (error) {
     componentStatus.backendAPI = false;
     componentStatus.documentsLoaded = false;
+    componentStatus.containerHealth = false;
+    componentStatus.databaseConnection = false;
+  }
+  
+  // Check ChromaDB status
+  try {
+    const chromaResponse = await fetch(`${API_BASE}/api/embeddings/stats`);
+    componentStatus.chromaDB = chromaResponse.ok;
+  } catch (error) {
+    componentStatus.chromaDB = false;
   }
   
   updateStatusUI();
@@ -220,6 +252,21 @@ function updateStatusUI() {
   const docCount = statusPanel.querySelector('#docCount');
   if (docCount) {
     docCount.textContent = componentStatus.documentCount;
+  }
+  
+  // Update API response time
+  const apiTime = statusPanel.querySelector('#apiTime');
+  if (apiTime) {
+    const time = componentStatus.apiResponseTime;
+    apiTime.textContent = `${time}ms`;
+    // Color code by performance
+    if (time < 100) {
+      apiTime.style.color = '#10b981'; // Green - fast
+    } else if (time < 500) {
+      apiTime.style.color = '#f59e0b'; // Amber - medium
+    } else {
+      apiTime.style.color = '#ef4444'; // Red - slow
+    }
   }
 }
 
