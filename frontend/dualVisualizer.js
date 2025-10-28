@@ -567,7 +567,7 @@ function showTooltip(event, d) {
   
   // Show document summary for sun (hierarchy_level 0)
   if (d.hierarchy_level === 0 && d.summary) {
-    content += `<br><br><span style="color: #cbd5e1; line-height: 1.5;">${d.summary}</span>`;
+    content += `<br><br><div style="color: #cbd5e1; line-height: 1.5; max-width: 370px; word-wrap: break-word; white-space: normal;">${d.summary}</div>`;
   }
   
   // Show confidence for concepts
