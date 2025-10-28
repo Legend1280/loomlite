@@ -340,13 +340,9 @@ function createMindMapVisualization(container) {
   g = svg.append('g')
     .attr('transform', `translate(${centerX}, ${centerY})`);
   
-  // Add zoom behavior with tight bounded panning
+  // Add zoom behavior (no bounds - let camera shift freely)
   const zoom = d3.zoom()
     .scaleExtent([0.1, 2])
-    .translateExtent([
-      [centerX - 150, centerY - 150],  // Tight bounds: ±150px from center
-      [centerX + 150, centerY + 150]
-    ])
     .on('zoom', (event) => {
       g.attr('transform', event.transform);
     });
