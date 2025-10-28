@@ -273,7 +273,7 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
       const config = orbitConfigs[configIndex];
       
       // Calculate orbital speed (inner orbits faster)
-      const baseSpeed = 0.1; // radians per second
+      const baseSpeed = 0.02; // radians per second (slower, more contemplative)
       const speed = baseSpeed / Math.sqrt(node.orbitRadius / 150); // Kepler's 3rd law approximation
       
       // Calculate current angle
