@@ -2520,6 +2520,125 @@ def migrate_v5_2_alt():
             "traceback": traceback.format_exc()
         }
 
+@app.post("/admin/migrate-provenance-v2")
+def migrate_provenance_v2_endpoint():
+    """
+    Create or update provenance_events table with hash chain support
+    """
+    try:
+        from migrate_provenance_v2 import migrate_provenance_v2
+        result = migrate_provenance_v2(DB_PATH)
+        return result
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+@app.get("/api/provenance/object/{object_id}")
+def get_object_provenance(object_id: str):
+    """
+    Get complete provenance chain for a specific object (document or concept)
+    """
+    try:
+        from provenance import get_provenance_events, get_provenance_summary
+        
+        events = get_provenance_events(DB_PATH, object_id)
+        summary = get_provenance_summary(DB_PATH, object_id)
+        
+        return {
+            "object_id": object_id,
+            "summary": summary,
+            "events": events,
+            "chain_verified": all(e.get('verified', False) for e in events)
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+@app.post("/api/provenance/verify")
+def verify_provenance_chain(object_id: str):
+    """
+    Verify hash chain integrity for an object's provenance
+    """
+    import sqlite3
+    import hashlib
+    
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get all events for this object in chronological order
+        events = cursor.execute("""
+            SELECT id, doc_id, event_type, timestamp, actor, 
+                   checksum, vector_hash, parent_hash, verified
+            FROM provenance_events
+            WHERE doc_id = ?
+            ORDER BY timestamp ASC
+        """, (object_id,)).fetchall()
+        
+        if not events:
+            return {
+                "status": "error",
+                "message": "No provenance events found for this object"
+            }
+        
+        verified_count = 0
+        broken_links = []
+        
+        for i, event in enumerate(events):
+            event_dict = dict(event)
+            
+            # First event should have no parent
+            if i == 0:
+                if event_dict['parent_hash'] is None:
+                    verified_count += 1
+                else:
+                    broken_links.append({
+                        "event_id": event_dict['id'],
+                        "issue": "First event should not have parent_hash"
+                    })
+            else:
+                # Subsequent events should link to previous event's vector_hash
+                prev_event = dict(events[i-1])
+                if event_dict['parent_hash'] == prev_event['vector_hash']:
+                    verified_count += 1
+                else:
+                    broken_links.append({
+                        "event_id": event_dict['id'],
+                        "issue": "parent_hash does not match previous vector_hash",
+                        "expected": prev_event['vector_hash'],
+                        "actual": event_dict['parent_hash']
+                    })
+        
+        conn.close()
+        
+        chain_valid = len(broken_links) == 0
+        
+        return {
+            "object_id": object_id,
+            "chain_valid": chain_valid,
+            "total_events": len(events),
+            "verified_events": verified_count,
+            "broken_links": broken_links,
+            "integrity_score": verified_count / len(events) if events else 0
+        }
+        
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
