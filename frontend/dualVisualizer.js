@@ -1,13 +1,18 @@
 /**
  * Dual Visualizer Module for Loom Lite v2.0
- * Manages the split-panel visualization with force-directed graph (top) and mind map (bottom)
+ * Manages Solar System View - orbital visualization with document center node
+ * Features:
+ * - Flat elliptical orbits based on concept hierarchy
+ * - Animated orbital motion with depth perspective
+ * - Hover-to-show labels
+ * - Static document summary card
+ * - Search highlighting and concept selection
  */
 
 import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
-// import { drawMindMap } from './mindMap.js';
 
 /**
- * Main function to draw the dual visualizer
+ * Initialize and render the Solar System visualization
  * @param {string} docId - Document ID to visualize
  */
 // Store current visualization state
@@ -54,8 +59,6 @@ export async function drawDualVisualizer(docId) {
     bus.on('centerSolarSystem', () => {
       centerSolarView();
     });
-    
-    console.log('Dual Visualizer rendered successfully');
   } catch (error) {
     console.error('Error rendering dual visualizer:', error);
   }
@@ -80,15 +83,9 @@ function renderSolarSystem(svg, data) {
   const relations = data.relations || [];
   const document = data.doc || data.document || {};
   
-  console.log(`Rendering Solar System: ${concepts.length} concepts, ${relations.length} relations`);
-  console.log('Document:', document);
-  
   // Calculate center point
   const centerX = width / 2;
   const centerY = height / 2;
-  
-  console.log('📐 SVG size:', width, 'x', height);
-  console.log('🎯 Transform center:', centerX, centerY);
   
   // Create document summary node for center
   const documentNode = {
@@ -103,10 +100,6 @@ function renderSolarSystem(svg, data) {
   
   // Apply polar layout (includes document node)
   const layoutData = calculatePolarLayout([documentNode, ...concepts], centerX, centerY);
-  
-  console.log('📊 Layout nodes:', layoutData.nodes.length);
-  console.log('☀️ Document node:', layoutData.nodes.find(n => n.hierarchy_level === 0));
-  console.log('🪐 Planet nodes:', layoutData.nodes.filter(n => n.hierarchy_level > 0).length);
   
   // Group by hierarchy for orbit rings
   const orbitLevels = d3.group(layoutData.nodes, d => d.hierarchy_level ?? 4);
@@ -137,8 +130,6 @@ function renderSolarSystem(svg, data) {
     { tilt: 0, rotation: 0, flatten: 0.20 }       // Level 4: flat, extremely elliptical
   ];
   
-  console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
-  
   let configIndex = 0;
   orbitLevels.forEach((nodes, level) => {
     if (level === 0) return; // Skip sun
@@ -146,9 +137,6 @@ function renderSolarSystem(svg, data) {
     const radius = nodes[0].orbitRadius; // All nodes at same level have same orbit
     const config = orbitConfigs[configIndex % orbitConfigs.length];
     configIndex++;
-    
-    // Create ellipse with subtle planetary tilt
-    console.log(`🛸 Creating orbit at level ${level}, radius ${radius}, tilt ${config.tilt}°, rotation ${config.rotation}°`);
     
     // Draw flat horizontal ellipse (no rotation or tilt)
     const ellipseGroup = orbitRings.append('g')
@@ -164,14 +152,6 @@ function renderSolarSystem(svg, data) {
       .attr('stroke-width', 0.5)
       .attr('stroke-dasharray', '3,3')
       .attr('opacity', 0.4);
-  });
-  
-  // Debug: Check if ellipses were actually created
-  console.log('🔍 Ellipses created:', g.selectAll('ellipse').size());
-  g.selectAll('ellipse').each(function(d, i) {
-    const el = d3.select(this);
-    const parent = d3.select(this.parentNode);
-    console.log(`  Ellipse ${i}: rx=${el.attr('rx')}, ry=${el.attr('ry')}, parent transform=${parent.attr('transform')}`);
   });
   
   // Draw relation lines (middle layer)
@@ -620,8 +600,6 @@ function highlightSearchResultsInSolar(results) {
       .forEach(r => matchedConceptIds.add(r.id));
   }
   
-  console.log(`Filtering ${matchedConceptIds.size} concepts in Solar System View (v1.6)`);
-  
   if (matchedConceptIds.size === 0) {
     // No matches in current document, fade all to 0.1
     currentSvg.selectAll('circle')
@@ -672,8 +650,6 @@ function highlightSearchResultsInSolar(results) {
 function resetSolarSearchHighlight() {
   if (!currentSvg) return;
   
-  console.log('Resetting Solar System View search filter');
-  
   currentSvg.selectAll('circle')
     .transition()
     .duration(400)
@@ -696,16 +672,12 @@ bus.on('conceptSelected', (event) => {
   svg.selectAll('circle')
     .attr('stroke', d => d.id === conceptId ? '#fbbf24' : '#fff')
     .attr('stroke-width', d => d.id === conceptId ? 3 : 1.5);
-  
-  console.log(`Dual Visualizer: Highlighted concept ${conceptId}`);
 });
 
 /**
  * Center the Solar System view
  */
 function centerSolarView() {
-  console.log('Centering Solar System view...');
-  
   const svg = d3.select('#visualizer-top svg');
   if (svg.empty()) return;
   
