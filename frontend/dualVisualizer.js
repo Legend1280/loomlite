@@ -556,6 +556,9 @@ function showTooltip(event, d) {
     .style('z-index', '10000')
     .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.3)')
     .style('max-width', '400px')
+    .style('word-wrap', 'break-word')
+    .style('white-space', 'normal')
+    .style('overflow-wrap', 'break-word')
     .style('left', `${event.pageX + 15}px`)
     .style('top', `${event.pageY + 15}px`);
   
