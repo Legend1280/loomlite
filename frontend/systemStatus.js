@@ -170,7 +170,7 @@ async function checkAllComponents() {
   // Modules (check if functions exist)
   componentStatus.galaxyView = document.getElementById('galaxyContainer') !== null;
   componentStatus.dualVisualizer = typeof window.drawDualVisualizer === 'function';
-  componentStatus.sidebar = document.getElementById('sidebar') !== null;
+  componentStatus.sidebar = document.getElementById('file-system-sidebar') !== null;
   componentStatus.surfaceViewer = document.getElementById('surface-viewer') !== null;
   componentStatus.searchBar = document.getElementById('search-container') !== null;
   componentStatus.mindMap = document.getElementById('visualizer-bottom') !== null;
