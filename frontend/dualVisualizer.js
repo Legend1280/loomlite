@@ -13,7 +13,7 @@ import { bus, setCurrentDocId, setCurrentConceptId } from './eventBus.js';
 // Store current visualization state
 let currentSvg = null;
 let currentOntology = null;
-let labelsVisible = false; // Labels hidden by default
+let labelsVisible = true; // Labels visible by default (user can toggle off)
 let hasSearchResults = false; // Track if search is active
 
 export async function drawDualVisualizer(docId) {
