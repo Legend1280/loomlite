@@ -250,10 +250,70 @@ function renderSolarSystem(svg, data) {
     .attr('text-anchor', 'middle')
     .style('pointer-events', 'none')
     .style('opacity', 0.8)
+    .style('display', 'none')  // Hidden by default
     .each(function(d) {
       // Store label element reference for animation
       d.labelElement = this;
     });
+  
+  // Show labels on hover over Solar System
+  svg.on('mouseenter', () => {
+    d3.selectAll('.labels text').style('display', 'block');
+  });
+  
+  svg.on('mouseleave', () => {
+    d3.selectAll('.labels text').style('display', 'none');
+  });
+  
+  // Create static summary card next to sun
+  const sunNode = layoutData.nodes.find(n => n.hierarchy_level === 0);
+  if (sunNode) {
+    const cardX = centerX + 40;  // Position to the right of sun
+    const cardY = centerY - 30;
+    
+    // Card background
+    g.append('rect')
+      .attr('x', cardX)
+      .attr('y', cardY)
+      .attr('width', 200)
+      .attr('height', 80)
+      .attr('fill', '#1e1e1e')
+      .attr('stroke', '#ffd700')
+      .attr('stroke-width', 1)
+      .attr('rx', 4);
+    
+    // Document title
+    g.append('text')
+      .attr('x', cardX + 10)
+      .attr('y', cardY + 20)
+      .attr('fill', '#ffd700')
+      .attr('font-size', 12)
+      .attr('font-weight', 'bold')
+      .text(sunNode.label.length > 25 ? sunNode.label.substring(0, 25) + '...' : sunNode.label);
+    
+    // Summary text (wrapped)
+    const summaryText = sunNode.summary || 'No summary available';
+    const words = summaryText.split(' ');
+    let line = '';
+    let lineY = cardY + 40;
+    const maxWidth = 180;
+    
+    g.append('text')
+      .attr('x', cardX + 10)
+      .attr('y', lineY)
+      .attr('fill', '#9b9b9b')
+      .attr('font-size', 10)
+      .selectAll('tspan')
+      .data(words)
+      .join('tspan')
+      .attr('x', cardX + 10)
+      .attr('dy', (d, i) => i === 0 ? 0 : 12)
+      .text((d, i) => {
+        if (i < 10) return d + ' ';  // Only show first ~10 words
+        if (i === 10) return '...';
+        return '';
+      });
+  }
   
   // Store references for search highlighting
   svg.selectAll('.node').data(layoutData.nodes);
