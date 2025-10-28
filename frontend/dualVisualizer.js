@@ -126,12 +126,12 @@ function renderSolarSystem(svg, data) {
   // Draw orbit rings (bottom layer) - tilted ellipses for 3D effect
   const orbitRings = g.append('g').attr('class', 'orbit-rings');
   
-  // Orbit configurations - all on horizontal plane with varying eccentricity
+  // Orbit configurations - subtle tilts like real planetary orbits (within ±25°)
   const orbitConfigs = [
-    { rotation: 0, flatten: 0.85 },    // Level 1: slightly oval
-    { rotation: 0, flatten: 0.80 },    // Level 2: more oval
-    { rotation: 0, flatten: 0.75 },    // Level 3: even more oval
-    { rotation: 0, flatten: 0.70 }     // Level 4: most oval
+    { tilt: 5, rotation: 0, flatten: 0.88 },      // Level 1: 5° tilt, nearly circular
+    { tilt: 12, rotation: 30, flatten: 0.82 },    // Level 2: 12° tilt, slight oval
+    { tilt: 18, rotation: 60, flatten: 0.76 },    // Level 3: 18° tilt, more oval
+    { tilt: 25, rotation: 90, flatten: 0.70 }     // Level 4: 25° tilt, most oval
   ];
   
   console.log('🌌 Orbit levels:', Array.from(orbitLevels.keys()));
@@ -144,11 +144,12 @@ function renderSolarSystem(svg, data) {
     const config = orbitConfigs[configIndex % orbitConfigs.length];
     configIndex++;
     
-    // Create ellipse with 3D perspective tilt
+    // Create ellipse with subtle planetary tilt
     console.log(`🛸 Creating orbit at level ${level}, radius ${radius}, tilt ${config.tilt}°, rotation ${config.rotation}°`);
     
+    // Apply subtle 3D rotation: first rotate in plane, then tilt slightly
     const ellipseGroup = orbitRings.append('g')
-      .attr('transform', `translate(${centerX}, ${centerY}) rotate(${config.rotation})`);
+      .attr('transform', `translate(${centerX}, ${centerY}) rotate(${config.rotation}) scale(1, ${Math.cos(config.tilt * Math.PI / 180)})`);
     
     ellipseGroup.append('ellipse')
       .attr('cx', 0)
@@ -283,24 +284,25 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
       const rx = node.orbitRadius;
       const ry = node.orbitRadius * config.flatten;
       const rotation = (config.rotation * Math.PI) / 180;
+      const tiltRad = (config.tilt * Math.PI) / 180;
       
       // Calculate position on ellipse
       const localX = rx * Math.cos(currentAngle);
       const localY = ry * Math.sin(currentAngle);
       
-      // Rotate the ellipse
+      // Rotate the ellipse in plane
       const rotatedX = localX * Math.cos(rotation) - localY * Math.sin(rotation);
-      const rotatedY = localX * Math.sin(rotation) + localY * Math.cos(rotation);
+      const rotatedY = (localX * Math.sin(rotation) + localY * Math.cos(rotation)) * Math.cos(tiltRad);
       
       // Final position
       const x = centerX + rotatedX;
       const y = centerY + rotatedY;
       
-      // Calculate depth (z-position) for perspective on horizontal plane
-      // Nodes at top of screen (negative y) are "farther away"
-      const depth = -Math.sin(currentAngle); // -1 (far) to +1 (near)
-      const scale = 0.7 + (depth * 0.3); // Scale from 0.7 to 1.0
-      const opacity = 0.6 + (depth * 0.4); // Opacity from 0.6 to 1.0
+      // Calculate depth (z-position) for perspective
+      // Z-depth based on the vertical component of the tilted orbit
+      const zDepth = Math.sin(currentAngle) * Math.sin(tiltRad); // -1 (far) to +1 (near)
+      const scale = 0.75 + (zDepth * 0.25); // Scale from 0.75 to 1.0
+      const opacity = 0.65 + (zDepth * 0.35); // Opacity from 0.65 to 1.0
       
       // Update node position and appearance
       if (node.element) {
@@ -393,13 +395,25 @@ function calculatePolarLayout(concepts, centerX, centerY) {
       
       group.forEach((node, i) => {
         const confidence = node.confidence || 0.7;
-        const orbitRadius = baseRadius * level * (1 / confidence);
-        const angle = i * angleStep;
         
-        // Count connections for this node
+        // Count connections for this node FIRST
         const connections = concepts.filter(other => 
           concepts.some(r => (r.src === node.id && r.dst === other.id) || (r.src === other.id && r.dst === node.id))
         ).length;
+        
+        // Base radius for this hierarchy level
+        const levelRadius = baseRadius * level;
+        
+        // Add variance based on confidence and connections
+        const confidenceVariance = (1 - confidence) * 0.3; // 0 to 0.3
+        const connectionVariance = (connections / maxConnections) * 0.2; // 0 to 0.2
+        const randomVariance = (Math.random() - 0.5) * 0.15; // -0.075 to +0.075
+        
+        // Final radius with variance (can be ±40% from base)
+        const radiusMultiplier = 1 + confidenceVariance - connectionVariance + randomVariance;
+        const orbitRadius = levelRadius * radiusMultiplier;
+        
+        const angle = i * angleStep;
         
         const nodeSize = baseSize + (connections / maxConnections) * 10;  // Increased range from 6 to 10
         
