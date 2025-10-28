@@ -669,7 +669,9 @@ function handleNodeClick(d) {
   update(d);
   
   // Shift camera to keep tree centered
+  console.log('🎬 About to call shiftCameraForExpansion...');
   setTimeout(() => {
+    console.log('⏰ setTimeout fired, calling shift function...');
     shiftCameraForExpansion();
   }, 50);  // Small delay to let layout compute
 }
