@@ -375,7 +375,11 @@ function highlightSearchResults(results) {
     .attr('stroke-width', d => {
       if (!d || !d.id) return 1.5;
       return matchedDocIds.has(d.id) ? 2.5 : 1.5;
-    }); Highlight documents in a thread (v1.6)
+    });
+}
+
+/**
+ * Highlight documents in a thread (v1.6)
  */
 function highlightThreadDocuments(docIds) {
   if (!g) return;
