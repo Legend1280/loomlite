@@ -349,10 +349,16 @@ function startOrbitalAnimation(nodes, centerX, centerY, orbitConfigs) {
       
       // Update label position to follow node
       if (node.labelElement) {
+        // Calculate label opacity based on toggle state and depth
+        let labelOpacity = 0; // Hidden by default
+        if (labelsVisible) {
+          labelOpacity = node.hierarchy_level === 0 ? 1 : opacity * 0.8;
+        }
+        
         d3.select(node.labelElement)
           .attr('x', x)
           .attr('y', y + (node.hierarchy_level === 0 ? 35 : 20))
-          .style('opacity', node.hierarchy_level === 0 ? 1 : opacity * 0.8);
+          .style('opacity', labelOpacity);
       }
     });
     
