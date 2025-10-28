@@ -306,6 +306,22 @@ function createDocumentItem(doc, options = {}) {
   item.appendChild(iconEl);
   item.appendChild(titleEl);
   
+  // Provenance indicator (minimal dot)
+  if (doc.provenance_status) {
+    const provenanceEl = document.createElement('div');
+    const isVerified = doc.provenance_status === 'verified';
+    
+    provenanceEl.title = isVerified ? 'Provenance verified' : 'Provenance incomplete';
+    provenanceEl.style.cssText = `
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: ${isVerified ? '#10b981' : '#f59e0b'};
+      flex-shrink: 0;
+    `;
+    item.appendChild(provenanceEl);
+  }
+  
   if (options.showScore && options.scoreLabel) {
     const scoreEl = document.createElement('span');
     scoreEl.textContent = options.scoreLabel;

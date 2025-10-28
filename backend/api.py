@@ -24,6 +24,7 @@ from extractor import extract_ontology_from_text, store_ontology
 from semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
 from analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
 from file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
+from provenance import log_provenance_event, get_provenance_events, get_provenance_summary
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -182,6 +183,16 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
         # Generate doc_id from checksum
         doc_id = f"doc_{hashlib.sha256(doc_data['checksum'].encode()).hexdigest()[:12]}"
         
+        # Log provenance: Document ingested
+        log_provenance_event(
+            db_path=DB_PATH,
+            doc_id=doc_id,
+            event_type="ingested",
+            actor="document_reader",
+            checksum=doc_data['checksum'],
+            metadata={"filename": filename, "mime": doc_data["mime"], "size_bytes": len(file_bytes)}
+        )
+        
         if not title:
             title = filename
         
@@ -189,6 +200,19 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
         
         # Extract ontology
         ontology = extract_ontology_from_text(doc_data["text"], doc_id)
+        
+        # Log provenance: Ontology extracted
+        log_provenance_event(
+            db_path=DB_PATH,
+            doc_id=doc_id,
+            event_type="ontology_extracted",
+            actor="gpt-4.1-mini",
+            metadata={
+                "concepts_count": len(ontology["concepts"]),
+                "relations_count": len(ontology["relations"]),
+                "spans_count": len(ontology["spans"])
+            }
+        )
         
         jobs[job_id]["progress"] = "Storing results..."
         
@@ -237,6 +261,15 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
             )
             conn.close()
             print(f"✅ Unified summarization result: {result}")
+            
+            # Log provenance: Summaries generated
+            log_provenance_event(
+                db_path=DB_PATH,
+                doc_id=doc_id,
+                event_type="summaries_generated",
+                actor="gpt-4.1-mini",
+                metadata={"summary_count": result.get("summary_count", 0)}
+            )
         except Exception as e:
             print(f"⚠️  Summarization failed: {e}")
             import traceback
@@ -393,7 +426,8 @@ async def get_doc_text(doc_id: str):
 @app.get("/doc/{doc_id}/provenance")
 async def get_doc_provenance(doc_id: str):
     """
-    Get document provenance data including origin, transformation lineage, and semantic integrity
+    Get document provenance data from event log
+    Returns origin, transformation lineage, and semantic integrity
     """
     conn = get_db()
     cur = conn.cursor()
@@ -410,21 +444,34 @@ async def get_doc_provenance(doc_id: str):
     
     doc = dict(doc_row)
     
-    # Get concept provenance (models used, prompt versions)
-    concept_provenance = cur.execute("""
-        SELECT model_name, prompt_ver, COUNT(*) as count
-        FROM concepts
-        WHERE doc_id = ? AND (model_name IS NOT NULL OR prompt_ver IS NOT NULL)
-        GROUP BY model_name, prompt_ver
-    """, (doc_id,)).fetchall()
+    # Get provenance events from event log
+    events = get_provenance_events(DB_PATH, doc_id)
     
-    # Get span provenance (extractors used)
-    span_provenance = cur.execute("""
-        SELECT extractor, quality, COUNT(*) as count
-        FROM spans
-        WHERE doc_id = ? AND extractor IS NOT NULL
-        GROUP BY extractor, quality
-    """, (doc_id,)).fetchall()
+    # Build lineage from events
+    lineage = []
+    for event in events:
+        lineage_entry = {
+            "event": event["event_type"],
+            "by": event.get("actor", "unknown"),
+            "time": event["timestamp"],
+            "details": ""
+        }
+        
+        # Add metadata details if present
+        if event.get("metadata"):
+            metadata = event["metadata"]
+            details_parts = []
+            if "concepts_count" in metadata:
+                details_parts.append(f"Concepts: {metadata['concepts_count']}")
+            if "relations_count" in metadata:
+                details_parts.append(f"Relations: {metadata['relations_count']}")
+            if "summary_count" in metadata:
+                details_parts.append(f"Summaries: {metadata['summary_count']}")
+            if "filename" in metadata:
+                details_parts.append(f"File: {metadata['filename']}")
+            lineage_entry["details"] = ", ".join(details_parts)
+        
+        lineage.append(lineage_entry)
     
     # Calculate semantic integrity (average concept confidence)
     integrity_row = cur.execute("""
@@ -434,38 +481,6 @@ async def get_doc_provenance(doc_id: str):
     """, (doc_id,)).fetchone()
     
     conn.close()
-    
-    # Build lineage from provenance data
-    lineage = []
-    
-    # Document ingestion event
-    if doc.get("created_at"):
-        lineage.append({
-            "event": "ingested",
-            "by": "DocumentReader",
-            "time": doc["created_at"],
-            "details": f"Source: {doc.get('source_uri', 'unknown')}"
-        })
-    
-    # Text extraction events
-    for sp in span_provenance:
-        if sp["extractor"]:
-            lineage.append({
-                "event": "text_extracted",
-                "by": sp["extractor"],
-                "time": doc.get("created_at", ""),
-                "details": f"Quality: {sp['quality']:.2f}, Spans: {sp['count']}"
-            })
-    
-    # Concept extraction events
-    for cp in concept_provenance:
-        if cp["model_name"]:
-            lineage.append({
-                "event": "concepts_extracted",
-                "by": cp["model_name"],
-                "time": doc.get("created_at", ""),
-                "details": f"Prompt: {cp['prompt_ver']}, Concepts: {cp['count']}"
-            })
     
     return {
         "doc_id": doc["id"],
@@ -478,7 +493,8 @@ async def get_doc_provenance(doc_id: str):
         },
         "lineage": lineage,
         "semantic_integrity": integrity_row["avg_confidence"] if integrity_row and integrity_row["avg_confidence"] else 0.0,
-        "concept_count": integrity_row["concept_count"] if integrity_row else 0
+        "concept_count": integrity_row["concept_count"] if integrity_row else 0,
+        "event_count": len(events)
     }
 
 @app.get("/search")
