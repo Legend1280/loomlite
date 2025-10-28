@@ -1138,6 +1138,188 @@ def api_semantic_folder(category: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# DYNAMIC NAVIGATOR ENDPOINTS (v1.6)
+# ============================================================================
+
+@app.get("/api/folders/standard")
+def api_folders_standard():
+    """
+    Get all standard folders for Standard mode
+    Returns folders based on file metadata (Recent, by-type, by-date)
+    """
+    try:
+        conn = get_db()
+        
+        # Get recent folder
+        recent = get_standard_folder(conn, "recent")
+        
+        # Get by-type folders
+        by_type = get_standard_folders_by_type(conn)
+        
+        # Get by-date folders
+        by_date = get_standard_folders_by_date(conn)
+        
+        # Combine all folders
+        folders = [
+            {
+                "id": "recent",
+                "title": recent["folder_name"],
+                "docCount": len(recent["items"]),
+                "items": recent["items"]
+            }
+        ]
+        
+        # Add type-based folders
+        for folder in by_type:
+            folders.append({
+                "id": f"type_{folder['type']}",
+                "title": folder["folder_name"],
+                "docCount": len(folder["items"]),
+                "items": folder["items"]
+            })
+        
+        return {"folders": folders}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/folders/temporal")
+def api_folders_temporal():
+    """
+    Get time-based folders for Time mode
+    Returns folders grouped by: Today, This Week, This Month, Older
+    """
+    try:
+        conn = get_db()
+        folders_data = get_standard_folders_by_date(conn)
+        
+        # Format for Dynamic Navigator
+        folders = []
+        for folder in folders_data:
+            folders.append({
+                "id": folder["folder_name"].lower().replace(" ", "_"),
+                "title": folder["folder_name"],
+                "docCount": len(folder["items"]),
+                "items": folder["items"]
+            })
+        
+        return {"folders": folders}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/threads")
+def api_threads():
+    """
+    Get active thread definitions
+    Returns hardcoded threads: Pillars, LoomLite, Scribe
+    """
+    try:
+        conn = get_db()
+        
+        # Define thread patterns for document matching
+        thread_patterns = {
+            "pillars": ["%Pillars%", "%Physician%", "%Healthcare%", "%MSO%"],
+            "loomlite": ["%LoomLite%", "%Loom%", "%Navigator%", "%Galaxy%"],
+            "scribe": ["%Scribe%", "%AI%", "%Semantic%", "%Ontology%"]
+        }
+        
+        threads = []
+        
+        for thread_id, patterns in thread_patterns.items():
+            # Count documents matching this thread
+            where_clauses = ["title LIKE ?" for _ in patterns]
+            where_sql = " OR ".join(where_clauses)
+            
+            cur = conn.cursor()
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT id)
+                FROM documents
+                WHERE {where_sql}
+            """, patterns)
+            
+            doc_count = cur.fetchone()[0]
+            
+            # Thread metadata
+            thread_meta = {
+                "pillars": {
+                    "title": "Pillars",
+                    "description": "Healthcare MSO project",
+                    "color": "#10b981"
+                },
+                "loomlite": {
+                    "title": "LoomLite",
+                    "description": "Development docs",
+                    "color": "#3b82f6"
+                },
+                "scribe": {
+                    "title": "Scribe",
+                    "description": "AI tooling docs",
+                    "color": "#8b5cf6"
+                }
+            }
+            
+            threads.append({
+                "id": thread_id,
+                "title": thread_meta[thread_id]["title"],
+                "description": thread_meta[thread_id]["description"],
+                "color": thread_meta[thread_id]["color"],
+                "docCount": doc_count
+            })
+        
+        return {"threads": threads}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/threads/{threadId}/documents")
+def api_thread_documents(threadId: str):
+    """
+    Get documents associated with a specific thread
+    """
+    try:
+        conn = get_db()
+        
+        # Define thread patterns
+        thread_patterns = {
+            "pillars": ["%Pillars%", "%Physician%", "%Healthcare%", "%MSO%"],
+            "loomlite": ["%LoomLite%", "%Loom%", "%Navigator%", "%Galaxy%"],
+            "scribe": ["%Scribe%", "%AI%", "%Semantic%", "%Ontology%"]
+        }
+        
+        if threadId not in thread_patterns:
+            raise HTTPException(status_code=404, detail="Thread not found")
+        
+        patterns = thread_patterns[threadId]
+        where_clauses = ["title LIKE ?" for _ in patterns]
+        where_sql = " OR ".join(where_clauses)
+        
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT DISTINCT id, title, created_at, summary
+            FROM documents
+            WHERE {where_sql}
+            ORDER BY created_at DESC
+        """, patterns)
+        
+        rows = cur.fetchall()
+        
+        documents = []
+        for row in rows:
+            doc_id, title, created_at, summary = row
+            documents.append({
+                "id": doc_id,
+                "title": title,
+                "created_at": created_at,
+                "summary": summary[:100] if summary else None
+            })
+        
+        return {
+            "threadId": threadId,
+            "documents": documents
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/admin/sort-weights")
 def get_sort_weights():
     """
