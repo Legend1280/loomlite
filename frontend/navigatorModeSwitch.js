@@ -46,24 +46,24 @@ function createModeSwitchBar() {
     gap: 4px;
   `;
   
-  // Mode definitions
+  // Mode definitions with SVG icons
   const modes = [
     {
       id: 'standard',
       label: 'Standard',
-      icon: '■',
+      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>',
       tooltip: 'File organization (Recent, PDF, etc.)'
     },
     {
       id: 'meaning',
       label: 'Meaning',
-      icon: '●',
+      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
       tooltip: 'Ontology-based clusters (Projects, Concepts, etc.)'
     },
     {
       id: 'time',
       label: 'Time',
-      icon: '◷',
+      iconSvg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
       tooltip: 'Chronological groups (Today, This Week, etc.)'
     }
   ];
@@ -101,12 +101,14 @@ function createModeButton(mode) {
     font-family: system-ui, -apple-system, sans-serif;
   `;
   
-  // Icon
-  const icon = document.createElement('span');
-  icon.textContent = mode.icon;
+  // Icon (SVG)
+  const icon = document.createElement('div');
+  icon.innerHTML = mode.iconSvg;
   icon.style.cssText = `
-    font-size: 18px;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: ${isActive ? '#22c55e' : '#9a9a9a'};
   `;
   
   // Label
