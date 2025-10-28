@@ -202,7 +202,7 @@ To run the migration, a developer simply needs to call the final endpoint after 
 
 ```bash
 # Trigger the final migration for the 4-level hierarchy
-curl -X GET https://loomlite-production.up.railway.app/admin/migrate-parent-concept-id
+curl -X GET http://127.0.0.1:8000/admin/migrate-parent-concept-id
 ```
 
 **Verification:**

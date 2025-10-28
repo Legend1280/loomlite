@@ -265,7 +265,7 @@ The documentation is comprehensive, well-structured, and includes:
 
 ### Backend (Railway)
 - **Status**: ✅ DEPLOYED
-- **URL**: https://loomlite-production.up.railway.app
+- **URL**: http://127.0.0.1:8000
 - **Issues**: Extraction pipeline not working
 - **Logs**: Accessible via Railway dashboard
 
@@ -431,12 +431,12 @@ cd backend
 python3.11 main.py
 
 # Test extraction endpoint
-curl -X POST https://loomlite-production.up.railway.app/api/ingest/text \
+curl -X POST http://127.0.0.1:8000/api/ingest/text \
   -H "Content-Type: application/json" \
   -d '{"text": "Test document", "title": "Test"}'
 
 # Check job status
-curl https://loomlite-production.up.railway.app/api/jobs | python3 -m json.tool
+curl http://127.0.0.1:8000/api/jobs | python3 -m json.tool
 ```
 
 ---

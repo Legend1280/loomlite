@@ -38,11 +38,11 @@ vercel --prod
 
 The frontend is already configured to connect to the Railway backend:
 
-**Backend API URL:** `https://loomlite-production.up.railway.app`
+**Backend API URL:** `http://127.0.0.1:8000`
 
 This is set in `frontend/index.html` at line 333:
 ```javascript
-const API_BASE = 'https://loomlite-production.up.railway.app';
+const API_BASE = 'http://127.0.0.1:8000';
 ```
 
 ## Post-Deployment
@@ -72,7 +72,7 @@ This means the Vercel frontend can make API calls to the Railway backend without
 
 If you encounter issues:
 
-1. **Check Railway backend is running:** Visit https://loomlite-production.up.railway.app/ (should return JSON)
+1. **Check Railway backend is running:** Visit http://127.0.0.1:8000/ (should return JSON)
 2. **Check browser console** for any API errors
 3. **Verify CORS headers** in browser DevTools Network tab
 4. **Check Vercel deployment logs** in the Vercel dashboard

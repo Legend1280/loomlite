@@ -8,7 +8,7 @@
 ## 🚀 Deployed Services
 
 ### 1. Backend API (Railway)
-- **URL:** https://loomlite-production.up.railway.app
+- **URL:** http://127.0.0.1:8000
 - **Status:** Active and responding
 - **Model:** GPT-5 (upgraded from gpt-4.1-mini)
 - **Features:**
@@ -105,7 +105,7 @@
 ### 1. Test Backend Health
 
 ```bash
-curl https://loomlite-production.up.railway.app/
+curl http://127.0.0.1:8000/
 ```
 
 Expected response: API info JSON
@@ -113,7 +113,7 @@ Expected response: API info JSON
 ### 2. Test Document Ingestion
 
 ```bash
-curl -X POST https://loomlite-production.up.railway.app/api/ingest \
+curl -X POST http://127.0.0.1:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Brady Simmons founded Loom Lite in 2024. The project uses GPT-5 for ontology extraction.",
@@ -127,7 +127,7 @@ Expected response: `{"job_id": "...", "status": "queued"}`
 ### 3. Check Job Status
 
 ```bash
-curl https://loomlite-production.up.railway.app/api/jobs/{job_id}
+curl http://127.0.0.1:8000/api/jobs/{job_id}
 ```
 
 ### 4. View in Frontend

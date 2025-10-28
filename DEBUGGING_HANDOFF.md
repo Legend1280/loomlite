@@ -63,7 +63,7 @@ The Loom Lite MVP is deployed and functional except for **one critical blocker**
 - **Last Commit:** "Fix vercel.json to deploy frontend/index.html with upload feature"
 
 ### Backend (Railway)
-- **Production URL:** https://loomlite-production.up.railway.app
+- **Production URL:** http://127.0.0.1:8000
 - **Status:** ⚠️ RUNNING but extraction hanging
 - **Last Commit:** "Fix model name: change gpt-5 to gpt-4.1 and add temperature=0.0"
 - **Auto-Deploy:** Enabled from GitHub main branch
@@ -224,7 +224,7 @@ DATABASE_URL=...       # Should be set automatically by Railway
 ### Test Upload
 ```bash
 # Upload a document
-curl -X POST https://loomlite-production.up.railway.app/api/ingest \
+curl -X POST http://127.0.0.1:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{
     "file": "base64_encoded_content",
@@ -236,15 +236,15 @@ curl -X POST https://loomlite-production.up.railway.app/api/ingest \
 ### Check Job Status
 ```bash
 # List all jobs
-curl https://loomlite-production.up.railway.app/api/jobs
+curl http://127.0.0.1:8000/api/jobs
 
 # Get specific job
-curl https://loomlite-production.up.railway.app/api/jobs/job_ec471bd5a2d8
+curl http://127.0.0.1:8000/api/jobs/job_ec471bd5a2d8
 ```
 
 ### Check Concepts (after extraction works)
 ```bash
-curl https://loomlite-production.up.railway.app/concepts
+curl http://127.0.0.1:8000/concepts
 ```
 
 ---
@@ -292,7 +292,7 @@ curl https://loomlite-production.up.railway.app/concepts
 ## Contact Information
 
 **Repository:** https://github.com/Legend1280/loomlite  
-**Backend:** https://loomlite-production.up.railway.app  
+**Backend:** http://127.0.0.1:8000  
 **Frontend:** https://loomlite.vercel.app  
 
 **Key Documentation:**

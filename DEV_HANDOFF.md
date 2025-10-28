@@ -69,7 +69,7 @@ This handoff package contains:
                      v
 ┌─────────────────────────────────────────────────────────┐
 │              RAILWAY BACKEND API                         │
-│  https://loomlite-production.up.railway.app             │
+│  http://127.0.0.1:8000             │
 │                                                          │
 │  • FastAPI application                                   │
 │  • GPT-5 ontology extraction                            │
@@ -159,7 +159,7 @@ loom-lite-mvp/
 
 ### Railway Backend
 
-**URL:** https://loomlite-production.up.railway.app
+**URL:** http://127.0.0.1:8000
 
 **Environment Variables:**
 - `OPENAI_API_KEY` - ✅ Configured (masked)
@@ -205,7 +205,7 @@ cd backend && uvicorn api:app --host 0.0.0.0 --port $PORT
 
 ### Health Check
 ```http
-GET https://loomlite-production.up.railway.app/
+GET http://127.0.0.1:8000/
 ```
 
 **Response:**
@@ -219,7 +219,7 @@ GET https://loomlite-production.up.railway.app/
 
 ### Document Ingestion
 ```http
-POST https://loomlite-production.up.railway.app/api/ingest
+POST http://127.0.0.1:8000/api/ingest
 Content-Type: application/json
 
 {
@@ -239,19 +239,19 @@ Content-Type: application/json
 
 ### Job Status
 ```http
-GET https://loomlite-production.up.railway.app/api/jobs/{job_id}
+GET http://127.0.0.1:8000/api/jobs/{job_id}
 ```
 
 ### List All Jobs
 ```http
-GET https://loomlite-production.up.railway.app/api/jobs
+GET http://127.0.0.1:8000/api/jobs
 ```
 
 ### Ontology Query
 ```http
-GET https://loomlite-production.up.railway.app/tree
-GET https://loomlite-production.up.railway.app/search?q=query
-GET https://loomlite-production.up.railway.app/concepts?types=Person,Project
+GET http://127.0.0.1:8000/tree
+GET http://127.0.0.1:8000/search?q=query
+GET http://127.0.0.1:8000/concepts?types=Person,Project
 ```
 
 ---

@@ -164,7 +164,7 @@ This package contains comprehensive documentation for LoomLite v4.0, including s
 
 - **Production**: https://loomlite.vercel.app
 - **Repository**: https://github.com/Legend1280/loomlite
-- **Backend API**: https://loomlite-production.up.railway.app
+- **Backend API**: http://127.0.0.1:8000
 
 ---
 

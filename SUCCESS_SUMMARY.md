@@ -8,7 +8,7 @@
 ## 🚀 System is Live and Working!
 
 **Frontend:** https://loomlite.vercel.app  
-**Backend:** https://loomlite-production.up.railway.app  
+**Backend:** http://127.0.0.1:8000  
 **GitHub:** https://github.com/Legend1280/loomlite
 
 ---
@@ -158,7 +158,7 @@ python3 /home/ubuntu/test_ingestion.py
 
 ### Test 3: CORS Headers
 ```bash
-curl -H "Origin: https://loomlite.vercel.app" -I https://loomlite-production.up.railway.app/concepts
+curl -H "Origin: https://loomlite.vercel.app" -I http://127.0.0.1:8000/concepts
 ```
 **Result:** ✅ SUCCESS
 ```
@@ -234,7 +234,7 @@ The system is now fully deployed and ready for:
 3. Wait ~20 seconds for extraction
 4. See concepts appear in mind map!
 
-**API Documentation:** https://loomlite-production.up.railway.app/
+**API Documentation:** http://127.0.0.1:8000/
 
 ---
 

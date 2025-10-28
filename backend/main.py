@@ -2,7 +2,9 @@
 Loom Lite MVP - FastAPI Backend
 Enhanced with N8N integration and concept filtering
 """
-
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -12,6 +14,24 @@ import sqlite3
 import json
 from datetime import datetime
 from pathlib import Path
+from backend.file_system import (
+    get_top_hits,
+    get_pinned_folders,
+    get_standard_folder,
+    get_standard_folders_by_type,
+    get_standard_folders_by_date,
+    get_semantic_folder
+)
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
+
+from backend.api import app as api_app
+from backend.api import router as api_router
+from backend.api import api_folders_standard as api_folders_standard
+
+app = FastAPI()
+app.include_router(api_router, prefix="/api")
+
 
 app = FastAPI(title="Loom Lite API", version="1.0.0")
 
@@ -23,8 +43,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/api", api_app)
 
-DB_PATH = "/home/ubuntu/loom-lite-mvp/backend/loom_lite.db"
+# DB_PATH = "/Users/ashok/Desktop/Work/loomlite/backend/loom_lite.db"
+DB_PATH = str(Path(__file__).parent / "loom_lite.db")
+
+# Get absolute path of frontend directory
+FRONTEND_PATH = os.path.join(os.path.dirname(__file__), "../frontend")
+
+# Serve frontend files
+app.mount("/frontend", StaticFiles(directory=FRONTEND_PATH), name="frontend")
 
 
 def get_db():

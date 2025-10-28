@@ -95,7 +95,7 @@ sqlite3 /data/loom_lite_v2.db ".schema concepts"
 
 **Upload a test document via API:**
 ```bash
-curl -X POST https://loomlite-production.up.railway.app/ingest \
+curl -X POST http://127.0.0.1:8000/ingest \
   -H "Content-Type: application/json" \
   -d '{
     "file": "<base64_encoded_file>",
@@ -129,7 +129,7 @@ curl -X POST https://loomlite-production.up.railway.app/ingest \
 ### Test 1: Hierarchy Detection
 ```javascript
 // In browser console
-fetch('https://loomlite-production.up.railway.app/doc/<doc_id>/ontology')
+fetch('http://127.0.0.1:8000/doc/<doc_id>/ontology')
   .then(r => r.json())
   .then(data => {
     const hasClusters = data.concepts.some(c => c.hierarchy_level === 2);
@@ -149,7 +149,7 @@ grep "Processing Time" /var/log/railway.log
 ### Test 3: Backward Compatibility
 ```bash
 # Old documents should still load
-curl https://loomlite-production.up.railway.app/doc/<old_doc_id>/ontology
+curl http://127.0.0.1:8000/doc/<old_doc_id>/ontology
 # Should return concepts with NULL hierarchy fields
 ```
 

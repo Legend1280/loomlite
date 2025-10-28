@@ -22,7 +22,7 @@ This explains:
 - Concept types and relationships
 
 ### 3. Check Deployment Status
-**Backend:** https://loomlite-production.up.railway.app  
+**Backend:** http://127.0.0.1:8000  
 **Frontend:** https://loomlite-ceiwo6txb-bradys-projects-179e6527.vercel.app
 
 Both should be live. If not, check `DEV_HANDOFF.md` for troubleshooting.
@@ -70,7 +70,7 @@ Both should be live. If not, check `DEV_HANDOFF.md` for troubleshooting.
    - Path: `loom-lite-ingest`
 4. Add HTTP Request node:
    - Method: POST
-   - URL: `https://loomlite-production.up.railway.app/api/ingest`
+   - URL: `http://127.0.0.1:8000/api/ingest`
    - Body: JSON with fields `file`, `filename`, `title`
 5. Save and activate workflow
 6. Test with:

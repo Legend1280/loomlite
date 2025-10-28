@@ -8,7 +8,7 @@
 import { bus, setCurrentDocId } from './eventBus.js';
 import { initDynamicFoldersPanel } from './dynamicFoldersPanel.js';
 
-const API_BASE = 'https://loomlite-production.up.railway.app';
+const API_BASE = 'http://127.0.0.1:8000';
 
 // Global state
 let documents = [];

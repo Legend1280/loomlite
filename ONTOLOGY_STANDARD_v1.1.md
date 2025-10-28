@@ -332,7 +332,7 @@ Output: MicroOntology
 
 ### 7.1 Unified API (Railway Deployment)
 
-**Base URL:** `https://loomlite-production.up.railway.app`
+**Base URL:** `http://127.0.0.1:8000`
 
 #### Ontology Query Endpoints
 
@@ -397,7 +397,7 @@ loom-lite-mvp/
 
 **Backend (Railway):**
 - Platform: Railway
-- URL: https://loomlite-production.up.railway.app
+- URL: http://127.0.0.1:8000
 - Runtime: Python 3.11
 - Database: SQLite (persistent volume)
 - Environment Variables: `OPENAI_API_KEY`
@@ -451,12 +451,12 @@ print(f"✅ Valid MicroOntology: {len(ontology.concepts)} concepts")
 EOF
 
 # 3. Test API endpoints
-curl https://loomlite-production.up.railway.app/tree | jq
-curl https://loomlite-production.up.railway.app/doc/<doc_id>/ontology | jq
-curl https://loomlite-production.up.railway.app/search?q=test | jq
+curl http://127.0.0.1:8000/tree | jq
+curl http://127.0.0.1:8000/doc/<doc_id>/ontology | jq
+curl http://127.0.0.1:8000/search?q=test | jq
 
 # 4. Test N8N API
-curl https://loomlite-production.up.railway.app/api/jobs | jq
+curl http://127.0.0.1:8000/api/jobs | jq
 ```
 
 ### 10.2 Regression Tests

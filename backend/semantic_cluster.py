@@ -8,7 +8,7 @@ from collections import defaultdict
 import re
 import os
 from openai import OpenAI
-from models import Concept, Relation, MicroOntology
+from backend.models import Concept, Relation, MicroOntology
 
 # Initialize OpenAI client for cluster labeling
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))

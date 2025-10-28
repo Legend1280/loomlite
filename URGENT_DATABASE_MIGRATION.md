@@ -136,7 +136,7 @@ sqlite3 /data/loom_lite_v2.db "PRAGMA table_info(concepts);"
 ```bash
 # Upload a file via frontend
 # Check job status
-curl https://loomlite-production.up.railway.app/api/jobs
+curl http://127.0.0.1:8000/api/jobs
 
 # Should show:
 # "status": "completed"  ← NOT "failed"
@@ -145,7 +145,7 @@ curl https://loomlite-production.up.railway.app/api/jobs
 ### 3. Verify Hierarchy
 ```bash
 # Check a document's ontology
-curl https://loomlite-production.up.railway.app/doc/{doc_id}/ontology
+curl http://127.0.0.1:8000/doc/{doc_id}/ontology
 
 # Concepts should have:
 # "parent_cluster_id": "c_xxx_cluster_1"

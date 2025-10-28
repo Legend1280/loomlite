@@ -8,7 +8,7 @@
 ## Test Environment
 
 **Frontend**: https://loomlite.vercel.app  
-**Backend**: https://loomlite-production.up.railway.app  
+**Backend**: http://127.0.0.1:8000  
 **Local Commits**: Ready (need manual push due to auth expiry)
 
 ---

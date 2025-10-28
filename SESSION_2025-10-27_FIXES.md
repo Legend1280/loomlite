@@ -6,7 +6,7 @@
 
 **Problem**: Frontend requests to Railway backend were blocked with CORS error:
 ```
-Access to fetch at 'https://loomlite-production.up.railway.app/tree' 
+Access to fetch at 'http://127.0.0.1:8000/tree' 
 from origin 'https://loomlite.vercel.app' has been blocked by CORS policy
 ```
 
@@ -38,7 +38,7 @@ from origin 'https://loomlite.vercel.app' has been blocked by CORS policy
 **Problem**: `sidebar.js` had a hardcoded Railway URL instead of using the `API_BASE` constant like other modules.
 
 **Solution Applied** (Commit `c7c4607`):
-- Added `const API_BASE = 'https://loomlite-production.up.railway.app';` to sidebar.js
+- Added `const API_BASE = 'http://127.0.0.1:8000';` to sidebar.js
 - Updated line 114 to use `${API_BASE}/tree` instead of hardcoded URL
 - Now consistent with `galaxyView.js`, `planetView.js`, `searchBar.js`, and `systemStatus.js`
 
@@ -99,7 +99,7 @@ from origin 'https://loomlite.vercel.app' has been blocked by CORS policy
 
 - **Backend (Railway)**: Auto-deployed from GitHub main branch
   - Latest commit: `ee7409e` (CORS fix)
-  - URL: https://loomlite-production.up.railway.app
+  - URL: http://127.0.0.1:8000
 
 ---
 

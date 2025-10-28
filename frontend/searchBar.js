@@ -8,7 +8,7 @@
 import { bus, setSearchQuery, getSelectedFilters, addFilter, removeFilter } from './eventBus.js';
 
 // Configuration
-const API_BASE = 'https://loomlite-production.up.railway.app';
+const API_BASE = 'http://127.0.0.1:8000';
 const DEBOUNCE_DELAY = 200; // ms
 const MAX_SUGGESTIONS = 5;
 

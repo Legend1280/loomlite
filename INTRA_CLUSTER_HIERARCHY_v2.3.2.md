@@ -150,7 +150,7 @@ python3 backend/migrate_add_parent_concept_id.py
 
 **Or via API:**
 ```
-GET https://loomlite-production.up.railway.app/admin/migrate-parent-concept-id
+GET http://127.0.0.1:8000/admin/migrate-parent-concept-id
 ```
 
 ---
@@ -224,7 +224,7 @@ Business Model (Cluster)
    python3 /app/backend/migrate_add_parent_concept_id.py
    
    # Option B: Via API endpoint (add this endpoint first)
-   curl https://loomlite-production.up.railway.app/admin/migrate-parent-concept-id
+   curl http://127.0.0.1:8000/admin/migrate-parent-concept-id
    ```
 3. Upload test document
 4. Check Mind Map for refinement nodes

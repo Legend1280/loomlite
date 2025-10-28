@@ -11,7 +11,7 @@
 ### ✅ What's Working (95% Complete)
 
 1. **Backend API** - Deployed on Railway, fully functional
-   - URL: https://loomlite-production.up.railway.app
+   - URL: http://127.0.0.1:8000
    - All endpoints responding correctly
    - Database auto-initialization working
    - Job queue system operational
@@ -94,12 +94,12 @@
    # Wait 1 minute for Railway deployment
    
    # Test extraction
-   curl -X POST https://loomlite-production.up.railway.app/api/ingest \
+   curl -X POST http://127.0.0.1:8000/api/ingest \
      -H "Content-Type: application/json" \
      -d '{"file":"VGVzdCBkb2N1bWVudA==","filename":"test.txt","title":"Test"}'
    
    # Wait 30 seconds, then check results
-   curl https://loomlite-production.up.railway.app/api/jobs
+   curl http://127.0.0.1:8000/api/jobs
    
    # Look for: "concepts_count" > 0
    ```

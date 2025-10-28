@@ -11,7 +11,7 @@
 
 import { bus } from './eventBus.js';
 
-const API_BASE = 'https://loomlite-production.up.railway.app';
+const API_BASE = 'http://127.0.0.1:8000';
 
 let svg, g, simulation;
 let documents = [];
@@ -82,9 +82,12 @@ async function loadDocuments() {
  */
 async function analyzeSharedConcepts() {
   const conceptsByLabel = new Map();
+
+  // Filter only files (type === 'file')
+  const fileDocs = documents.filter(d => d.type === 'file');
   
   // Load ontology for each document
-  for (const doc of documents) {
+  for (const doc of fileDocs) {
     try {
       const response = await fetch(`${API_BASE}/doc/${doc.id}/ontology`);
       const ontology = await response.json();
@@ -273,10 +276,11 @@ function getNodeRadius(node) {
 /**
  * Truncate title to max length
  */
-function truncateTitle(title, maxLength) {
-  if (title.length <= maxLength) return title;
-  return title.substring(0, maxLength - 3) + '...';
+function truncateTitle(title, maxLength = 20) {
+  if (!title || typeof title !== "string") return "(Untitled)";
+  return title.length > maxLength ? title.slice(0, maxLength) + "…" : title;
 }
+
 
 /**
  * Drill down to Solar System view

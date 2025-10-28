@@ -638,7 +638,7 @@
                 formData.append('file', file);
                 
                 try {
-                  const response = await fetch('https://loomlite-production.up.railway.app/api/ingest/file', {
+                  const response = await fetch('http://127.0.0.1:8000/api/ingest/file', {
                     method: 'POST',
                     body: formData
                   });

@@ -45,7 +45,7 @@ availableTags = tags.map(t => t.label || t).sort();
 
 **Test 1: Backend Endpoint**
 ```bash
-curl -X POST "https://loomlite-production.up.railway.app/api/ingest/file" \
+curl -X POST "http://127.0.0.1:8000/api/ingest/file" \
   -F "file=@test.txt"
 ```
 **Result:** ✅ Success

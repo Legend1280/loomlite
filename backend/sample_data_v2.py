@@ -5,14 +5,16 @@ Creates 3 documents with 20-30 concepts each
 
 import sqlite3
 import json
+import os
 from datetime import datetime
 
-DB_PATH = "/home/ubuntu/loom-lite-mvp/backend/loom_lite_v2.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "loom_lite_v2.db")
 
 def init_db():
     """Initialize database with v2 schema"""
     conn = sqlite3.connect(DB_PATH)
-    with open('/home/ubuntu/loom-lite-mvp/backend/schema_v2.sql', 'r') as f:
+    with open(os.path.join(BASE_DIR, 'schema_v2.sql'), 'r') as f:
         conn.executescript(f.read())
     conn.commit()
     return conn

@@ -10,7 +10,7 @@
 Successfully implemented and deployed the complete 4-level astronomical hierarchy visualization system with integrated search functionality.
 
 **Production URL:** https://loomlite.vercel.app  
-**Backend API:** https://loomlite-production.up.railway.app  
+**Backend API:** http://127.0.0.1:8000  
 **Latest Commit:** 53cd37a
 
 ---
@@ -335,7 +335,7 @@ surfaceViewer.js
 
 **Repository:** https://github.com/Legend1280/loomlite  
 **Production:** https://loomlite.vercel.app  
-**Backend:** https://loomlite-production.up.railway.app  
+**Backend:** http://127.0.0.1:8000  
 
 **Key Documentation:**
 - `ONTOLOGY_STANDARD_v1.1.md` - Canonical ontology specification

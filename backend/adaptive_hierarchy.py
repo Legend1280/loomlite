@@ -5,11 +5,11 @@ Creates dynamic multi-level hierarchies based on document complexity
 
 from typing import List, Dict, Tuple
 from collections import defaultdict
-from models import Concept, Relation, MicroOntology
+from backend.models import Concept, Relation, MicroOntology
 import os
 from openai import OpenAI
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.environ.get("I3mPTHHcVeagF5t7lQL7jkQ8wfOakfHGm0uK4oFCImqc_gyfN_T8WDJo8GU5a0yB98K_EUBOF5T3BlbkFJjYSNEYoQo1k7Wml2LScGRCFmuRDPa4QLyV1-FZzyjxZ5CLkLcB1f0XpFCLc88eX4SkvzzOHiIA"))
 
 
 def determine_hierarchy_depth(doc_length: int, concept_count: int, cluster_count: int) -> int:

@@ -165,7 +165,7 @@ fileInput.style.display = 'none';    // Hidden input
 
 ### Upload Endpoint
 ```
-POST https://loomlite-production.up.railway.app/api/ingest/file
+POST http://127.0.0.1:8000/api/ingest/file
 Content-Type: multipart/form-data
 Body: FormData with 'file' field
 ```

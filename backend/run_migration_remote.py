@@ -6,7 +6,8 @@ import requests
 import sys
 
 # Create an admin endpoint to run migrations
-BACKEND_URL = "https://loomlite-production.up.railway.app"
+# BACKEND_URL = "https://loomlite-production.up.railway.app"
+BACKEND_URL = "http://127.0.0.1:8000"
 
 # Since we don't have a migration endpoint, we'll create the table via a direct SQL endpoint
 # For now, let's just document what needs to be done

@@ -35,7 +35,7 @@ The GPT-4.1 extraction is **NOW WORKING**! Test completed successfully:
 
 **Error in Browser Console:**
 ```
-Access to fetch at 'https://loomlite-production.up.railway.app/tree' 
+Access to fetch at 'http://127.0.0.1:8000/tree' 
 from origin 'https://loomlite.vercel.app' has been blocked by CORS policy: 
 No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ```
@@ -102,12 +102,12 @@ python3 /home/ubuntu/test_ingestion.py
 
 ### Check Concepts (Direct API)
 ```bash
-curl https://loomlite-production.up.railway.app/concepts
+curl http://127.0.0.1:8000/concepts
 ```
 
 ### Check Job Status
 ```bash
-curl https://loomlite-production.up.railway.app/api/jobs
+curl http://127.0.0.1:8000/api/jobs
 ```
 
 ---
@@ -119,7 +119,7 @@ curl https://loomlite-production.up.railway.app/api/jobs
 - Latest: https://loomlite-2kw2bnr2m-bradys-projects-179e6527.vercel.app ✅
 
 **Backend:**
-- Production: https://loomlite-production.up.railway.app ✅ (but CORS issue)
+- Production: http://127.0.0.1:8000 ✅ (but CORS issue)
 
 **GitHub:**
 - Repository: https://github.com/Legend1280/loomlite

@@ -54,7 +54,7 @@ python3 send_pdf.py
 sleep 45
 
 # Check results
-curl -s https://loomlite-production.up.railway.app/api/jobs | python3 -m json.tool | head -50
+curl -s http://127.0.0.1:8000/api/jobs | python3 -m json.tool | head -50
 ```
 
 ---
@@ -175,7 +175,7 @@ curl -s https://loomlite-production.up.railway.app/api/jobs | python3 -m json.to
 DOC_ID="doc_xxx"
 
 # Query spans
-curl -s "https://loomlite-production.up.railway.app/doc/$DOC_ID/ontology" | python3 -m json.tool
+curl -s "http://127.0.0.1:8000/doc/$DOC_ID/ontology" | python3 -m json.tool
 
 # Manually verify a few spans match the source text
 ```
@@ -384,7 +384,7 @@ curl -s "https://loomlite-production.up.railway.app/doc/$DOC_ID/ontology" | pyth
 cd /home/ubuntu/upload && python3 send_pdf.py
 
 # Check jobs
-curl -s https://loomlite-production.up.railway.app/api/jobs | python3 -m json.tool
+curl -s http://127.0.0.1:8000/api/jobs | python3 -m json.tool
 
 # View frontend
 # https://loomlite-ceiwo6txb-bradys-projects-179e6527.vercel.app

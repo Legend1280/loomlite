@@ -62,7 +62,7 @@ frontend/
 | `GET` | `/folders` | List all documents |
 | `GET` | `/system/status` | Health check |
 
-**Base URL**: `https://loomlite-production.up.railway.app`
+**Base URL**: `http://127.0.0.1:8000`
 
 ---
 
@@ -260,7 +260,7 @@ console.log(getFocusedPanel());
 
 - **Production**: https://loomlite.vercel.app
 - **Repository**: https://github.com/Legend1280/loomlite
-- **Backend API**: https://loomlite-production.up.railway.app
+- **Backend API**: http://127.0.0.1:8000
 
 ---
 

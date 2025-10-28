@@ -350,8 +350,8 @@ async function renderDocumentMode(docId) {
   try {
     // Fetch document text, spans, and ontology
     const [textResponse, ontologyResponse] = await Promise.all([
-      fetch(`https://loomlite-production.up.railway.app/doc/${docId}/text`),
-      fetch(`https://loomlite-production.up.railway.app/doc/${docId}/ontology`)
+      fetch(`http://127.0.0.1:8000/doc/${docId}/text`),
+      fetch(`http://127.0.0.1:8000/doc/${docId}/ontology`)
     ]);
     
     if (!textResponse.ok || !ontologyResponse.ok) {
@@ -664,7 +664,7 @@ function findDescendants(conceptId, concepts) {
  */
 async function fetchAndDisplayConcept(conceptId) {
   try {
-    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${currentDocId}/ontology`);
+    const response = await fetch(`http://127.0.0.1:8000/doc/${currentDocId}/ontology`);
     const data = await response.json();
     
     allConcepts = data.concepts || [];

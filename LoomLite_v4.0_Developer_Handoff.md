@@ -200,7 +200,7 @@ loomlite/
 | Service | Purpose | URL |
 |---------|---------|-----|
 | **Vercel** | Frontend hosting | https://loomlite.vercel.app |
-| **Railway** | Backend API | https://loomlite-production.up.railway.app |
+| **Railway** | Backend API | http://127.0.0.1:8000 |
 | **GitHub** | Version control | https://github.com/Legend1280/loomlite |
 
 ### Development Tools
@@ -751,7 +751,7 @@ bus.emit('centerSolarSystem', {});
 
 ### Backend API Endpoints
 
-**Base URL**: `https://loomlite-production.up.railway.app`
+**Base URL**: `http://127.0.0.1:8000`
 
 #### 1. Upload Document
 
@@ -1221,7 +1221,7 @@ vercel --prod
 4. Set environment variables (if needed)
 5. Deploy
 
-**API URL**: https://loomlite-production.up.railway.app
+**API URL**: http://127.0.0.1:8000
 
 ### Continuous Deployment
 

@@ -13,7 +13,7 @@ import { initModeSwitch } from './navigatorModeSwitch.js';
 import { initDynamicPane } from './navigatorDynamicPane.js';
 import { initActiveThreads } from './navigatorActiveThreads.js';
 
-const BACKEND_URL = 'https://loomlite-production.up.railway.app';
+const BACKEND_URL = 'http://127.0.0.1:8000';
 
 // Global state
 let topHits = [];

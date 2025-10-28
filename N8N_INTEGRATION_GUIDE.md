@@ -10,7 +10,7 @@ This guide explains how to use N8N to automate document ingestion into Loom Lite
 
 **Webhook URL:** https://sovfound.app.n8n.cloud/webhook/loom-lite-ingest
 
-**API Endpoint:** https://loomlite-production.up.railway.app/api/ingest
+**API Endpoint:** http://127.0.0.1:8000/api/ingest
 
 ## Testing
 

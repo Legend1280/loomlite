@@ -7,7 +7,7 @@
 
 import { bus } from './eventBus.js';
 
-const BACKEND_URL = 'https://loomlite-production.up.railway.app';
+const BACKEND_URL = 'http://127.0.0.1:8000';
 
 // State
 let currentMode = 'meaning';

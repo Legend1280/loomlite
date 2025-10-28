@@ -22,7 +22,7 @@ let currentOntology = null;
 export async function drawDualVisualizer(docId) {
   try {
     // Fetch ontology data from API
-    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${docId}/ontology`);
+    const response = await fetch(`http://127.0.0.1:8000/doc/${docId}/ontology`);
     if (!response.ok) {
       throw new Error(`Failed to fetch ontology: ${response.statusText}`);
     }

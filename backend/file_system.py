@@ -9,42 +9,121 @@ from datetime import datetime, timedelta
 import json
 
 
+# def get_top_hits(conn: sqlite3.Connection, limit: int = 6) -> List[Dict[str, Any]]:
+#     """
+#     Get top hits based on dwell time, recency, and frequency
+    
+#     Formula: score = 0.4 × dwell_time_normalized + 0.3 × recency_score + 0.3 × view_frequency
+#     """
+#     cur = conn.cursor()
+    
+#     # Get documents with engagement metrics
+#     cur.execute("""
+#         SELECT 
+#             d.id,
+#             d.title,
+#             d.created_at,
+#             COALESCE(SUM(fs.dwell_time), 0) as total_dwell_time,
+#             COALESCE(SUM(fs.view_count), 0) as total_views,
+#             MAX(fs.last_opened) as last_opened
+#         FROM documents d
+#         LEFT JOIN folder_stats fs ON d.id = fs.doc_id
+#         GROUP BY d.id
+#         HAVING total_views > 0
+#         ORDER BY total_dwell_time DESC, total_views DESC, last_opened DESC
+#         LIMIT ?
+#     """, (limit,))
+    
+#     rows = cur.fetchall()
+    
+#     top_hits = []
+#     for row in rows:
+#         doc_id, title, created_at, dwell_time, views, last_opened = row
+        
+#         # Calculate engagement score
+#         dwell_score = min(dwell_time / 300.0, 1.0) if dwell_time else 0  # Normalize to 5 min
+        
+#         # Recency score
+#         if last_opened:
+#             try:
+#                 last_opened_dt = datetime.fromisoformat(last_opened.replace('Z', '+00:00'))
+#                 hours_ago = (datetime.now() - last_opened_dt).total_seconds() / 3600
+#                 recency_score = max(0, 1.0 - (hours_ago / 168.0))  # Decay over 1 week
+#             except:
+#                 recency_score = 0
+#         else:
+#             recency_score = 0
+        
+#         # View frequency score
+#         freq_score = min(views / 10.0, 1.0)  # Normalize to 10 views
+        
+#         # Combined score
+#         score = 0.4 * dwell_score + 0.3 * recency_score + 0.3 * freq_score
+        
+#         top_hits.append({
+#             "id": doc_id,
+#             "title": title,
+#             "created_at": created_at,
+#             "engagement_score": round(score, 3),
+#             "views": views,
+#             "dwell_time": dwell_time,
+#             "last_opened": last_opened
+#         })
+    
+#     return top_hits
+
 def get_top_hits(conn: sqlite3.Connection, limit: int = 6) -> List[Dict[str, Any]]:
     """
-    Get top hits based on dwell time, recency, and frequency
-    
+    Get top hits based on dwell time, recency, and frequency.
     Formula: score = 0.4 × dwell_time_normalized + 0.3 × recency_score + 0.3 × view_frequency
     """
     cur = conn.cursor()
-    
-    # Get documents with engagement metrics
-    cur.execute("""
-        SELECT 
-            d.id,
-            d.title,
-            d.created_at,
-            d.summary,
-            COALESCE(SUM(fs.dwell_time), 0) as total_dwell_time,
-            COALESCE(SUM(fs.view_count), 0) as total_views,
-            MAX(fs.last_opened) as last_opened
-        FROM documents d
-        LEFT JOIN folder_stats fs ON d.id = fs.doc_id
-        GROUP BY d.id
-        HAVING total_views > 0
-        ORDER BY total_dwell_time DESC, total_views DESC, last_opened DESC
-        LIMIT ?
-    """, (limit,))
-    
+
+    # ✅ Check if folder_stats table exists to prevent SQL errors
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='folder_stats'")
+    has_folder_stats = cur.fetchone() is not None
+
+    if not has_folder_stats:
+        # Fallback query if folder_stats table doesn't exist yet
+        cur.execute("""
+            SELECT 
+                d.id,
+                d.title,
+                d.created_at,
+                0 as total_dwell_time,
+                0 as total_views,
+                NULL as last_opened
+            FROM documents d
+            ORDER BY d.created_at DESC
+            LIMIT ?
+        """, (limit,))
+    else:
+        # Full query when folder_stats is available
+        cur.execute("""
+            SELECT 
+                d.id,
+                d.title,
+                d.created_at,
+                COALESCE(SUM(fs.dwell_time), 0) as total_dwell_time,
+                COALESCE(SUM(fs.view_count), 0) as total_views,
+                MAX(fs.last_opened) as last_opened
+            FROM documents d
+            LEFT JOIN folder_stats fs ON d.id = fs.doc_id
+            GROUP BY d.id
+            HAVING total_views > 0
+            ORDER BY total_dwell_time DESC, total_views DESC, last_opened DESC
+            LIMIT ?
+        """, (limit,))
+
     rows = cur.fetchall()
-    
     top_hits = []
+
     for row in rows:
-        doc_id, title, created_at, summary, dwell_time, views, last_opened = row
-        
-        # Calculate engagement score
+        doc_id, title, created_at, dwell_time, views, last_opened = row
+
+        # Calculate engagement metrics
         dwell_score = min(dwell_time / 300.0, 1.0) if dwell_time else 0  # Normalize to 5 min
-        
-        # Recency score
+
         if last_opened:
             try:
                 last_opened_dt = datetime.fromisoformat(last_opened.replace('Z', '+00:00'))
@@ -54,33 +133,23 @@ def get_top_hits(conn: sqlite3.Connection, limit: int = 6) -> List[Dict[str, Any
                 recency_score = 0
         else:
             recency_score = 0
-        
-        # View frequency score
+
         freq_score = min(views / 10.0, 1.0)  # Normalize to 10 views
-        
-        # Combined score
+
         score = 0.4 * dwell_score + 0.3 * recency_score + 0.3 * freq_score
-        
+
         top_hits.append({
             "id": doc_id,
             "title": title,
             "created_at": created_at,
-            "summary": summary[:100] if summary else None,
             "engagement_score": round(score, 3),
             "views": views,
             "dwell_time": dwell_time,
             "last_opened": last_opened
         })
-    
-    # Add provenance status to all documents
-    from provenance_status import add_provenance_status
-    import os
-    db_path = os.getenv("DATABASE_PATH", "/data/loom_lite_v2.db")
-    top_hits = add_provenance_status(db_path, top_hits)
-    
+
     return top_hits
-
-
+    
 def get_pinned_folders(conn: sqlite3.Connection, user_id: str = "default") -> List[Dict[str, Any]]:
     """
     Get user-pinned folders and documents
@@ -125,7 +194,7 @@ def get_standard_folder(conn: sqlite3.Connection, folder_type: str) -> Dict[str,
     if folder_type == "recent":
         # Recent files (last 30 days, sorted by created_at DESC)
         cur.execute("""
-            SELECT id, title, created_at, summary
+            SELECT id, title, created_at
             FROM documents
             WHERE created_at >= datetime('now', '-30 days')
             ORDER BY created_at DESC
@@ -139,7 +208,7 @@ def get_standard_folder(conn: sqlite3.Connection, folder_type: str) -> Dict[str,
             return {"folder_name": "Favorites", "items": []}
         
         cur.execute("""
-            SELECT d.id, d.title, d.created_at, d.summary
+            SELECT d.id, d.title, d.created_at
             FROM documents d
             JOIN favorites f ON d.id = f.doc_id
             WHERE f.user_id = 'default'
@@ -154,12 +223,11 @@ def get_standard_folder(conn: sqlite3.Connection, folder_type: str) -> Dict[str,
     
     items = []
     for row in rows:
-        doc_id, title, created_at, summary = row
+        doc_id, title, created_at = row
         items.append({
             "id": doc_id,
             "title": title,
-            "created_at": created_at,
-            "summary": summary[:100] if summary else None
+            "created_at": created_at
         })
     
     folder_name_map = {
@@ -181,7 +249,7 @@ def get_standard_folders_by_type(conn: sqlite3.Connection) -> List[Dict[str, Any
     
     # Get all documents with file types
     cur.execute("""
-        SELECT id, title, created_at, summary, 
+        SELECT id, title, created_at, 
                LOWER(SUBSTR(title, -4)) as extension
         FROM documents
         ORDER BY created_at DESC
@@ -192,7 +260,7 @@ def get_standard_folders_by_type(conn: sqlite3.Connection) -> List[Dict[str, Any
     # Group by extension
     by_type = {}
     for row in rows:
-        doc_id, title, created_at, summary, ext = row
+        doc_id, title, created_at, ext = row
         
         # Clean extension
         if ext and ext.startswith('.'):
@@ -207,7 +275,6 @@ def get_standard_folders_by_type(conn: sqlite3.Connection) -> List[Dict[str, Any
             "id": doc_id,
             "title": title,
             "created_at": created_at,
-            "summary": summary[:100] if summary else None,
             "type": ext
         })
     
@@ -233,7 +300,7 @@ def get_standard_folders_by_date(conn: sqlite3.Connection) -> List[Dict[str, Any
     cur = conn.cursor()
     
     cur.execute("""
-        SELECT id, title, created_at, summary
+        SELECT id, title, created_at
         FROM documents
         ORDER BY created_at DESC
     """)
@@ -253,7 +320,7 @@ def get_standard_folders_by_date(conn: sqlite3.Connection) -> List[Dict[str, Any
     }
     
     for row in rows:
-        doc_id, title, created_at, summary = row
+        doc_id, title, created_at = row
         
         try:
             doc_date = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
@@ -270,15 +337,13 @@ def get_standard_folders_by_date(conn: sqlite3.Connection) -> List[Dict[str, Any
             buckets[bucket].append({
                 "id": doc_id,
                 "title": title,
-                "created_at": created_at,
-                "summary": summary[:100] if summary else None
+                "created_at": created_at
             })
         except:
             buckets["Older"].append({
                 "id": doc_id,
                 "title": title,
-                "created_at": created_at,
-                "summary": summary[:100] if summary else None
+                "created_at": created_at
             })
     
     # Convert to list of folders
@@ -321,7 +386,6 @@ def get_semantic_folder(conn: sqlite3.Connection, category: str) -> Dict[str, An
             d.id,
             d.title,
             d.created_at,
-            d.summary,
             c.label as concept_label,
             c.confidence
         FROM documents d
@@ -336,7 +400,7 @@ def get_semantic_folder(conn: sqlite3.Connection, category: str) -> Dict[str, An
     seen_docs = set()
     
     for row in rows:
-        doc_id, title, created_at, summary, concept_label, confidence = row
+        doc_id, title, created_at, concept_label, confidence = row
         
         # Avoid duplicates
         if doc_id in seen_docs:
@@ -347,7 +411,6 @@ def get_semantic_folder(conn: sqlite3.Connection, category: str) -> Dict[str, An
             "id": doc_id,
             "title": title,
             "created_at": created_at,
-            "summary": summary[:100] if summary else None,
             "concept": concept_label,
             "confidence": confidence
         })

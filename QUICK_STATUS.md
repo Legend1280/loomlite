@@ -84,7 +84,7 @@
 - Latest: https://loomlite-2kw2bnr2m-bradys-projects-179e6527.vercel.app
 
 **Backend:**
-- Production: https://loomlite-production.up.railway.app
+- Production: http://127.0.0.1:8000
 
 **GitHub:**
 - Repo: https://github.com/Legend1280/loomlite
@@ -96,7 +96,7 @@
 
 ```bash
 # Check job status
-curl https://loomlite-production.up.railway.app/api/jobs
+curl http://127.0.0.1:8000/api/jobs
 
 # Upload test file (from frontend upload button)
 # Visit: https://loomlite-2kw2bnr2m-bradys-projects-179e6527.vercel.app

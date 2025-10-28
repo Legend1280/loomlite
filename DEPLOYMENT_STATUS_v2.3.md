@@ -24,7 +24,7 @@
 
 ### ❌ Backend (Railway) - NEEDS UPDATE
 - **Status:** ❌ Running old code (no semantic clustering)
-- **URL:** https://loomlite-production.up.railway.app
+- **URL:** http://127.0.0.1:8000
 - **Current Version:** Pre-v2.3 (flat ontology)
 - **Issue:** Railway hasn't auto-deployed the latest GitHub changes
 
@@ -39,13 +39,13 @@
 
 ### Test 1: API Connectivity ✅
 ```bash
-curl "https://loomlite-production.up.railway.app/tree"
+curl "http://127.0.0.1:8000/tree"
 ```
 **Result:** ✅ Returns 7 documents successfully
 
 ### Test 2: Ontology Structure ❌
 ```bash
-curl "https://loomlite-production.up.railway.app/doc/doc_f06c63e56f92/ontology"
+curl "http://127.0.0.1:8000/doc/doc_f06c63e56f92/ontology"
 ```
 **Result:** ❌ Concepts missing hierarchy fields:
 - No `parent_cluster_id`
@@ -158,7 +158,7 @@ python3 migrate_add_hierarchy.py
 
 ```bash
 # Via API
-curl -X POST https://loomlite-production.up.railway.app/api/ingest \
+curl -X POST http://127.0.0.1:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{
     "file": "<base64_content>",

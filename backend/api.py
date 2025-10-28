@@ -16,16 +16,15 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+from fastapi import APIRouter
 
 # Import modules
-from models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
-from reader import read_document
-from extractor import extract_ontology_from_text, store_ontology
-from semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
-from analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
-from file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
-from provenance import log_provenance_event, get_provenance_events, get_provenance_summary
-from provenance_status import get_provenance_status, add_provenance_status
+from backend.models import MicroOntology, DocumentMetadata, OntologyVersion, Span, Concept, Relation, MentionLink
+from backend.reader import read_document
+from backend.extractor import extract_ontology_from_text, store_ontology
+from backend.semantic_folders import build_semantic_folders, get_saved_views, create_saved_view, delete_saved_view
+from backend.analytics import track_folder_view, track_pin_event, update_dwell_time, get_folder_stats, get_document_stats, get_trending_documents
+from backend.file_system import get_top_hits, get_pinned_folders, get_standard_folder, get_standard_folders_by_type, get_standard_folders_by_date, get_semantic_folder
 
 app = FastAPI(
     title="Loom Lite Unified API",
@@ -33,23 +32,19 @@ app = FastAPI(
     description="Ontology query and N8N ingestion endpoints"
 )
 
+router = APIRouter()
+
 # CORS - Fixed: allow_origins=["*"] with allow_credentials=True is invalid
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://loomlite.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:5000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5000"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Database path - use /data volume for persistence on Railway
-DB_DIR = os.getenv("DB_DIR", "/data")
+DB_DIR = os.getenv("DB_DIR", os.path.join(os.path.dirname(__file__), "data"))
 os.makedirs(DB_DIR, exist_ok=True)
 DB_PATH = os.path.join(DB_DIR, "loom_lite_v2.db")
 
@@ -184,16 +179,6 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
         # Generate doc_id from checksum
         doc_id = f"doc_{hashlib.sha256(doc_data['checksum'].encode()).hexdigest()[:12]}"
         
-        # Log provenance: Document ingested
-        log_provenance_event(
-            db_path=DB_PATH,
-            doc_id=doc_id,
-            event_type="ingested",
-            actor="document_reader",
-            checksum=doc_data['checksum'],
-            metadata={"filename": filename, "mime": doc_data["mime"], "size_bytes": len(file_bytes)}
-        )
-        
         if not title:
             title = filename
         
@@ -201,19 +186,6 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
         
         # Extract ontology
         ontology = extract_ontology_from_text(doc_data["text"], doc_id)
-        
-        # Log provenance: Ontology extracted
-        log_provenance_event(
-            db_path=DB_PATH,
-            doc_id=doc_id,
-            event_type="ontology_extracted",
-            actor="gpt-4.1-mini",
-            metadata={
-                "concepts_count": len(ontology["concepts"]),
-                "relations_count": len(ontology["relations"]),
-                "spans_count": len(ontology["spans"])
-            }
-        )
         
         jobs[job_id]["progress"] = "Storing results..."
         
@@ -262,15 +234,6 @@ def process_ingestion(job_id: str, file_bytes: bytes, filename: str, title: Opti
             )
             conn.close()
             print(f"✅ Unified summarization result: {result}")
-            
-            # Log provenance: Summaries generated
-            log_provenance_event(
-                db_path=DB_PATH,
-                doc_id=doc_id,
-                event_type="summaries_generated",
-                actor="gpt-4.1-mini",
-                metadata={"summary_count": result.get("summary_count", 0)}
-            )
         except Exception as e:
             print(f"⚠️  Summarization failed: {e}")
             import traceback
@@ -366,14 +329,8 @@ async def get_tree():
     conn = get_db()
     docs = conn.execute("SELECT id, title, source_uri, created_at FROM documents ORDER BY created_at DESC").fetchall()
     conn.close()
-    
-    # Convert to dicts and add type
-    docs_list = [{**dict(d), "type": "file"} for d in docs]
-    
-    # Add provenance status
-    docs_list = add_provenance_status(DB_PATH, docs_list)
-    
-    return docs_list
+    # Return array with type='file' for frontend compatibility
+    return [{**dict(d), "type": "file"} for d in docs]
 
 @app.get("/doc/{doc_id}/ontology")
 async def get_doc_ontology(doc_id: str):
@@ -430,84 +387,10 @@ async def get_doc_text(doc_id: str):
         "spans": [{"id": s["id"], "start": s["start"], "end": s["end"], "text": s["text"], "concept_id": s["concept_id"]} for s in spans]
     }
 
-@app.get("/doc/{doc_id}/provenance")
-async def get_doc_provenance(doc_id: str):
-    """
-    Get document provenance data from event log
-    Returns origin, transformation lineage, and semantic integrity
-    """
-    conn = get_db()
-    cur = conn.cursor()
-    
-    # Get document metadata
-    doc_row = cur.execute(
-        "SELECT id, title, source_uri, checksum, created_at, mime FROM documents WHERE id = ?",
-        (doc_id,)
-    ).fetchone()
-    
-    if not doc_row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Document not found")
-    
-    doc = dict(doc_row)
-    
-    # Get provenance events from event log
-    events = get_provenance_events(DB_PATH, doc_id)
-    
-    # Build lineage from events
-    lineage = []
-    for event in events:
-        lineage_entry = {
-            "event": event["event_type"],
-            "by": event.get("actor", "unknown"),
-            "time": event["timestamp"],
-            "details": ""
-        }
-        
-        # Add metadata details if present
-        if event.get("metadata"):
-            metadata = event["metadata"]
-            details_parts = []
-            if "concepts_count" in metadata:
-                details_parts.append(f"Concepts: {metadata['concepts_count']}")
-            if "relations_count" in metadata:
-                details_parts.append(f"Relations: {metadata['relations_count']}")
-            if "summary_count" in metadata:
-                details_parts.append(f"Summaries: {metadata['summary_count']}")
-            if "filename" in metadata:
-                details_parts.append(f"File: {metadata['filename']}")
-            lineage_entry["details"] = ", ".join(details_parts)
-        
-        lineage.append(lineage_entry)
-    
-    # Calculate semantic integrity (average concept confidence)
-    integrity_row = cur.execute("""
-        SELECT AVG(confidence) as avg_confidence, COUNT(*) as concept_count
-        FROM concepts
-        WHERE doc_id = ?
-    """, (doc_id,)).fetchone()
-    
-    conn.close()
-    
-    return {
-        "doc_id": doc["id"],
-        "title": doc["title"],
-        "origin": {
-            "source": doc.get("source_uri", "unknown"),
-            "timestamp": doc.get("created_at", ""),
-            "checksum": doc.get("checksum", ""),
-            "mime_type": doc.get("mime", "unknown")
-        },
-        "lineage": lineage,
-        "semantic_integrity": integrity_row["avg_confidence"] if integrity_row and integrity_row["avg_confidence"] else 0.0,
-        "concept_count": integrity_row["concept_count"] if integrity_row else 0,
-        "event_count": len(events)
-    }
-
 @app.get("/search")
 async def search(q: str = "", types: str = "", tags: str = ""):
     """
-    Hybrid search with fuzzy matching and multi-word support (v5.1)
+    Semantic search with document-level scoring (v1.6)
     Returns documents ranked by relevance with matching concepts
     """
     if not q:
@@ -517,86 +400,15 @@ async def search(q: str = "", types: str = "", tags: str = ""):
             "results": [],
             "document_scores": {},
             "count": 0,
-            "threshold": 0.15
+            "threshold": 0.25
         }
     
     conn = get_db()
-    threshold = 0.15  # Lowered threshold for fuzzy matches
+    threshold = 0.25
     
-    # Split query into terms for multi-word search
-    query_terms = [term.strip().lower() for term in q.split() if term.strip()]
-    
-    # Step 1: Get ALL documents for title matching
-    all_docs = conn.execute("SELECT id, title FROM documents").fetchall()
-    
-    # Helper function to calculate fuzzy title match score for a single term
-    def calculate_term_score(title, term):
-        title_lower = title.lower()
-        term_lower = term.lower()
-        
-        # Exact match
-        if title_lower == term_lower:
-            return 1.0
-        # Starts with
-        if title_lower.startswith(term_lower):
-            return 0.9
-        # Contains (substring)
-        if term_lower in title_lower:
-            position = title_lower.index(term_lower)
-            match_ratio = len(term_lower) / len(title_lower)
-            return 0.7 * match_ratio * (1 - position / len(title_lower))
-        
-        # Word boundary matching
-        words = [w for w in title_lower.replace('_', ' ').replace('-', ' ').replace('.', ' ').split() if w]
-        for word in words:
-            if word.startswith(term_lower):
-                return 0.6
-            if term_lower.startswith(word) and len(word) >= 3:
-                return 0.5
-        
-        # Fuzzy character-by-character matching
-        term_idx = 0
-        for char in title_lower:
-            if term_idx < len(term_lower) and char == term_lower[term_idx]:
-                term_idx += 1
-        if term_idx == len(term_lower):
-            return 0.3
-        
-        return 0.0
-    
-    # Step 2: Score documents by title matching
-    doc_title_scores = {}
-    for doc_row in all_docs:
-        doc_dict = dict(doc_row)
-        doc_id = doc_dict['id']
-        title = doc_dict['title']
-        
-        if len(query_terms) == 1:
-            # Single term
-            title_score = calculate_term_score(title, query_terms[0])
-        else:
-            # Multi-term: calculate score for each term
-            term_scores = [calculate_term_score(title, term) for term in query_terms]
-            matching_terms = sum(1 for s in term_scores if s > 0)
-            
-            if matching_terms == 0:
-                title_score = 0.0
-            elif matching_terms == len(query_terms):
-                # All terms match - bonus
-                avg_score = sum(term_scores) / len(term_scores)
-                title_score = avg_score * 1.5  # 50% bonus
-            else:
-                # Partial match
-                avg_score = sum(term_scores) / len(term_scores)
-                match_ratio = matching_terms / len(query_terms)
-                title_score = avg_score * match_ratio
-        
-        if title_score > 0:
-            doc_title_scores[doc_id] = title_score
-    
-    # Step 3: Find matching concepts (for semantic layer)
-    concept_query = "SELECT * FROM concepts WHERE " + " OR ".join(["label LIKE ?" for _ in query_terms])
-    concept_params = [f"%{term}%" for term in query_terms]
+    # Step 1: Find all matching concepts
+    concept_query = "SELECT * FROM concepts WHERE label LIKE ?"
+    concept_params = [f"%{q}%"]
     
     if types:
         type_list = types.split(",")
@@ -605,12 +417,14 @@ async def search(q: str = "", types: str = "", tags: str = ""):
     
     matching_concepts = conn.execute(concept_query, concept_params).fetchall()
     
-    # Debug logging
-    print(f"[SEARCH DEBUG] Query: '{q}' (terms: {query_terms})")
-    print(f"[SEARCH DEBUG] Found {len(doc_title_scores)} docs with title matches")
-    print(f"[SEARCH DEBUG] Found {len(matching_concepts)} matching concepts")
+    # Debug: Log matching concepts
+    print(f"[SEARCH DEBUG] Query: '{q}'")
+    print(f"[SEARCH DEBUG] Found {len(matching_concepts)} matching concepts:")
+    for concept in matching_concepts[:10]:  # Show first 10
+        concept_dict = dict(concept)
+        print(f"  - {concept_dict.get('label', 'N/A')} (doc: {concept_dict.get('doc_id', 'N/A')})")
     
-    # Step 4: Group concepts by document
+    # Step 2: Group concepts by document and calculate scores
     doc_concept_map = {}
     for concept in matching_concepts:
         concept_dict = dict(concept)
@@ -619,12 +433,11 @@ async def search(q: str = "", types: str = "", tags: str = ""):
             doc_concept_map[doc_id] = []
         doc_concept_map[doc_id].append(concept_dict)
     
-    # Step 5: Combine title scores and concept scores
-    all_doc_ids = set(doc_title_scores.keys()) | set(doc_concept_map.keys())
+    # Step 3: Calculate document-level scores
     document_scores = {}
     results = []
     
-    for doc_id in all_doc_ids:
+    for doc_id, concepts in doc_concept_map.items():
         # Get document metadata
         doc = conn.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
         if not doc:
@@ -633,30 +446,32 @@ async def search(q: str = "", types: str = "", tags: str = ""):
         doc_dict = dict(doc)
         title = doc_dict.get('title', '')
         
-        # Get scores
-        title_score = doc_title_scores.get(doc_id, 0.0)
-        concepts = doc_concept_map.get(doc_id, [])
-        concept_score = max([c.get('confidence', 0.0) for c in concepts]) if concepts else 0.0
+        # Calculate composite score
+        # titleMatch: fuzzy match between query and title
+        title_lower = title.lower()
+        query_lower = q.lower()
+        title_match = 1.0 if query_lower in title_lower else 0.0
         
-        # Weighted fusion: 0.6 title + 0.4 concept
-        final_score = (0.6 * title_score) + (0.4 * concept_score)
+        # conceptSim: max confidence of matching concepts
+        concept_sim = max([c.get('confidence', 0.0) for c in concepts]) if concepts else 0.0
+        
+        # spanOverlap: simplified - if concepts match, assume span overlap
+        span_overlap = 0.5 if concepts else 0.0
+        
+        # Composite score: 0.4*title + 0.4*concept + 0.2*span
+        score = (0.4 * title_match) + (0.4 * concept_sim) + (0.2 * span_overlap)
         
         # Only include documents above threshold
-        if final_score >= threshold:
-            document_scores[doc_id] = final_score
+        if score >= threshold:
+            document_scores[doc_id] = score
             
             # Determine match type
-            if title_score > concept_score:
-                match_type = "title"
-            elif concept_score > 0:
-                match_type = "concept"
-            else:
-                match_type = "fuzzy"
+            match_type = "title" if title_match > 0 else "concept"
             
             results.append({
                 "doc_id": doc_id,
                 "title": title,
-                "score": round(final_score, 3),
+                "score": round(score, 3),
                 "match_type": match_type,
                 "concepts": [
                     {
@@ -1263,7 +1078,7 @@ def trending_documents(limit: int = 10):
 # FILE SYSTEM ENDPOINTS (v4.0)
 # ============================================================================
 
-@app.get("/api/files/top-hits")
+@app.get("/files/top-hits")
 def api_top_hits(limit: int = 6):
     """
     Get top hits based on dwell time, recency, and frequency
@@ -1275,7 +1090,7 @@ def api_top_hits(limit: int = 6):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/files/pinned")
+@app.get("/files/pinned")
 def api_pinned_folders(user_id: str = "default"):
     """
     Get user-pinned folders and documents
@@ -1287,7 +1102,7 @@ def api_pinned_folders(user_id: str = "default"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/files/folders/{folder_type}")
+@app.get("/files/folders/{folder_type}")
 def api_standard_folder(folder_type: str):
     """
     Get standard folder contents (recent, favorites, etc.)
@@ -1307,7 +1122,7 @@ def api_standard_folder(folder_type: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/files/semantic/{category}")
+@app.get("/files/semantic/{category}")
 def api_semantic_folder(category: str):
     """
     Get semantic folder contents based on ontology
@@ -1323,7 +1138,7 @@ def api_semantic_folder(category: str):
 # DYNAMIC NAVIGATOR ENDPOINTS (v1.6)
 # ============================================================================
 
-@app.get("/api/folders/standard")
+@app.get("/folders/standard")
 def api_folders_standard():
     """
     Get all standard folders for Standard mode
@@ -1364,7 +1179,7 @@ def api_folders_standard():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/folders/temporal")
+@app.get("/folders/temporal")
 def api_folders_temporal():
     """
     Get time-based folders for Time mode
@@ -1373,6 +1188,7 @@ def api_folders_temporal():
     try:
         conn = get_db()
         folders_data = get_standard_folders_by_date(conn)
+        print("✅ folders_data:", folders_data)
         
         # Format for Dynamic Navigator
         folders = []
@@ -1388,7 +1204,7 @@ def api_folders_temporal():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/folders/semantic")
+@app.get("/folders/semantic")
 def api_folders_semantic():
     """
     Get semantic folders for Meaning mode
@@ -1424,7 +1240,7 @@ def api_folders_semantic():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/threads")
+@app.get("/threads")
 def api_threads():
     """
     Get active thread definitions
@@ -1487,7 +1303,7 @@ def api_threads():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/threads/{threadId}/documents")
+@app.get("/threads/{threadId}/documents")
 def api_thread_documents(threadId: str):
     """
     Get documents associated with a specific thread
@@ -1537,30 +1353,6 @@ def api_thread_documents(threadId: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/admin/migrate-provenance")
-async def migrate_provenance():
-    """
-    Run database migration to add provenance_events table (v4.1)
-    Safe to run multiple times - will skip if table already exists
-    """
-    try:
-        from migrate_add_provenance_events import run_migration
-        run_migration(DB_PATH)
-        
-        return {
-            "status": "success",
-            "message": "Provenance events table created successfully",
-            "table": "provenance_events"
-        }
-        
-    except Exception as e:
-        import traceback
-        return {
-            "status": "error",
-            "message": str(e),
-            "traceback": traceback.format_exc()
-        }
 
 @app.get("/admin/sort-weights")
 def get_sort_weights():
