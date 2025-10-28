@@ -345,6 +345,13 @@ function createMindMapVisualization(container) {
     .attr('stop-color', '#f59e0b')
     .attr('stop-opacity', 1);
   
+  // Add transparent background rect to capture pointer events for panning
+  svg.append('rect')
+    .attr('width', width)
+    .attr('height', height)
+    .attr('fill', 'transparent')
+    .style('pointer-events', 'all');
+  
   // Create zoom group - center planet initially
   const initialX = width * 0.25;  // 25% from left edge (gives room to expand right)
   const initialY = height / 2;    // Vertically centered
