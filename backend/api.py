@@ -2289,7 +2289,7 @@ async def migrate_v5_2_vector_integration():
     Makes vectors a first-class property of ontology objects.
     """
     try:
-        conn = get_db_connection()
+        conn = get_db()
         cur = conn.cursor()
         
         migrations_applied = []
