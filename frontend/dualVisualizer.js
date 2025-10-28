@@ -84,6 +84,9 @@ function renderSolarSystem(svg, data) {
   const centerX = width / 2;
   const centerY = height / 2;
   
+  console.log('📐 SVG size:', width, 'x', height);
+  console.log('🎯 Transform center:', centerX, centerY);
+  
   // Create document summary node for center
   const documentNode = {
     id: 'doc-' + (document.id || 'root'),
@@ -146,10 +149,18 @@ function renderSolarSystem(svg, data) {
       .attr('rx', radius)
       .attr('ry', radius * 0.4) // Flatten for perspective
       .attr('fill', 'none')
-      .attr('stroke', '#2a2a2a')
-      .attr('stroke-width', 0.5)
-      .attr('stroke-dasharray', '2,4')
-      .attr('opacity', 0.3);
+      .attr('stroke', '#4a4a4a')  // Lighter gray for visibility
+      .attr('stroke-width', 1)
+      .attr('stroke-dasharray', '4,4')
+      .attr('opacity', 0.5);  // Increased opacity
+  });
+  
+  // Debug: Check if ellipses were actually created
+  console.log('🔍 Ellipses created:', g.selectAll('ellipse').size());
+  g.selectAll('ellipse').each(function(d, i) {
+    const el = d3.select(this);
+    const parent = d3.select(this.parentNode);
+    console.log(`  Ellipse ${i}: rx=${el.attr('rx')}, ry=${el.attr('ry')}, parent transform=${parent.attr('transform')}`);
   });
   
   // Draw relation lines (middle layer)
