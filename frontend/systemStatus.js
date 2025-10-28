@@ -132,6 +132,30 @@ function createStatusPanel() {
       </div>
       
       <div class="status-section">
+        <div class="status-section-title">Vector Database</div>
+        <div class="status-item">
+          <span class="status-icon">🔢</span>
+          <span class="status-label">Model</span>
+          <span class="status-value" id="vectorModel">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">📐</span>
+          <span class="status-label">Dimension</span>
+          <span class="status-value" id="vectorDim">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">📄</span>
+          <span class="status-label">Doc Vectors</span>
+          <span class="status-value" id="docVectors">0</span>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">💡</span>
+          <span class="status-label">Concept Vectors</span>
+          <span class="status-value" id="conceptVectors">0</span>
+        </div>
+      </div>
+      
+      <div class="status-section">
         <div class="status-section-title">UI Components</div>
         <div class="status-item" data-component="toolbar">
           <span class="status-icon">⏳</span>
@@ -218,10 +242,26 @@ async function checkAllComponents() {
     componentStatus.databaseConnection = false;
   }
   
-  // Check ChromaDB status
+  // Check ChromaDB status and fetch vector stats
   try {
     const chromaResponse = await fetch(`${API_BASE}/api/embeddings/stats`);
     componentStatus.chromaDB = chromaResponse.ok;
+    
+    if (chromaResponse.ok) {
+      const data = await chromaResponse.json();
+      if (data.stats) {
+        // Update vector statistics
+        const modelEl = document.getElementById('vectorModel');
+        const dimEl = document.getElementById('vectorDim');
+        const docVectorsEl = document.getElementById('docVectors');
+        const conceptVectorsEl = document.getElementById('conceptVectors');
+        
+        if (modelEl) modelEl.textContent = data.stats.model || 'MiniLM';
+        if (dimEl) dimEl.textContent = data.stats.dimension || '384';
+        if (docVectorsEl) docVectorsEl.textContent = data.stats.documents || '0';
+        if (conceptVectorsEl) conceptVectorsEl.textContent = data.stats.concepts || '0';
+      }
+    }
   } catch (error) {
     componentStatus.chromaDB = false;
   }
