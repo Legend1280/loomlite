@@ -28,6 +28,8 @@ export function initDynamicPane(parentContainer) {
   
   // Listen for mode changes
   bus.on('navigatorModeChanged', ({ mode }) => {
+    console.log(`[DynamicPane] Mode changed to: ${mode}`);
+    console.log(`[DynamicPane] Current folders data:`, foldersData);
     currentMode = mode;
     renderFolders();
   });
@@ -141,6 +143,9 @@ function filterFoldersBySearch(results) {
  */
 function renderFolders() {
   if (!container) return;
+  
+  console.log(`[DynamicPane] Rendering folders for mode: ${currentMode}`);
+  console.log(`[DynamicPane] Folders data for ${currentMode}:`, foldersData[currentMode]);
   
   // Clear container
   container.innerHTML = '';
