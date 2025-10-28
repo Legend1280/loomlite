@@ -1859,6 +1859,12 @@ def add_critical_indexes():
         span_table = 'Span' if use_caps else 'spans'
         concept_table = 'Concept' if use_caps else 'concepts'
         
+        # Detect column naming convention for relations table
+        cur.execute(f"PRAGMA table_info({relation_table})")
+        relation_columns = {row[1] for row in cur.fetchall()}
+        src_col = 'src_concept_id' if 'src_concept_id' in relation_columns else 'src'
+        dst_col = 'dst_concept_id' if 'dst_concept_id' in relation_columns else 'dst'
+        
         indexes_to_create = [
             {
                 'name': 'idx_mention_concept_id',
@@ -1872,17 +1878,17 @@ def add_critical_indexes():
             },
             {
                 'name': 'idx_relation_src_concept_id',
-                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_src_concept_id ON {relation_table}(src_concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_src_concept_id ON {relation_table}({src_col})',
                 'description': 'Speed up relation lookups by source'
             },
             {
                 'name': 'idx_relation_dst_concept_id',
-                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_dst_concept_id ON {relation_table}(dst_concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_dst_concept_id ON {relation_table}({dst_col})',
                 'description': 'Speed up relation lookups by destination'
             },
             {
                 'name': 'idx_relation_src_dst',
-                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_src_dst ON {relation_table}(src_concept_id, dst_concept_id)',
+                'sql': f'CREATE INDEX IF NOT EXISTS idx_relation_src_dst ON {relation_table}({src_col}, {dst_col})',
                 'description': 'Speed up bidirectional relation queries'
             },
             {
