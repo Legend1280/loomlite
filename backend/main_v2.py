@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Import Pydantic models
-from models import (
+from .models import (
     MicroOntology, DocumentMetadata, OntologyVersion,
     Span, Concept, Relation, MentionLink, VectorConfig,
     SearchResult, JumpTarget, TreeNode, FilterOption

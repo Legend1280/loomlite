@@ -8,7 +8,7 @@ from collections import defaultdict
 import re
 import os
 from openai import OpenAI
-from models import Concept, Relation, MicroOntology
+from .models import Concept, Relation, MicroOntology
 
 # Initialize OpenAI client for cluster labeling (lazy loading)
 _client = None

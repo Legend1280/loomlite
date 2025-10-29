@@ -11,10 +11,10 @@ from datetime import datetime
 import hashlib
 from openai import OpenAI
 
-from reader import read_document, chunk_text
-from semantic_cluster import build_semantic_hierarchy
+from .reader import read_document, chunk_text
+from .semantic_cluster import build_semantic_hierarchy
 from summarizer import summarize_document_hierarchy
-from models import Concept, Relation, MicroOntology, DocumentMetadata, OntologyVersion
+from .models import Concept, Relation, MicroOntology, DocumentMetadata, OntologyVersion
 
 # Initialize OpenAI client (API key from environment)
 client = OpenAI()

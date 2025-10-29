@@ -15,7 +15,7 @@ import os
 from datetime import datetime
 import uuid
 
-from extractor import extract_and_store
+from .extractor import extract_and_store
 
 app = FastAPI(title="Loom Lite N8N API", version="1.0.0")
 

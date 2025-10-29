@@ -5,7 +5,7 @@ Creates dynamic multi-level hierarchies based on document complexity
 
 from typing import List, Dict, Tuple
 from collections import defaultdict
-from models import Concept, Relation, MicroOntology
+from .models import Concept, Relation, MicroOntology
 import os
 from openai import OpenAI
 
