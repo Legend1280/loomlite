@@ -49,9 +49,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database path - use /data volume for persistence on Railway
-DB_DIR = os.getenv("DB_DIR", "/data")
-os.makedirs(DB_DIR, exist_ok=True)
+# Database path - use /data volume for persistence on Railway/Render, or local path for development
+DB_DIR = os.getenv("DB_DIR", "/data" if os.path.exists("/data") else ".")
+try:
+    os.makedirs(DB_DIR, exist_ok=True)
+except OSError:
+    # If /data is read-only or doesn't exist, fall back to current directory
+    DB_DIR = "."
 DB_PATH = os.path.join(DB_DIR, "loom_lite_v2.db")
 
 # Job storage (in-memory for now, use Redis/DB for production)
