@@ -14,7 +14,6 @@ import { initDynamicPane } from './navigatorDynamicPane.js';
 import { initActiveThreads } from './navigatorActiveThreads.js';
 import { createListenerManager, registerManager } from './eventListenerManager.js';
 
-const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 
 // Global state
 let topHits = [];

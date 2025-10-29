@@ -8,7 +8,6 @@
 
 import { bus } from './eventBus.js';
 
-const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 
 // Global state
 let topHits = [];

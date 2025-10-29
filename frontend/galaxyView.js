@@ -12,7 +12,6 @@
 import { bus } from './eventBus.js';
 import { createListenerManager, registerManager } from './eventListenerManager.js';
 
-const API_BASE = 'https://loomlite-production.up.railway.app';
 
 let svg, g, simulation;
 let documents = [];

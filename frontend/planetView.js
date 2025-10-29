@@ -8,7 +8,6 @@
 
 import { bus } from './eventBus.js';
 
-const API_BASE = 'https://loomlite-production.up.railway.app';
 
 let svg, g, tree, root, zoom;
 let currentDocId = null;

@@ -87,7 +87,7 @@ class UploadQueue {
     // Poll every 2 seconds
     upload.pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`https://loomlite-production.up.railway.app/api/jobs/${jobId}`);
+        const response = await fetch(`${BACKEND_URL}/api/jobs/${jobId}`);
         if (!response.ok) {
           console.error(`Failed to fetch job status: ${response.status}`);
           return;

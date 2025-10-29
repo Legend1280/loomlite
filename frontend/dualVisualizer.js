@@ -25,7 +25,7 @@ const listeners = createListenerManager(); // Event listener manager
 export async function drawDualVisualizer(docId) {
   try {
     // Fetch ontology data from API
-    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${docId}/ontology`);
+    const response = await fetch(`${BACKEND_URL}/doc/${docId}/ontology`);
     if (!response.ok) {
       throw new Error(`Failed to fetch ontology: ${response.statusText}`);
     }

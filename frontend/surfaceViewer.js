@@ -25,7 +25,6 @@ let allRelations = []; // Store all relations
 let analyticsVisible = false;
 let currentFolder = null;
 let viewStartTime = null;
-const BACKEND_URL = 'https://loomlite-production.up.railway.app';
 const listeners = createListenerManager(); // Event listener manager
 
 /**
@@ -630,7 +629,7 @@ async function handleFolderSelection(eventDetail) {
   
   // Load the document's ontology to enable Mind Map navigation
   try {
-    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${doc_id}/ontology`);
+    const response = await fetch(`${BACKEND_URL}/doc/${doc_id}/ontology`);
     if (response.ok) {
       const ontology = await response.json();
       // Emit event to update Mind Map
@@ -815,8 +814,8 @@ async function renderDocumentMode(docId) {
   try {
     // Fetch document text, spans, and ontology
     const [textResponse, ontologyResponse] = await Promise.all([
-      fetch(`https://loomlite-production.up.railway.app/doc/${docId}/text`),
-      fetch(`https://loomlite-production.up.railway.app/doc/${docId}/ontology`)
+      fetch(`${BACKEND_URL}/doc/${docId}/text`),
+      fetch(`${BACKEND_URL}/doc/${docId}/ontology`)
     ]);
     
     if (!textResponse.ok || !ontologyResponse.ok) {
@@ -1219,7 +1218,7 @@ function findDescendants(conceptId, concepts) {
  */
 async function fetchAndDisplayConcept(conceptId) {
   try {
-    const response = await fetch(`https://loomlite-production.up.railway.app/doc/${currentDocId}/ontology`);
+    const response = await fetch(`${BACKEND_URL}/doc/${currentDocId}/ontology`);
     const data = await response.json();
     
     allConcepts = data.concepts || [];
@@ -1603,7 +1602,7 @@ console.log('Surface Viewer v3.0b module loaded');
 window.findSimilarConcepts = async function(conceptId, conceptLabel) {
   console.log(`\ud83d\udd0d Finding concepts similar to: "${conceptLabel}" (${conceptId})`);
   
-  const API_BASE = 'https://loomlite-production.up.railway.app';
+  const API_BASE = '${BACKEND_URL}';
   
   try {
     const response = await fetch(`${API_BASE}/api/similar/concept/${conceptId}?n=10&threshold=0.4`);
