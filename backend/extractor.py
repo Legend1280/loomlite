@@ -28,7 +28,12 @@ def get_openai_client():
     return _client
 
 # Use same DB path as api.py for consistency
-DB_DIR = os.getenv("DB_DIR", "/data")
+DB_DIR = os.getenv("DB_DIR", "/data" if os.path.exists("/data") else ".")
+try:
+    os.makedirs(DB_DIR, exist_ok=True)
+except OSError:
+    # If /data is read-only or doesn't exist, fall back to current directory
+    DB_DIR = "."
 DB_PATH = os.path.join(DB_DIR, "loom_lite_v2.db")
 
 EXTRACTION_PROMPT = """You are an expert ontology extractor following the Loom Lite Ontology Standard v1.1.
