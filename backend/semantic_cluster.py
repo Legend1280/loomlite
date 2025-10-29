@@ -10,8 +10,18 @@ import os
 from openai import OpenAI
 from models import Concept, Relation, MicroOntology
 
-# Initialize OpenAI client for cluster labeling
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# Initialize OpenAI client for cluster labeling (lazy loading)
+_client = None
+
+def get_openai_client():
+    """Get or initialize OpenAI client (singleton pattern)"""
+    global _client
+    if _client is None:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable is required for semantic clustering")
+        _client = OpenAI(api_key=api_key)
+    return _client
 
 
 # ============================================================================
@@ -404,6 +414,7 @@ Examples:
 Category name:'''
     
     try:
+        client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
             messages=[{"role": "user", "content": prompt}],
