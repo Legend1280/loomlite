@@ -13,12 +13,12 @@ const isLocal = window.location.hostname === 'localhost' ||
 // API Configuration
 const API_BASE = isLocal 
   ? 'http://127.0.0.1:8000'  // Local development
-  : 'https://loomlite-production.up.railway.app';  // Production (Railway)
+  : 'https://loomlite.onrender.com';  // Production (Render)
 
-// Alternative: Use Render for production
+// Old Railway URL (deprecated):
 // const API_BASE = isLocal 
 //   ? 'http://127.0.0.1:8000'
-//   : 'https://loomlite-backend.onrender.com';
+//   : 'https://loomlite-production.up.railway.app';
 
 // Export for use in other modules
 const BACKEND_URL = API_BASE;
