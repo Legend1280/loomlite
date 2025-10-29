@@ -4,7 +4,7 @@ This allows running migrations on Railway without SSH access
 """
 
 import os
-from migrate_add_provenance_events import run_migration
+from .migrate_add_provenance_events import run_migration
 
 if __name__ == "__main__":
     db_path = os.getenv("DATABASE_PATH", "/data/loom_lite_v2.db")
