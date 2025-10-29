@@ -16,8 +16,16 @@ from .semantic_cluster import build_semantic_hierarchy
 from .summarizer import summarize_document_hierarchy
 from .models import Concept, Relation, MicroOntology, DocumentMetadata, OntologyVersion
 
-# Initialize OpenAI client (API key from environment)
-client = OpenAI()
+# Lazy-load OpenAI client to prevent import-time crashes
+_client = None
+
+def get_openai_client():
+    """Get or initialize OpenAI client (lazy loading)"""
+    global _client
+    if _client is None:
+        _client = OpenAI()
+        print("✅ OpenAI client initialized")
+    return _client
 
 # Use same DB path as api.py for consistency
 DB_DIR = os.getenv("DB_DIR", "/data")
@@ -124,7 +132,7 @@ def extract_ontology_from_text(text: str, doc_id: str, model: str = "gpt-4.1") -
         
         try:
             # Call OpenAI API
-            response = client.chat.completions.create(
+            response = get_openai_client().chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are an expert ontology extractor."},
