@@ -422,8 +422,14 @@ async def get_tree():
     # Convert to dicts and add type
     docs_list = [{**dict(d), "type": "file"} for d in docs]
     
-    # Add provenance status
-    docs_list = add_provenance_status(DB_PATH, docs_list)
+    # Add provenance status (with error handling)
+    try:
+        docs_list = add_provenance_status(DB_PATH, docs_list)
+    except Exception as e:
+        print(f"Warning: Could not add provenance status: {e}")
+        # Add default provenance_status if it fails
+        for doc in docs_list:
+            doc['provenance_status'] = 'unknown'
     
     return docs_list
 
