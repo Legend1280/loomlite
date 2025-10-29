@@ -419,18 +419,23 @@ async def get_tree():
     docs = conn.execute("SELECT id, title, source_uri, created_at FROM documents ORDER BY created_at DESC").fetchall()
     conn.close()
     
+    print(f"[DEBUG /tree] Found {len(docs)} documents in database")
+    
     # Convert to dicts and add type
     docs_list = [{**dict(d), "type": "file"} for d in docs]
+    print(f"[DEBUG /tree] Converted to {len(docs_list)} dicts")
     
     # Add provenance status (with error handling)
     try:
         docs_list = add_provenance_status(DB_PATH, docs_list)
+        print(f"[DEBUG /tree] Added provenance status successfully")
     except Exception as e:
-        print(f"Warning: Could not add provenance status: {e}")
+        print(f"[DEBUG /tree] Provenance error: {e}")
         # Add default provenance_status if it fails
         for doc in docs_list:
             doc['provenance_status'] = 'unknown'
     
+    print(f"[DEBUG /tree] Returning {len(docs_list)} documents")
     return docs_list
 
 @app.get("/doc/{doc_id}/ontology")
